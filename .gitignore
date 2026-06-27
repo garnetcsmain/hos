@@ -1,0 +1,87 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production.local
+
+# Backend Python
+backend/venv/
+backend/.venv/
+backend/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/dist/
+backend/build/
+backend/*.egg-info/
+backend/.mypy_cache/
+backend/.dmypy.json
+backend/dmypy.json
+backend/.ruff_cache/
+
+# Frontend Node
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.npm
+frontend/.eslintcache
+frontend/.stylelintcache
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-workspace
+*.sublime-project
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+*.pem
+Thumbs.db
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.sql.gz
+
+# Temp files
+/tmp/
+/temp/
+.tmp
+
+# IDE Generated
+.classpath
+.project
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# MISC
+.cache/
+.parcel-cache
+.next
+out
+.turbo
+dist
