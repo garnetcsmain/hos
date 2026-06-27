@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+:root {
+  --hos-bg: #f8faf8;
+  --hos-surface: #ffffff;
+  --hos-panel: #ffffff;
+  --hos-dark: #0e1713;
+  --hos-ink: #17211c;
+  --hos-text: #17211e;
+  --hos-muted: #5f6d67;
+  --hos-border: #c9d6d0;
+  --hos-line: #c8d4ce;
+  --hos-red: #c94b3d;
+  --hos-green: #2f8a5f;
+  --hos-blue: #2f7fb8;
+  --hos-yellow: #f0b451;
+  --hos-warn: #a05a00;
+  --hos-ok: #1f7a4d;
+  --hos-alert: #b03420;
+  --hos-accent: #4a9fd8;
+  --hos-accent-soft: #dceef8;
+  --hos-radius: 8px;
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background: var(--hos-bg);
+    color: var(--hos-text);
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  .font-primary {
+    font-family: var(--font-inter), Inter, system-ui, sans-serif;
+  }
+
+  .font-data {
+    font-family: var(--font-ibm-plex-mono), "IBM Plex Mono", monospace;
+  }
+}

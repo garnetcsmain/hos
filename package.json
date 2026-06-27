@@ -1,0 +1,28 @@
+{
+  "name": "hos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Humanitarian Operations System",
+  "workspaces": [
+    "apps/web"
+  ],
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev:web": "npm run dev -w @hos/web",
+    "build:web": "npm run build -w @hos/web",
+    "lint:web": "npm run lint -w @hos/web"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/garnetcsmain/hos.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/garnetcsmain/hos/issues"
+  },
+  "homepage": "https://github.com/garnetcsmain/hos#readme"
+}

@@ -29,6 +29,12 @@ frontend/build/
 frontend/.npm
 frontend/.eslintcache
 frontend/.stylelintcache
+node_modules/
+apps/*/node_modules/
+apps/*/.next/
+apps/*/out/
+apps/*/build/
+.npm-cache/
 
 # IDEs
 .vscode/
