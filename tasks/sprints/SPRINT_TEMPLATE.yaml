@@ -1,0 +1,241 @@
+# Sprint Template
+
+Copy this file at the start of each sprint. Save as:
+`tasks/sprints/YYYY-WNN-sprint.yaml`
+
+Example: `tasks/sprints/2026-W27-sprint.yaml`
+
+---
+
+# Sprint Information
+sprint_id: "2026-W27"
+sprint_number: 27
+year: 2026
+start_date: "2026-06-30"
+end_date: "2026-07-06"
+duration_days: 7
+status: "planning"  # planning|in_progress|completed|cancelled
+
+# Sprint Goal
+sprint_goal: |
+  One sentence describing what this sprint is about.
+  What are we trying to accomplish this week?
+
+success_criteria:
+  - "What success looks like"
+  - "Measurable outcome"
+
+# Assigned Agents
+team:
+  - agent: "Claude-DEV-001"
+    role: "DEV"
+    capacity_hours: 40
+    availability_percent: 100
+
+  - agent: "Claude-QA-001"
+    role: "QA"
+    capacity_hours: 40
+    availability_percent: 100
+
+  - agent: "Claude-DEVOPS-001"
+    role: "DEVOPS"
+    capacity_hours: 20
+    availability_percent: 50
+
+# Tasks in Sprint
+tasks:
+  - id: "HOS-2026-001-01"
+    title: "Implement embeddings API"
+    owner: "DEV"
+    priority: "HIGH"
+    status: "todo"
+    estimate_hours: 16
+    dependencies: []
+
+  - id: "HOS-2026-001-02"
+    title: "Build model training pipeline"
+    owner: "DEVOPS"
+    priority: "HIGH"
+    status: "todo"
+    estimate_hours: 20
+    dependencies: ["HOS-2026-001-01"]
+
+  - id: "HOS-2026-001-03"
+    title: "Write integration tests"
+    owner: "QA"
+    priority: "MEDIUM"
+    status: "todo"
+    estimate_hours: 12
+    dependencies: ["HOS-2026-001-01"]
+
+# Sprint Metrics
+velocity:
+  total_estimate_hours: 48
+  total_completed_hours: 0
+  total_committed_hours: 48
+  completion_rate_percent: 0
+  forecast: "on_track"  # on_track|at_risk|off_track
+
+# Daily Standup Log
+standup_log:
+  - date: "2026-06-30"
+    day: "Monday"
+    summary: "Sprint kick-off"
+    items:
+      - "Sprint goal agreed: Complete matching engine core"
+      - "All tasks assigned"
+      - "No blockers identified"
+      - "Team ready to start"
+
+# Progress Tracking
+daily_burndown:
+  - date: "2026-06-30"
+    hours_remaining: 48
+    hours_completed: 0
+    status: "on_track"
+
+# Blockers & Risks
+blockers: []
+risks:
+  - risk: "Model optimization might be slow"
+    severity: "MEDIUM"
+    mitigation: "Start benchmarking early, have GPU ready"
+
+# Decisions Made in Sprint
+decisions:
+  # Track any decisions made during sprint
+  - date: "2026-07-01"
+    decision: "Use pgvector for embeddings storage"
+    rationale: "Simpler than separate vector DB"
+    approved_by: "CTO"
+
+# Gate Reviews (During Sprint)
+gates:
+  - milestone: "25%"
+    scheduled_date: "2026-07-02"
+    actual_date: null
+    status: "pending"
+    findings: null
+
+  - milestone: "50%"
+    scheduled_date: "2026-07-04"
+    actual_date: null
+    status: "pending"
+    findings: null
+
+  - milestone: "75%"
+    scheduled_date: "2026-07-05"
+    actual_date: null
+    status: "pending"
+    findings: null
+
+# Issues & Resolutions
+issues:
+  - date: "2026-07-01"
+    issue: "Model loading slower than expected"
+    resolution: "Added caching layer"
+    resolved: true
+
+# Sprint Review (End of sprint)
+sprint_review:
+  scheduled_date: "2026-07-07"
+  actual_date: null
+  status: "pending"
+
+  items_completed: []
+  items_incomplete: []
+
+  demo:
+    date: null
+    attendees: []
+    feedback: null
+
+# Sprint Retrospective (End of sprint)
+retrospective:
+  scheduled_date: "2026-07-07"
+  actual_date: null
+  status: "pending"
+
+  what_worked_well: []
+  what_could_improve: []
+  action_items: []
+
+# Post-Sprint Metrics
+final_metrics:
+  total_estimate_hours: 48
+  total_actual_hours: null
+  variance_percent: null
+  velocity_points: null
+
+  completion_rate_percent: null
+  cycle_time_days: null
+  defect_rate: null
+
+# Learning & Insights
+learning:
+  velocity_trend: null  # up|stable|down
+  team_satisfaction: null  # 1-5 score
+  forecast_accuracy: null  # How close were estimates?
+
+  improvements_for_next_sprint: []
+  process_changes: []
+
+# Sign-off
+sprint_owner: "Claude-COO-001"
+approved_by: "Claude-CTO-001"
+completed_at: null
+
+---
+
+# QUICK START
+
+When creating a new sprint:
+1. Copy this template
+2. Update sprint_id (e.g., 2026-W27)
+3. Set dates (start/end)
+4. Write sprint_goal
+5. List tasks from backlog
+6. Assign team members
+7. Calculate total estimate
+8. Fill in daily progress
+
+During sprint:
+- Update daily_burndown each day
+- Log standup_log items
+- Flag blockers immediately
+- Gate at 25%, 50%, 75%
+
+After sprint:
+- Complete sprint_review & retrospective
+- Calculate final_metrics
+- Capture learning
+- Close sprint
+
+---
+
+# Example Daily Update
+
+```yaml
+# At end of each day, add to standup_log:
+- date: "2026-07-02"
+  day: "Tuesday"
+  summary: "Good progress on embeddings API"
+  items:
+    - "HOS-2026-001-01: 50% complete (endpoint functional)"
+    - "HOS-2026-001-02: 25% complete (data pipeline loading)"
+    - "No blockers, team unblocked"
+    - "On track for 25% gate"
+
+  # Update burndown
+  hours_remaining: 36  # Down from 48
+```
+
+---
+
+# Metrics Definitions
+
+**Velocity** = Total hours completed per sprint (for forecasting)
+**Burndown** = Remaining hours over time (tracking progress)
+**Completion Rate** = Tasks done / Tasks started (quality metric)
+**Cycle Time** = Days from start to done (efficiency metric)
+**Forecast** = Will we finish on time? (prediction)

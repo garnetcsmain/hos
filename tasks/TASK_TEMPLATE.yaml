@@ -1,0 +1,165 @@
+# Task Template
+
+Copy this file when creating a new task. Save as:
+`tasks/backlog/HOS-XXXX-epic-name/NN-task-name.yaml`
+
+---
+
+# Core Information
+id: "HOS-2026-001-01"
+title: "Task Title Here"
+description: |
+  Detailed description of what needs to be done.
+  Why is it important?
+  What are we solving?
+
+category: "backend"  # backend|frontend|database|infrastructure|devops|qa|docs
+type: "feature"  # feature|bugfix|refactor|infrastructure|testing|documentation
+
+# Ownership & Timeline
+owner: "DEV"  # DEV|DEVOPS|QA|CTO|COO|Product
+assignee: "Claude-DEV-001"  # Optional: specific agent
+created_at: "2026-06-27T10:00:00Z"
+due_date: "2026-07-10T23:59:59Z"
+estimated_hours: 16
+
+# Tracking
+status: "todo"  # todo|in_progress|in_review|done|blocked
+priority: "HIGH"  # CRITICAL|HIGH|MEDIUM|LOW
+progress_percent: 0
+
+# Relationships
+epic_id: "HOS-2026-001"
+decision_link: "docs/decision-log/2026-06-27-HOS-001/proposal.yaml"
+depends_on: []  # List IDs of tasks that must complete first
+blocks: []  # List IDs of tasks blocked by this one
+
+# Requirements (What needs to be done)
+requirements:
+  - "Requirement 1"
+  - "Requirement 2"
+
+# Definition of Done (How we know it's complete)
+acceptance_criteria:
+  - "Criteria 1"
+  - "Criteria 2"
+
+# Testing (How we verify it works)
+tests_required:
+  - unit: "Test description"
+  - integration: "Test description"
+  - performance: "Test description"
+
+done_criteria:
+  - "Code merged to main"
+  - "All tests passing"
+  - "Code reviewed"
+  - "Documentation updated"
+
+# Execution Notes
+implementation_notes: |
+  Technical approach, design decisions, architecture notes.
+  What's the strategy?
+
+risks:
+  - "Risk 1 and how we mitigate it"
+  - "Risk 2 and how we mitigate it"
+
+blockers: []  # List any current blockers
+
+# Gates (Mid-project checkpoints)
+gates:
+  - milestone: "25%"
+    criteria: "Describe what 25% done looks like"
+    date: "2026-07-03"
+    status: "pending"
+
+  - milestone: "50%"
+    criteria: "Describe what 50% done looks like"
+    date: "2026-07-06"
+    status: "pending"
+
+  - milestone: "75%"
+    criteria: "Describe what 75% done looks like"
+    date: "2026-07-09"
+    status: "pending"
+
+# Status History (Updated as work progresses)
+status_history:
+  - status: "todo"
+    date: "2026-06-27T10:00:00Z"
+    note: "Created"
+    actor: "Product Agent"
+
+# Progress Tracking (Updated during execution)
+time_spent_hours: 0
+updates:
+  - date: "2026-07-01"
+    progress: "10%"
+    note: "Started implementation"
+    actor: "Claude-DEV-001"
+
+  - date: "2026-07-02"
+    progress: "35%"
+    note: "Core API working, testing in progress"
+    actor: "Claude-DEV-001"
+
+# Code Changes (Once development starts)
+code_changes:
+  - file: "application/backend/services/person_service.py"
+    lines_added: 150
+    lines_removed: 0
+    status: "in_review"
+
+# Review (When code is ready)
+review:
+  requested_at: "2026-07-08T10:00:00Z"
+  reviewer: "Claude-CTO-001"
+  verdict: null  # pending|approved|changes_requested|rejected
+  comments: []
+  approved_at: null
+
+# Completion (When task is done)
+completed_at: null
+deployed_to: []  # staging|production
+merged_branch: null
+
+# Metrics & Learning
+metrics:
+  estimated_hours: 16
+  actual_hours: null
+  variance_percent: null  # Calculated when done
+  test_coverage_percent: null
+  code_quality: null  # good|acceptable|needs_improvement
+
+# Post-Completion Learning
+learning:
+  what_worked: []
+  what_didn_work: []
+  improvements_for_next_time: []
+  unexpected_learnings: []
+
+# Notes & Comments
+notes: |
+  General notes, context, relevant links, etc.
+
+---
+
+# QUICK REFERENCE
+
+## Minimal Task (Quickstart)
+Only fill these fields to get started:
+- id, title, description
+- owner, due_date, estimated_hours
+- epic_id, status
+- requirements, acceptance_criteria, done_criteria
+
+## Full Task (Comprehensive)
+Fill all sections for complex work
+
+## Key Principles
+- One task = 1-3 days of work
+- If larger, break into subtasks
+- Link to epic decision
+- Set clear acceptance criteria
+- Gate at 25%, 50%, 75%

@@ -1,0 +1,99 @@
+# Active Tasks Summary
+
+This is the single source of truth for all active tasks across all epics.
+Update this file as tasks change status.
+
+---
+
+# Task Summary
+total_tasks: 0
+in_backlog: 0
+in_sprint: 0
+in_progress: 0
+in_review: 0
+done: 0
+
+# Current Sprint
+current_sprint: "2026-W26"
+sprint_start: "2026-06-23"
+sprint_end: "2026-06-29"
+sprint_goal: "Establish agentic workflow & governance"
+
+# Sprint Velocity
+velocity:
+  committed_hours: 0
+  completed_hours: 0
+  completion_rate: "0%"
+  trend: "baseline"
+
+# Blockers (All epics)
+active_blockers: []
+
+# Risk Summary
+risks:
+  - status: "none"
+    note: "No active risks at this time"
+
+---
+
+# Epics & Their Tasks
+
+epics: []
+  # Example structure (uncomment when first epic has tasks):
+  # - epic_id: "HOS-2026-001"
+  #   title: "Add AI-Assisted Person Matching"
+  #   decision_link: "docs/decision-log/2026-06-27-HOS-001/"
+  #   status: "active"  # active|planning|on_hold|completed
+  #   progress: "0%"
+  #   tasks:
+  #     - id: "HOS-2026-001-01"
+  #       title: "Implement embeddings API"
+  #       owner: "DEV"
+  #       status: "todo"
+  #       priority: "HIGH"
+  #       due_date: "2026-07-10"
+  #       progress: "0%"
+
+---
+
+# Instructions
+
+## To Add a New Task
+
+1. Create file: `tasks/backlog/HOS-XXXX-epic-name/01-task-name.yaml`
+2. Add entry to this file under the appropriate epic
+3. Set status to "todo" and priority
+4. Assign to owner (DEV, DEVOPS, QA, CTO, COO, Product)
+
+## To Update Task Status
+
+1. Update task file: `tasks/backlog/HOS-XXXX.../NN-task.yaml`
+   - Change `status:` field
+   - Add timestamp
+   - Update progress %
+
+2. Update this file: Reflect new status
+
+## To Complete a Sprint
+
+1. Archive completed tasks to `tasks/archive/completed/2026-Q2/`
+2. Create next sprint: `tasks/sprints/2026-WNNN-sprint.yaml`
+3. Start new sprint with updated TASKS_ACTIVE.yaml
+
+---
+
+# Next Actions
+
+- [ ] Create first epic after Board approves decision
+- [ ] Add tasks to backlog
+- [ ] Run first sprint
+- [ ] Track velocity
+- [ ] Calibrate estimates based on learning
+
+---
+
+# Historical Velocity (For Trending)
+
+| Sprint | Committed | Completed | Rate | Trend |
+|--------|-----------|-----------|------|-------|
+| 2026-W26 | TBD | TBD | TBD | baseline |

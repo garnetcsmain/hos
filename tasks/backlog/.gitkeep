@@ -1,0 +1,15 @@
+# Task Backlog
+
+Store all task files here, organized by epic:
+
+```
+backlog/
+├── HOS-2026-001-epic-name/
+│   ├── 01-task-title.yaml
+│   ├── 02-task-title.yaml
+│   └── 03-task-title.yaml
+└── HOS-2026-002-epic-name/
+    └── ...
+```
+
+Each file follows the structure in TASK_MANAGEMENT.md
