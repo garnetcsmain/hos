@@ -1,0 +1,36 @@
+id: "HOS-2026-001-01"
+title: "Deterministic, explainable matching engine"
+description: |
+  Score missing<->found pairs without any training data (cold start). Accent-folded,
+  Spanish-nickname-aware name similarity plus age, location, sex, traits, timeline;
+  hard-negative contradiction penalties so coincidental common-name pairs stay below
+  the floor. Every candidate carries a human-readable "why matched" evidence chain.
+category: "backend"
+type: "feature"
+owner: "DEV"
+created_at: "2026-06-28T00:00:00Z"
+due_date: "2026-06-28T23:59:59Z"
+estimated_hours: 10
+status: "done"
+priority: "CRITICAL"
+progress_percent: 100
+epic_id: "HOS-2026-001"
+decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/proposal.yaml#HOS-2026-002-D1"
+requirements:
+  - "Weighted factors: name 0.34, location 0.20, age 0.16, traits 0.12, sex 0.10, time 0.08"
+  - "MATCH_FLOOR=45, TOP_K=5, MODEL_VERSION=rule-engine@v1"
+  - "Contradiction penalties (sex mismatch x0.35; age gap >30y x0.4)"
+acceptance_criteria:
+  - "Every candidate exposes per-factor evidence"
+  - "Adversarial common-name + 45y age gap stays below floor"
+  - "Deterministic and unit-tested"
+done_criteria:
+  - "All tests passing"
+  - "Pushed to branch claude/agitated-jackson-a607b1"
+code_changes:
+  - file: "apps/web/app/lib/matching/{engine,normalize,nicknames,similarity}.ts"
+  - file: "apps/web/app/lib/matching/engine.test.ts"
+completed_at: "2026-06-28T00:00:00Z"
+merged_branch: "claude/agitated-jackson-a607b1"
+notes: |
+  Board verdict (HOS-2026-002-D1) recorded in the decision log.

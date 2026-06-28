@@ -1,0 +1,70 @@
+decision_id: "HOS-2026-006"
+title: "Facial-recognition assisted matching (photo -> candidate)"
+category: "strategic"
+proposer: "Product Agent"
+date: "2026-06-28"
+status: "DRAFT — awaiting Board review"
+board_status: "pending"   # not yet run; this is the forward-process demonstration
+
+summary: >
+  Add optional photo-based matching: compute a face embedding for a missing
+  person's photo and for found/sheltered people, and surface visually-similar
+  candidates as ONE additional weighted factor in the existing explainable
+  evidence chain — never an override, never an auto-confirmation. This is the v2
+  capability HOS-2026-001 explicitly deferred. It is the highest-value AND
+  highest-risk addition and must NOT be built until this proposal clears the
+  Board and a human + legal sign-off.
+
+context:
+  problem: >
+    Many displaced people cannot be matched on name/age/location alone (no ID,
+    inconsistent names, unidentified found persons). A photo is often the only
+    strong signal a family has.
+  user_impact: >
+    A mother with only a photo of her son could be shown visually-similar found
+    people to review. Done wrong, the same capability mis-identifies someone and
+    sends a family to the wrong morgue, or builds a searchable biometric database
+    that can be turned against the very people it was meant to protect.
+
+scope:
+  in:
+    - "Face embedding (vector) per photo; cosine-similarity candidate search"
+    - "One additional weighted factor in the existing evidence chain (advisory)"
+    - "Strict human verification before any family contact (unchanged rule)"
+  out:
+    - "Any automatic identification or confirmation"
+    - "Retaining raw biometric images longer than necessary"
+    - "Sharing the face database with third parties or across deployments"
+
+options:
+  - id: "self-hosted-insightface"
+    note: "InsightFace/ArcFace on infra we control; store ONLY vectors in pgvector; raw photo retention minimized. Best privacy — no biometric PII leaves our perimeter. Needs a GPU host."
+  - id: "aws-rekognition"
+    note: "Managed, fastest to stand up; sends biometrics to AWS. Needs a DPA and a defensible legal basis."
+  - id: "azure-face"
+    note: "Identification is access-gated (Limited Access application); slower to start."
+
+resources:
+  prerequisites: ["Photo/object storage (S3/R2)", "pgvector (HOS-2026-001-07)", "GPU host if self-hosted"]
+  time_estimate: "3-4 weeks after approval"
+
+success_criteria:
+  - "Face match is always one advisory factor, never an override or auto-confirm"
+  - "No raw biometric image retained beyond the matching window (policy + enforced)"
+  - "Documented consent basis + retention + deletion policy before first use"
+  - "Threat-model sign-off for the Venezuela 2026 context (surveillance/targeting risk)"
+
+risks:
+  - "Biometric data of vulnerable people; special-category under many laws (GDPR Art. 9, BIPA-style)"
+  - "A searchable face DB is a surveillance/targeting asset if leaked or subpoenaed (Venezuela context)"
+  - "False matches are high-harm (wrong morgue/shelter); demographic bias in face models"
+  - "Consent in a crisis is often absent or coerced"
+
+board_questions_to_answer:
+  - "Contrarian: what is the worst-case misuse of this database, and is it unfixable?"
+  - "Principals: does any option violate data-minimization beyond what consent can cure?"
+  - "Researcher: what did ICRC/UNHCR conclude about biometrics for displaced people, and what went wrong (e.g. Rohingya data-sharing)?"
+  - "User: would a frightened family trust a photo match, and how do we present uncertainty?"
+  - "Expansionist: is the upside reachable WITHOUT centralizing a biometric DB?"
+
+escalation: "Critical/strategic — requires human + legal approval in addition to the Board. Do not implement before that."

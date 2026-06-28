@@ -1,0 +1,32 @@
+id: "HOS-2026-001-04"
+title: "Spanish-first operator UI"
+description: |
+  Coordinator + intake UI in Spanish: dashboard with live metrics + activity feed,
+  missing/found registries, match console with the per-candidate evidence chain and a
+  verify panel, and a family-messages inbox. Reinforces "AI recommends, people decide"
+  in copy throughout.
+category: "frontend"
+type: "feature"
+owner: "DEV"
+created_at: "2026-06-28T00:00:00Z"
+due_date: "2026-06-28T23:59:59Z"
+estimated_hours: 12
+status: "done"
+priority: "HIGH"
+progress_percent: 100
+epic_id: "HOS-2026-001"
+requirements:
+  - "Dashboard, MissingRegistry, FoundRegistry, MatchConsole(+Parts), MessagesInbox, IntakeForms"
+  - "All client components consume the typed API client + i18n strings"
+acceptance_criteria:
+  - "No console errors; reflects live data; least-PII only"
+  - "Evidence chain + verify panel usable end to end"
+done_criteria:
+  - "Verified via runtime screenshots; eslint clean"
+code_changes:
+  - file: "apps/web/app/components/*.tsx"
+  - file: "apps/web/app/lib/{client/api,i18n/strings}.ts"
+completed_at: "2026-06-28T00:00:00Z"
+merged_branch: "claude/agitated-jackson-a607b1"
+notes: |
+  Built with a parallel UI workflow, then verified centrally.

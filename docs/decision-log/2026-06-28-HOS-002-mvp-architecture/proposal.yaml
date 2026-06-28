@@ -1,0 +1,130 @@
+decision_id: "HOS-2026-002"
+title: "Phase 0 MVP Architecture (persistence, matching, identity, notifications)"
+category: "strategic"
+proposer: "DEV Agent (autonomous build)"
+date: "2026-06-28"
+
+summary: >
+  Four coupled architecture decisions taken while building the Phase 0
+  family-reunification MVP autonomously, before they were run through the
+  Board. This proposal puts them up for retroactive Board review so they are
+  either ratified, reshaped, or killed before the work hardens. The MVP links
+  "missing person" reports to "found / sheltered person" records, ranks
+  candidate matches with a human-readable explanation, lets a coordinator
+  verify a match, and notifies the family. Built, tested (22 tests), and
+  pushed on branch claude/agitated-jackson-a607b1; not yet deployed.
+
+context:
+  problem: >
+    HOS-2026-001 (AI-Assisted Person Matching) was GREEN in spirit but assumed
+    an ML embeddings model trained on ~5000 historical matches and a team with
+    an ML engineer and DEVOPS over 6 weeks. The autonomous overnight build had
+    none of those: no historical/labeled data (cold-start, brand-new
+    deployment), no external credentials (no cloud AI key, no hosted Postgres,
+    no SMS/email/WhatsApp provider, no auth provider), and a single agent over
+    ~5 hours. Decisions had to be made to ship something real and runnable.
+  user_impact: >
+    A coordinator can run the system today with zero external setup and get
+    explainable ranked matches; families and volunteers can file reports and
+    search. The deferrals (real auth, external notification channels, hosted
+    DB, learned matching) limit real-world reach until provisioned.
+  constraints_at_build_time:
+    - "No cloud AI API key available"
+    - "No hosted database / Supabase service credentials available"
+    - "No SMS / email / WhatsApp / Telegram provider available"
+    - "No auth/identity provider (OIDC/Supabase Auth) available"
+    - "Directive: build a full functional MVP autonomously; skip anything needing external setup"
+
+decisions:
+  - id: "HOS-2026-002-D1"
+    title: "Matching = deterministic explainable rule engine (always on) + optional pluggable cloud-AI blend"
+    what_was_built: >
+      Hand-tuned weighted-factor scoring over name, last-known location, age,
+      sex, distinguishing traits, and timeline. Names are accent-folded and
+      Spanish-nickname-aware (Pepe->Jose). Hard-negative contradiction
+      penalties (sex mismatch x0.35; age gap >30y x0.4) keep coincidental
+      common-name matches below the floor. MATCH_FLOOR=45, TOP_K=5,
+      MODEL_VERSION="rule-engine@v1". Every candidate carries a "why matched"
+      evidence chain. An optional cloud-AI layer (Anthropic/OpenAI/mock,
+      multi-provider, env-selected) blends in ONLY when a key is configured, and
+      only to DEMOTE/flag (the deterministic baseline is the ceiling). PII is
+      minimized at the FIELD level before any external call (reporter contact and
+      sensitive notes withheld; free-text description scrubbed of phone/email/
+      handle patterns) — but a name in prose still passes, so a production key
+      also requires a no-retention/no-train DPA + explicit opt-in.
+    deviates_from: "HOS-2026-001 assumption of a trained ML embeddings model"
+    tradeoffs:
+      pro: ["Works cold-start with zero data", "Fully explainable / auditable", "Zero cost and latency at baseline", "Deterministic and testable"]
+      con: ["Hand-tuned weights may not generalize across regions", "No learning loop from confirmed/rejected matches", "Cloud blend adds cost, latency, and sends minimized PII to a third party"]
+
+  - id: "HOS-2026-002-D2"
+    title: "Persistence = node:sqlite now, behind a repository layer; Postgres/Supabase deferred"
+    what_was_built: >
+      Node's built-in node:sqlite (no native build step), WAL mode,
+      busy_timeout, foreign keys on. Append-only event store for audit. All
+      data access is behind a repository layer so a Postgres/Supabase adapter
+      can replace SQLite without touching services.
+    deviates_from: "Repo already provisions Supabase/Postgres infrastructure"
+    tradeoffs:
+      pro: ["Zero external setup; runs anywhere Node runs", "Good fit for offline / edge deployments in low-connectivity crises", "Fast; no network round-trips"]
+      con: ["Single-node; no multi-instance concurrent writes", "Not the production target; a migration is owed", "No managed backups / HA out of the box"]
+
+  - id: "HOS-2026-002-D3"
+    title: "Identity & access = single shared coordinator token (dev-open if unset); no per-user auth/roles/tenancy yet"
+    what_was_built: >
+      Public intake and search are open by design (families must report
+      without accounts). Privileged endpoints (match review, verify, notify,
+      timeline) are gated by a single HOS_COORDINATOR_TOKEN compared in
+      constant time (timingSafeEqual), with in-memory rate limiting and zod
+      validation. If the token env var is unset, those endpoints are OPEN
+      (developer convenience).
+    deviates_from: "A real deployment needs per-user authN/Z, roles, and org isolation"
+    tradeoffs:
+      pro: ["No third-party dependency to run", "Constant-time comparison; rate-limited", "Public intake stays frictionless for families"]
+      con: ["Single shared secret = no per-user accountability or granular revocation", "No org/tenant isolation between responding agencies", "Dev-open default is dangerous if deployed without setting the token"]
+
+  - id: "HOS-2026-002-D4"
+    title: "Notifications = in-app channel only now; SMS/WhatsApp/email/Telegram deferred; never claim external delivery"
+    what_was_built: >
+      On a verified confirmation, both reports resolve atomically and a
+      redacted, Spanish-language in-app notification is queued. The UI states
+      explicitly that external channels are pending and that the system does
+      not claim to have delivered by SMS/email/WhatsApp/Telegram. Every
+      notification frames a match as a candidate to verify, never an automatic
+      confirmation.
+    deviates_from: "Families not on the platform need to be reached out-of-band"
+    tradeoffs:
+      pro: ["Honest: no false delivery claims", "Safe: redacted PII; human-confirmed before any family message", "No provider dependency to run"]
+      con: ["Families not on the platform are not reached until a channel is wired", "Limited real-world utility until at least one external channel exists"]
+
+scope:
+  in:
+    - "Retroactive ratification / reshape / kill of D1-D4"
+    - "Conditions and gates the Board wants attached before this hardens or deploys"
+  out:
+    - "Facial-recognition matching (separate forthcoming proposal HOS-2026-006)"
+    - "Cross-border / cross-deployment search (legal review required first)"
+    - "Automatic confirmation without a human in the loop (explicitly forbidden)"
+
+resources:
+  already_spent: "~1 autonomous build session; built, tested, pushed (not deployed)"
+  to_productionize: "Cloud AI key(s), hosted Postgres, >=1 notification provider, an auth provider, plus integration work"
+
+success_criteria:
+  - "Every surfaced match carries a human-readable explanation (met)"
+  - "No automatic reunification without human verification (met)"
+  - "Coordinator endpoints are access-controlled and rate-limited (met, with dev-open caveat)"
+  - "PII minimized at the field level before any external call; free-text scrubbed (partially met — name in prose still sent; DPA + opt-in required before enabling a key)"
+  - "System runs with zero external setup for evaluation (met)"
+
+risks:
+  - "Dev-open coordinator default could expose privileged endpoints if deployed unconfigured"
+  - "Hand-tuned matching weights unvalidated against real, messy intake data"
+  - "SQLite single-node ceiling hit if multiple agencies write concurrently at scale"
+  - "Volunteers may over-trust ranked output and under-verify"
+  - "In-app-only notifications give a false sense of 'family was told'"
+
+assumptions:
+  - "Cold-start with no labeled data is the real starting condition, not an exception"
+  - "A repository layer makes the SQLite->Postgres migration cheap when credentials arrive"
+  - "Explainability + human-in-the-loop matter more than raw match recall for trust"

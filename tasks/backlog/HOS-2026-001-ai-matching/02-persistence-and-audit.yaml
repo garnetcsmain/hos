@@ -1,0 +1,33 @@
+id: "HOS-2026-001-02"
+title: "Persistence + append-only audit, behind a repository layer"
+description: |
+  Zero-setup local persistence using Node's built-in node:sqlite (WAL, busy_timeout,
+  FKs). All access behind repositories so Postgres/Supabase can replace it later
+  without touching services. Append-only event store records every state change.
+category: "database"
+type: "infrastructure"
+owner: "DEV"
+created_at: "2026-06-28T00:00:00Z"
+due_date: "2026-06-28T23:59:59Z"
+estimated_hours: 8
+status: "done"
+priority: "CRITICAL"
+progress_percent: 100
+epic_id: "HOS-2026-001"
+decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/proposal.yaml#HOS-2026-002-D2"
+requirements:
+  - "Schema: missing_reports, found_reports, match_candidates, verifications, notifications, events"
+  - "Singleton connection surviving HMR; transaction() helper"
+  - "Repository layer isolates all SQL"
+acceptance_criteria:
+  - "Runs with no external DB; deterministic next build"
+  - "Every state change appends an audit event"
+done_criteria:
+  - "Build passes from a fresh .data dir"
+code_changes:
+  - file: "apps/web/app/lib/db/{client,schema,mappers,seed,seed-runner}.ts"
+  - file: "apps/web/app/lib/repositories/*.ts"
+completed_at: "2026-06-28T00:00:00Z"
+merged_branch: "claude/agitated-jackson-a607b1"
+notes: |
+  Productionization (Postgres) tracked as HOS-2026-001-07. Board verdict D2 in decision log.

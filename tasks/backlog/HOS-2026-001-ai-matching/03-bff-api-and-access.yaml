@@ -1,0 +1,37 @@
+id: "HOS-2026-001-03"
+title: "BFF API routes + access gate + validation"
+description: |
+  Next.js API routes as the backend-for-frontend. Domain logic stays in services
+  (never in routes). Public intake/search; coordinator-gated match/verify/notify/
+  timeline behind a constant-time token check, in-memory rate limiting, zod boundary
+  validation, and least-PII server-side projections.
+category: "backend"
+type: "feature"
+owner: "DEV"
+created_at: "2026-06-28T00:00:00Z"
+due_date: "2026-06-28T23:59:59Z"
+estimated_hours: 8
+status: "done"
+priority: "HIGH"
+progress_percent: 100
+epic_id: "HOS-2026-001"
+decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/proposal.yaml#HOS-2026-002-D3"
+requirements:
+  - "Routes: missing, found, search, dashboard (public); matches, matches/[id], recompute, verify, notifications, timeline (gated)"
+  - "timingSafeEqual vs HOS_COORDINATOR_TOKEN; zod validation; rate limiting"
+  - "Public projections never leak full PII"
+acceptance_criteria:
+  - "Gated endpoints reject without the token (when set)"
+  - "ZodError -> 400; errors normalized"
+done_criteria:
+  - "eslint + tsc clean"
+code_changes:
+  - file: "apps/web/app/api/**/route.ts"
+  - file: "apps/web/app/lib/http/{auth,rateLimit,respond}.ts"
+  - file: "apps/web/app/lib/domain/projections.ts"
+completed_at: "2026-06-28T00:00:00Z"
+merged_branch: "claude/agitated-jackson-a607b1"
+risks:
+  - "Dev-open default when token unset -> hardening tracked as HOS-2026-001-11 (board D3 condition)"
+notes: |
+  Board verdict D3 (identity/access) in decision log; fail-closed default is a follow-up.

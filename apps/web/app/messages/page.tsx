@@ -1,10 +1,5 @@
-import { ModulePlaceholder } from "@/app/components/ModulePlaceholder";
+import { MessagesInbox } from "@/app/components/MessagesInbox";
 
 export default function MessagesPage() {
-  return (
-    <ModulePlaceholder
-      title="Family Messages"
-      description="Outbound notifications and inbound follow-up from families and response organizations."
-    />
-  );
+  return <MessagesInbox />;
 }

@@ -1,0 +1,31 @@
+id: "HOS-2026-001-09"
+title: "External notification channels (WhatsApp / SMS / email / Telegram)"
+description: |
+  Add a channel dispatcher behind the existing notification queue so verified matches
+  can actually reach families. WhatsApp + SMS are the priority in Venezuela. Includes
+  consent capture at intake, opt-out (STOP) handling, and quiet hours. Board D4 ratified
+  in-app-only for Phase 0; this lifts the deferral honestly (no delivery claim without
+  real delivery + a delivery receipt).
+category: "backend"
+type: "feature"
+owner: "DEV"
+created_at: "2026-06-28T00:00:00Z"
+due_date: "2026-07-18T23:59:59Z"
+estimated_hours: 16
+status: "todo"
+priority: "HIGH"
+progress_percent: 0
+epic_id: "HOS-2026-001"
+decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/proposal.yaml#HOS-2026-002-D4"
+depends_on: ["HOS-2026-001-06"]
+blocked_by_external: "Provider creds (WhatsApp Cloud API / Twilio / Resend / Telegram — see EXTERNAL_DEPENDENCIES.md #6-9)"
+requirements:
+  - "Channel dispatcher; per-channel adapters; delivery-status callbacks update notification.status truthfully"
+  - "Consent + opt-out + quiet hours"
+acceptance_criteria:
+  - "status reflects real provider receipts; no 'sent' without a receipt"
+  - "Opt-out is honored and audited"
+done_criteria:
+  - "One channel live end to end in a preview deploy"
+notes: |
+  Fix the in-app status honesty bug first (HOS-2026-001-12) so 'sent' means delivered.

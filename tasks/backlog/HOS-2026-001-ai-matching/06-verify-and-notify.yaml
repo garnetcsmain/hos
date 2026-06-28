@@ -1,0 +1,32 @@
+id: "HOS-2026-001-06"
+title: "Human verification + family notification (in-app)"
+description: |
+  A coordinator confirms or rejects a candidate. On confirmation, both reports resolve
+  atomically and a redacted, Spanish notification is queued. In-app channel only for now;
+  the UI states external channels are pending and never claims external delivery.
+category: "backend"
+type: "feature"
+owner: "DEV"
+created_at: "2026-06-28T00:00:00Z"
+due_date: "2026-06-28T23:59:59Z"
+estimated_hours: 6
+status: "done"
+priority: "HIGH"
+progress_percent: 100
+epic_id: "HOS-2026-001"
+decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/proposal.yaml#HOS-2026-002-D4"
+requirements:
+  - "recordVerification is atomic (resolve both reports + queue notification)"
+  - "Recipient PII redacted; message frames a candidate to verify, never auto-confirmation"
+acceptance_criteria:
+  - "Confirm flow resolves reports and produces a redacted in-app notification"
+  - "No external-delivery claims anywhere"
+done_criteria:
+  - "Verified end to end"
+code_changes:
+  - file: "apps/web/app/lib/services/verification.ts"
+  - file: "apps/web/app/lib/repositories/{verifications,notifications}.ts"
+completed_at: "2026-06-28T00:00:00Z"
+merged_branch: "claude/agitated-jackson-a607b1"
+notes: |
+  External channels tracked as HOS-2026-001-09. Board verdict D4 in decision log.

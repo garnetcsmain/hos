@@ -1,0 +1,37 @@
+id: "HOS-2026-001-12"
+title: "Notification honesty: queued-not-sent + a real family-reach path"
+description: |
+  Board D4 found the system recorded a delivery that never happened. Stop claiming
+  delivery, and design how a family is actually reached (a tracked human-callback
+  obligation, or a real family-readable surface) instead of an untracked promise in
+  body text. Also handle the public 'Resuelto' signal compassionately (don't let a
+  bare status word — including 'Fallecida' cases — be the only thing a family sees).
+category: "backend"
+type: "bugfix"
+owner: "DEV"
+created_at: "2026-06-28T00:00:00Z"
+due_date: "2026-07-05T23:59:59Z"
+estimated_hours: 8
+status: "in_progress"
+priority: "HIGH"
+progress_percent: 40
+epic_id: "HOS-2026-001"
+decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/judge-decision.yaml#HOS-2026-002-D4"
+depends_on: ["HOS-2026-001-06"]
+requirements:
+  - "DONE: status 'queued' not 'sent'; event 'notification.queued' not 'family.notified'"
+  - "TODO: model a tracked family-reach obligation (callback) or a real family-readable inbox"
+  - "TODO: decouple public 'Resuelto' flip from the queue so a human reaches the family first"
+acceptance_criteria:
+  - "No notification is recorded as delivered without a real receipt (DONE)"
+  - "A family-reach step is tracked, not implied in prose (TODO)"
+done_criteria:
+  - "Family-reach path specified + tested"
+code_changes:
+  - file: "apps/web/app/lib/services/verification.ts"
+    status: "done"
+  - file: "apps/web/app/components/HosDashboard.tsx"
+    status: "done"
+notes: |
+  Status/event honesty fix landed 2026-06-28 and verified in the running app
+  (Messages inbox shows 'En cola'). The family-reach design is the remaining work.

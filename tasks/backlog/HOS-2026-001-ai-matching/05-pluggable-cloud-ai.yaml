@@ -1,0 +1,34 @@
+id: "HOS-2026-001-05"
+title: "Pluggable multi-provider cloud-AI matching layer"
+description: |
+  Groundwork so any cloud AI key(s) given later layer onto the rule engine without code
+  changes. Multiple providers at once (Anthropic/OpenAI/mock), env-selected, blended
+  50/50 with the baseline. PII minimized before any external call. Off unless a key is set.
+category: "backend"
+type: "feature"
+owner: "DEV"
+created_at: "2026-06-28T00:00:00Z"
+due_date: "2026-06-28T23:59:59Z"
+estimated_hours: 6
+status: "done"
+priority: "MEDIUM"
+progress_percent: 100
+epic_id: "HOS-2026-001"
+decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/proposal.yaml#HOS-2026-002-D1"
+requirements:
+  - "Env-driven config (HOS_AI_PROVIDERS or key auto-detect); per-provider model/base-url overrides"
+  - "Anthropic via Messages API (default claude-opus-4-8); OpenAI; mock"
+  - "Blend baseline + provider signals; PII minimization in prompt builder"
+acceptance_criteria:
+  - "aiEnabled=false with no key; system unaffected"
+  - "Blend + registry unit-tested"
+done_criteria:
+  - "Tests passing; documented in EXTERNAL_DEPENDENCIES.md"
+code_changes:
+  - file: "apps/web/app/lib/ai/{config,types,prompt,blend,registry}.ts"
+  - file: "apps/web/app/lib/ai/providers/{anthropic,openai,mock}.ts"
+  - file: "apps/web/app/lib/services/aiAugment.ts"
+completed_at: "2026-06-28T00:00:00Z"
+merged_branch: "claude/agitated-jackson-a607b1"
+notes: |
+  Per user direction: do not assume offline-only; support any/multiple cloud keys later.

@@ -1,0 +1,29 @@
+id: "HOS-2026-001-10"
+title: "Geocoding + maps (make the location factor real)"
+description: |
+  Geocode last-known locations to lat/lng so the matching location factor uses real
+  distance instead of place-name string equality; add place autocomplete on intake and
+  a map panel in the console. Google Maps Platform or Mapbox/OSM (privacy-friendlier).
+category: "frontend"
+type: "feature"
+owner: "DEV"
+created_at: "2026-06-28T00:00:00Z"
+due_date: "2026-07-21T23:59:59Z"
+estimated_hours: 12
+status: "todo"
+priority: "MEDIUM"
+progress_percent: 0
+epic_id: "HOS-2026-001"
+depends_on: ["HOS-2026-001-01"]
+blocked_by_external: "Maps key (NEXT_PUBLIC_GOOGLE_MAPS_API_KEY + GOOGLE_MAPS_API_KEY, or Mapbox — see EXTERNAL_DEPENDENCIES.md #5)"
+requirements:
+  - "Server-side geocoding feeding a distance-based location factor"
+  - "Autocomplete on intake; map panel in match console"
+  - "Cache geocodes; restrict keys by referrer/IP"
+acceptance_criteria:
+  - "Location factor reflects real distance"
+  - "No unrestricted API key shipped to the browser"
+done_criteria:
+  - "Location factor unit-tested with geocoded fixtures"
+notes: |
+  Decide Google vs Mapbox/OSM (privacy + cost). Researcher input in the board review.

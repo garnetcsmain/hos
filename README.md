@@ -106,6 +106,27 @@ HOS handles information about vulnerable people during disasters — missing chi
 
 ## Status
 
-Design stage. The thesis is the source of truth; the codebase is being scaffolded from it. Direction, scope, and stack are still open to change.
+**Phase 0 MVP — functional.** Missing↔found matching, human verification, and family notification work end to end, with an append-only audit trail. The thesis remains the source of truth; scope and stack continue to evolve.
+
+### Run it locally
+
+```bash
+cd apps/web
+npm install
+npm run dev          # http://localhost:3000 — auto-seeds the Venezuela scenario on first load
+```
+
+No external setup is required: persistence is local SQLite via Node's built-in `node:sqlite` (no native build), and matching runs on a deterministic, offline rule engine. Other commands: `npm test` (matching + AI tests, including adversarial false-positive cases), `npm run typecheck`, `npm run build`, `npm run seed`.
+
+### What's wired
+
+- **Intake** — public "I can't reach my family" and responder "found person" forms create real records (no account).
+- **AI Matching Engine** — explainable scoring (accent- and Spanish-nickname-aware names, age, location, traits, timeline) with hard-negative penalties against false positives. It only ever proposes *candidates*.
+- **Verification** — a coordinator confirms/rejects a candidate; confirming resolves the case and queues a family notification, atomically and audited.
+- **Trust** — every public response is least-PII (redaction enforced server-side); every event (report → AI suggestion → verification → notified) is recorded in an append-only store and reconstructable as a per-case timeline.
+
+### Pluggable cloud AI (optional)
+
+Matching uses the local rule engine as a baseline and **blends in any configured cloud-AI provider** (Anthropic, OpenAI, …). With no keys set it runs baseline-only; add one or more keys (see [`.env.example`](.env.example)) and they augment every score, with the evidence and provenance logged. Deferred until credentials are available: hosted Postgres + auth, and SMS/email/WhatsApp/Telegram delivery (the in-app channel works today). See [`docs/decision-log/2026-06-28-mvp-architecture.md`](docs/decision-log/2026-06-28-mvp-architecture.md).
 
 *Technology cannot prevent disasters — but it can reduce uncertainty, and reducing uncertainty saves lives.*

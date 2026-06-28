@@ -1,0 +1,32 @@
+id: "HOS-2026-001-08"
+title: "Real auth, roles, and org isolation"
+description: |
+  Replace the single shared coordinator token with per-user accounts, roles
+  (coordinator / agency-admin / responder), and org/tenant isolation so multiple
+  agencies can share an instance without seeing each other's PII. Public intake/search
+  stay account-free for families. This is a "security model change" (Strategic) and
+  should get its own board proposal before build.
+category: "backend"
+type: "feature"
+owner: "CTO"
+created_at: "2026-06-28T00:00:00Z"
+due_date: "2026-07-18T23:59:59Z"
+estimated_hours: 20
+status: "todo"
+priority: "HIGH"
+progress_percent: 0
+epic_id: "HOS-2026-001"
+decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/proposal.yaml#HOS-2026-002-D3"
+depends_on: ["HOS-2026-001-03"]
+blocked_by_external: "Auth provider choice + keys (Supabase Auth / Clerk / Auth0 — see EXTERNAL_DEPENDENCIES.md #4)"
+requirements:
+  - "Session/JWT verification middleware; per-route role checks"
+  - "Org-scoped PII access; audit who-saw-what"
+  - "Keep public intake/search unauthenticated"
+acceptance_criteria:
+  - "A user can only see their org's PII"
+  - "Coordinator actions attributable to a real identity in the audit log"
+done_criteria:
+  - "Board-approved provider + role model; tests for access control"
+notes: |
+  Open a board proposal (HOS-2026-00X) for the provider + role model first.
