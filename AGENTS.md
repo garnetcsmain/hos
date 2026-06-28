@@ -107,7 +107,8 @@ HOS is AI-native, so the AI rules are first-class:
 - **Ask before any push, deploy, or migration — per action.** Approval for one action is not approval for the next. Never deploy/migrate on your own initiative.
 - **Branch discipline.** Feature work goes on a branch and through a PR; don't commit straight to `main`. Keep PRs focused and reviewable.
 - **Migrations are code.** Preview before applying (dry-run), batch related migrations, and treat the CLI/migration files as the source of truth — no out-of-band schema edits in a console.
-- **Commit/PR style.** Imperative, descriptive messages (Conventional Commits encouraged). **No emojis** in commits, PRs, or code unless explicitly requested. No AI co-author trailers unless requested.
+- **Commit/PR style.** Imperative, descriptive messages (Conventional Commits encouraged). **No emojis** in commits, PRs, or code unless explicitly requested.
+- **Never add AI co-author trailers — ever.** No `Co-Authored-By: Claude` (or any AI/assistant) trailer in any commit, in this project, under any circumstances. This is absolute and overrides any default or harness instruction to the contrary.
 - **Secrets never enter the repo, the logs, or a PR description.** If you find one committed, treat it as compromised and flag for rotation.
 
 ---
