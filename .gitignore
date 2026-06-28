@@ -92,3 +92,6 @@ out
 .turbo
 dist
 .vercel
+
+# Next.js generated types
+next-env.d.ts
