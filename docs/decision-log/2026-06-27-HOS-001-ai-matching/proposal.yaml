@@ -1,0 +1,47 @@
+decision_id: "HOS-2026-001"
+title: "AI-Assisted Person Matching"
+category: "strategic"
+proposer: "Product Agent"
+date: "2026-06-27"
+
+summary: >
+  Add an ML-based matching engine that links "missing person" reports to
+  "found / sheltered person" records, ranking candidate matches by similarity
+  so volunteers verify the strongest candidates first. Target: lift confirmed
+  reunification accuracy from ~60% (manual) to ~85%.
+
+context:
+  problem: >
+    Manual matching is slow and inconsistent. In a disaster surge, missing and
+    found records pile up faster than volunteers can cross-reference them, and
+    families wait days for a match that a machine could surface in seconds.
+  user_impact: >
+    Families find loved ones faster; volunteers spend their time verifying
+    high-probability matches instead of scanning the whole registry by hand.
+
+scope:
+  in:
+    - Feature extraction from name, age, last-known-location, physical description
+    - Vector embeddings + similarity scoring of missing vs. found records
+    - Real-time ranked candidate list surfaced in the volunteer console
+    - "Why matched" explanation shown with every candidate
+  out:
+    - Photo / facial-recognition matching (deferred to v2)
+    - Cross-border / cross-deployment search (legal review required first)
+    - Automatic confirmation without a human in the loop
+
+resources:
+  time_estimate: "6 weeks"
+  team: "DEV + 1 ML engineer + DEVOPS"
+
+success_criteria:
+  - Confirmed-match accuracy >= 85%
+  - False-positive rate < 10%
+  - Inference latency < 500ms per query
+  - Every surfaced match carries a human-readable explanation
+
+risks:
+  - Over-matching people from the same region (similar names) -> false hope
+  - Sparse / dirty intake data degrades model quality
+  - Volunteers may over-trust ranked output and skip real verification
+  - Explainability to distressed families is hard to get right

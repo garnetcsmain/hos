@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Convenience wrapper so you can run `./hos run-agent contrarian --proposal <file>`
+# from the repo root without remembering the tsx invocation.
+set -euo pipefail
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ -x "$DIR/node_modules/.bin/tsx" ]; then
+  exec "$DIR/node_modules/.bin/tsx" "$DIR/tools/hos-cli/src/index.ts" "$@"
+else
+  echo "tsx not found — run 'npm install' first." >&2
+  exit 1
+fi

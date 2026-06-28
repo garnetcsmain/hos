@@ -4,7 +4,8 @@
   "private": true,
   "description": "Humanitarian Operations System",
   "workspaces": [
-    "apps/web"
+    "apps/web",
+    "tools/hos-cli"
   ],
   "directories": {
     "doc": "docs"
@@ -12,7 +13,8 @@
   "scripts": {
     "dev:web": "npm run dev -w @hos/web",
     "build:web": "npm run build -w @hos/web",
-    "lint:web": "npm run lint -w @hos/web"
+    "lint:web": "npm run lint -w @hos/web",
+    "hos": "tsx tools/hos-cli/src/index.ts"
   },
   "repository": {
     "type": "git",

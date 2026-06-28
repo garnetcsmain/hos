@@ -1,0 +1,22 @@
+{
+  "name": "@hos/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HOS agentic CLI — runs board/ops agents against proposals",
+  "type": "module",
+  "bin": {
+    "hos": "./src/index.ts"
+  },
+  "scripts": {
+    "hos": "tsx src/index.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.106.0",
+    "dotenv": "^17.4.2"
+  }
+}
