@@ -2,28 +2,37 @@
 
 Get HOS running locally in 5 minutes.
 
+> **Full setup guide:** [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md)
+
 ## Prerequisites
 
 - Docker & Docker Compose
 - Python 3.11+
 - Node.js 18+
 - Git
+- Vercel CLI: `npm i -g vercel`
+- Access to the Vercel team (`garnetcs`) — ask the team lead
 
 ## Setup
 
 ```bash
-# 1. Run automated setup
-./scripts/setup-local.sh
+# 1. Clone and link to Vercel
+git clone https://github.com/garnetcsmain/hos.git && cd hos
+vercel link   # select: garnetcs → hos
 
-# 2. Start services (in a new terminal)
+# 2. Pull environment variables (staging — never use prod locally)
+vercel env pull frontend/.env.local --environment=preview
+vercel env pull backend/.env --environment=preview
+
+# 3. Start services (in a new terminal)
 docker-compose -f config/dev/docker-compose.yml up
 
-# 3. Start backend (in another terminal)
+# 4. Start backend (in another terminal)
 cd backend
 source venv/bin/activate
 python -m uvicorn app.main:app --reload
 
-# 4. Start frontend (in another terminal)
+# 5. Start frontend (in another terminal)
 cd frontend
 npm run dev
 ```
@@ -69,6 +78,7 @@ black . && isort .
 
 ## Documentation
 
+- **[docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md)** — Full local dev setup (env vars, access, environments)
 - **[STRUCTURE.md](STRUCTURE.md)** — Detailed folder structure guide
 - **[Humanitarian Operations System.md](Humanitarian%20Operations%20System.md)** — Full thesis & vision
 - **[AGENTS.md](AGENTS.md)** — Engineering practices
