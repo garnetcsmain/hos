@@ -94,5 +94,15 @@ out
 dist
 .vercel
 
+# HOS local SQLite database (node:sqlite) — never commit crisis data
+.data/
+apps/web/.data/
+
 # Next.js generated types
 next-env.d.ts
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Claude Code local settings & worktrees (never commit machine-local config)
+.claude/

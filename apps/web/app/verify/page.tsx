@@ -1,10 +1,5 @@
-import { ModulePlaceholder } from "@/app/components/ModulePlaceholder";
+import { MatchConsole } from "@/app/components/MatchConsole";
 
 export default function VerifyPage() {
-  return (
-    <ModulePlaceholder
-      title="Verification Queue"
-      description="Evidence, provenance, timestamp, confidence, and verification history are checked here."
-    />
-  );
+  return <MatchConsole onlyPending />;
 }

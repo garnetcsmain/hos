@@ -1,5 +1,5 @@
-import { MatchingEngine } from "@/app/components/MatchingEngine";
+import { MatchConsole } from "@/app/components/MatchConsole";
 
 export default function MatchesPage() {
-  return <MatchingEngine />;
+  return <MatchConsole />;
 }
