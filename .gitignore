@@ -91,3 +91,4 @@ docker-compose.override.yml
 out
 .turbo
 dist
+.vercel
