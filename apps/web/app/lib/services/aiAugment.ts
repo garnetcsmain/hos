@@ -16,12 +16,17 @@ import { getFound } from "../repositories/foundReports.ts";
 import { appendEvent } from "../repositories/events.ts";
 import { transaction } from "../db/client.ts";
 import { nowIso } from "../domain/time.ts";
+import { scrubFreeText } from "../ai/redact.ts";
 import type { PairInput } from "../ai/types.ts";
 import type { FoundReport, MissingReport } from "@/app/lib/domain/types";
 
 function toPairInput(missing: MissingReport, found: FoundReport): PairInput {
-  // Only matching-relevant fields are sent to external models — never family
-  // contact, medical/sensitive notes, or precise location beyond the area.
+  // Only matching-relevant fields are sent to external models — never the
+  // reporter contact or sensitive notes (separate fields, withheld here). The
+  // free-text description is scrubbed of phone/email/handle patterns first,
+  // because families often paste contact info into it (Board HOS-2026-002-D1).
+  // A name written in prose still passes; enabling a provider in production also
+  // requires a no-retention/no-train DPA (see the decision log).
   return {
     missing: {
       id: missing.id,
@@ -31,7 +36,7 @@ function toPairInput(missing: MissingReport, found: FoundReport): PairInput {
       lastSeenLocation: missing.lastSeenLocation,
       city: missing.city,
       lastSeenAt: missing.lastSeenAt,
-      description: missing.description,
+      description: scrubFreeText(missing.description),
     },
     found: {
       id: found.id,
@@ -41,7 +46,7 @@ function toPairInput(missing: MissingReport, found: FoundReport): PairInput {
       foundLocation: found.foundLocation,
       city: found.city,
       foundAt: found.foundAt,
-      description: found.description,
+      description: scrubFreeText(found.description),
     },
   };
 }

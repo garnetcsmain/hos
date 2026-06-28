@@ -31,11 +31,27 @@ const globalForDb = globalThis as unknown as { __hosDb?: DatabaseSync };
 
 export const db: DatabaseSync = globalForDb.__hosDb ?? (globalForDb.__hosDb = createConnection());
 
+let txDepth = 0;
+
 /** Run a function inside a transaction; rolls back on any thrown error.
  *  Used for every state change that touches identity/match/verification —
- *  per AGENTS.md, those must be atomic and audited. */
+ *  per AGENTS.md, those must be atomic and audited.
+ *
+ *  Reentrant-safe: a nested call JOINs the open transaction instead of issuing a
+ *  second BEGIN (node:sqlite rejects nested BEGIN). The outermost call owns
+ *  COMMIT/ROLLBACK; a throw anywhere rolls back the whole unit. (Board
+ *  HOS-2026-002-D2 condition.) */
 export function transaction<T>(fn: () => T): T {
+  if (txDepth > 0) {
+    txDepth++;
+    try {
+      return fn();
+    } finally {
+      txDepth--;
+    }
+  }
   db.exec("BEGIN");
+  txDepth++;
   try {
     const result = fn();
     db.exec("COMMIT");
@@ -43,5 +59,7 @@ export function transaction<T>(fn: () => T): T {
   } catch (error) {
     db.exec("ROLLBACK");
     throw error;
+  } finally {
+    txDepth--;
   }
 }

@@ -1,9 +1,11 @@
 // Blend the deterministic baseline score with external AI signals.
 //
 // Philosophy: the local baseline is always trustworthy and explainable; AI is a
-// force multiplier, not an authority. So we split the blended score 50/50
-// between the baseline and the mean of the providers that answered. With no
-// (successful) AI signals, the baseline is returned unchanged.
+// force multiplier, not an authority. The baseline is the CEILING — blending can
+// only DEMOTE or FLAG a pair (pull the score down when a provider disagrees),
+// never raise it above the deterministic score, and never lift a sub-floor pair
+// over the match floor (Board HOS-2026-002-D1). With no (successful) AI signals,
+// the baseline is returned unchanged.
 
 import type { MatchFactor } from "@/app/lib/domain/types";
 import type { MatchSignal } from "./types.ts";
@@ -22,7 +24,9 @@ export function blendScore(baseline: number, signals: MatchSignal[]): BlendResul
   if (usable.length === 0) return { score: baseline, factors: [] };
 
   const meanAi = usable.reduce((sum, s) => sum + s.score, 0) / usable.length;
-  const blended = Math.round(BASELINE_SHARE * baseline + AI_SHARE * meanAi * 100);
+  const mixed = Math.round(BASELINE_SHARE * baseline + AI_SHARE * meanAi * 100);
+  // Clamp to the baseline: AI may only lower the score, never raise it.
+  const blended = Math.min(baseline, mixed);
 
   const perProviderWeight = AI_SHARE / usable.length;
   const factors: MatchFactor[] = usable.map((s) => ({

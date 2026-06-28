@@ -211,7 +211,7 @@ const EVENT_LABELS: Record<string, string> = {
   "match.confirmed": "Coincidencia confirmada",
   "match.rejected": "Coincidencia descartada",
   "report.resolved": "Caso resuelto",
-  "family.notified": "Familia notificada",
+  "notification.queued": "Notificacion a familia en cola",
 };
 
 function eventLabel(event: HosEvent): string {

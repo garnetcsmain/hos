@@ -2,9 +2,10 @@
 // on a match candidate is the only thing that can resolve a case or notify a
 // family. Every decision is an atomic, audited transaction (AGENTS.md §3).
 //
-// On a confirmed match we resolve both reports and queue a family notification.
-// SMS/email/WhatsApp delivery is deferred (needs an external provider); the
-// in-app channel is delivered immediately and is honestly recorded as such.
+// On a confirmed match we resolve both reports and QUEUE a family notification.
+// No channel actually reaches the family yet (in-app has no family-readable
+// surface; SMS/email/WhatsApp need an external provider), so the notification is
+// recorded as "queued" — never "sent" — until a channel returns a real receipt.
 
 import { getCandidate, setCandidateStatus } from "../repositories/matches.ts";
 import { getMissing, setMissingStatus } from "../repositories/missingReports.ts";
@@ -29,7 +30,10 @@ function buildFamilyNotification(missing: MissingReport, candidateId: string): N
     candidateId,
     channel: "in_app",
     recipient: redactContact(missing.reporterContact),
-    status: "sent",
+    // Honest status (Board HOS-2026-002-D4): the message is QUEUED, not delivered.
+    // There is no family-readable surface yet, so we must not record "sent".
+    // "sent" is only valid once a channel returns a real delivery receipt.
+    status: "queued",
     subject: `Coincidencia verificada para ${name}`,
     body:
       `Una organización autorizada verificó una posible coincidencia para ${name} ` +
@@ -110,7 +114,9 @@ export function recordVerification(input: VerificationInput): VerificationResult
       appendEvent({
         entityType: "notification",
         entityId: notification.id,
-        type: "family.notified",
+        // Not "family.notified" — nothing reached the family. That event may only
+        // be written by a channel that actually delivered (Board HOS-2026-002-D4).
+        type: "notification.queued",
         actor: "system:notifier",
         payload: { channel: notification.channel, missingId: missing.id },
       });
