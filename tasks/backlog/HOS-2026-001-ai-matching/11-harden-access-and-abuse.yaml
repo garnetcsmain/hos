@@ -1,0 +1,32 @@
+id: "HOS-2026-001-11"
+title: "Harden access: fail-closed coordinator gate + abuse protection"
+description: |
+  Close the board-flagged CRITICAL: privileged endpoints must FAIL CLOSED when no token
+  is configured (today they fail open). Require an explicit HOS_DEV_OPEN=1 to run open in
+  local dev. Add a challenge (Cloudflare Turnstile / reCAPTCHA) to the open public intake/
+  search routes. Interim hardening until real auth (HOS-2026-001-08) lands.
+category: "backend"
+type: "infrastructure"
+owner: "DEV"
+created_at: "2026-06-28T00:00:00Z"
+due_date: "2026-07-04T23:59:59Z"
+estimated_hours: 5
+status: "in_progress"
+priority: "CRITICAL"
+progress_percent: 50
+epic_id: "HOS-2026-001"
+decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/judge-decision.yaml#HOS-2026-002-D3"
+depends_on: ["HOS-2026-001-03"]
+blocked_by_external: "Turnstile/reCAPTCHA keys for the abuse piece (EXTERNAL_DEPENDENCIES.md #12); the fail-closed change needed nothing and is DONE"
+requirements:
+  - "DONE: no token + HOS_DEV_OPEN unset => privileged endpoints return 503 (fail closed) + test"
+  - "TODO: boot guard refusing to start unconfigured in a non-local NODE_ENV"
+  - "TODO: Turnstile challenge on public missing/found/search"
+  - "TODO: re-scope open public name+city search (re-identification threat model) — needs human sign-off"
+acceptance_criteria:
+  - "Unconfigured deploy does NOT serve PII from coordinator endpoints"
+  - "Public intake rejects automated spam"
+done_criteria:
+  - "Access-control tests for the fail-closed path"
+notes: |
+  Raised by the board (Contrarian F3, Judge condition on D3). Do the fail-closed change first; it needs no external setup.

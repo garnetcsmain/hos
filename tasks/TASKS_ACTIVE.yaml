@@ -1,58 +1,90 @@
 # Active Tasks Summary
-
-This is the single source of truth for all active tasks across all epics.
-Update this file as tasks change status.
+#
+# This is the single source of truth for all active tasks across all epics.
+# Update this file as tasks change status.
 
 ---
 
 # Task Summary
-total_tasks: 0
-in_backlog: 0
-in_sprint: 0
-in_progress: 0
+total_tasks: 13
+in_backlog: 4
+in_sprint: 9
+in_progress: 3
 in_review: 0
-done: 0
+done: 6
 
 # Current Sprint
 current_sprint: "2026-W26"
 sprint_start: "2026-06-23"
 sprint_end: "2026-06-29"
-sprint_goal: "Establish agentic workflow & governance"
+sprint_goal: "Ship the Phase 0 family-reunification MVP and stand up the agentic board"
 
 # Sprint Velocity
 velocity:
-  committed_hours: 0
-  completed_hours: 0
-  completion_rate: "0%"
-  trend: "baseline"
+  committed_hours: 70
+  completed_hours: 50
+  completion_rate: "71%"
+  trend: "baseline (first sprint)"
 
 # Blockers (All epics)
-active_blockers: []
+active_blockers:
+  - id: "BLK-001"
+    blocks: ["HOS-2026-001-07"]
+    note: "No hosted Postgres/Supabase credentials yet (DATABASE_URL). See docs/EXTERNAL_DEPENDENCIES.md #3."
+  - id: "BLK-002"
+    blocks: ["HOS-2026-001-08"]
+    note: "Auth provider not chosen / no keys (Supabase Auth / Clerk / Auth0). EXTERNAL_DEPENDENCIES.md #4."
+  - id: "BLK-003"
+    blocks: ["HOS-2026-001-09"]
+    note: "No notification-provider creds (WhatsApp/Twilio/Resend/Telegram). EXTERNAL_DEPENDENCIES.md #6-9."
+  - id: "BLK-004"
+    blocks: ["HOS-2026-001-10"]
+    note: "No maps/geocoding key (Google Maps or Mapbox). EXTERNAL_DEPENDENCIES.md #5."
 
-# Risk Summary
+# Risk Summary (raised by the Board, HOS-2026-002)
 risks:
-  - status: "none"
-    note: "No active risks at this time"
+  - status: "open"
+    severity: "CRITICAL"
+    note: "Open public name+city search enables re-identification of people in hiding — needs a Venezuela-2026 threat-model sign-off (Board D3)."
+  - status: "mitigated"
+    severity: "CRITICAL"
+    note: "Fail-open coordinator auth — fixed to fail-closed with explicit HOS_DEV_OPEN (HOS-2026-001-11)."
+  - status: "open"
+    severity: "HIGH"
+    note: "No cloud-AI key may be enabled in a real deployment until a no-retention/no-train DPA is signed (Board D1)."
 
 ---
 
 # Epics & Their Tasks
 
-epics: []
-  # Example structure (uncomment when first epic has tasks):
-  # - epic_id: "HOS-2026-001"
-  #   title: "Add AI-Assisted Person Matching"
-  #   decision_link: "docs/decision-log/2026-06-27-HOS-001/"
-  #   status: "active"  # active|planning|on_hold|completed
-  #   progress: "0%"
-  #   tasks:
-  #     - id: "HOS-2026-001-01"
-  #       title: "Implement embeddings API"
-  #       owner: "DEV"
-  #       status: "todo"
-  #       priority: "HIGH"
-  #       due_date: "2026-07-10"
-  #       progress: "0%"
+epics:
+  - epic_id: "HOS-2026-001"
+    title: "AI-Assisted Person Matching (Phase 0 family-reunification MVP)"
+    decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/"
+    status: "active"
+    progress: "55%"
+    tasks:
+      - { id: "HOS-2026-001-01", title: "Deterministic, explainable matching engine", owner: "DEV", status: "done", priority: "CRITICAL" }
+      - { id: "HOS-2026-001-02", title: "Persistence + append-only audit (repository layer)", owner: "DEV", status: "done", priority: "CRITICAL" }
+      - { id: "HOS-2026-001-03", title: "BFF API routes + access gate + validation", owner: "DEV", status: "done", priority: "HIGH" }
+      - { id: "HOS-2026-001-04", title: "Spanish-first operator UI", owner: "DEV", status: "done", priority: "HIGH" }
+      - { id: "HOS-2026-001-05", title: "Pluggable multi-provider cloud-AI layer", owner: "DEV", status: "done", priority: "MEDIUM" }
+      - { id: "HOS-2026-001-06", title: "Human verification + family notification (in-app)", owner: "DEV", status: "done", priority: "HIGH" }
+      - { id: "HOS-2026-001-07", title: "Postgres/Supabase adapter (migrate off SQLite)", owner: "DEV", status: "todo", priority: "HIGH" }
+      - { id: "HOS-2026-001-08", title: "Real auth, roles, and org isolation", owner: "CTO", status: "todo", priority: "HIGH" }
+      - { id: "HOS-2026-001-09", title: "External notification channels (WhatsApp/SMS/email/Telegram)", owner: "DEV", status: "todo", priority: "HIGH" }
+      - { id: "HOS-2026-001-10", title: "Geocoding + maps (real location factor)", owner: "DEV", status: "todo", priority: "MEDIUM" }
+      - { id: "HOS-2026-001-11", title: "Harden access: fail-closed gate + abuse protection", owner: "DEV", status: "in_progress", priority: "CRITICAL" }
+      - { id: "HOS-2026-001-12", title: "Notification honesty (queued-not-sent) + family-reach path", owner: "DEV", status: "in_progress", priority: "HIGH" }
+      - { id: "HOS-2026-001-13", title: "Matching trust hardening (Board D1 conditions)", owner: "DEV", status: "in_progress", priority: "HIGH" }
+
+  - epic_id: "HOS-2026-006"
+    title: "Facial-recognition assisted matching"
+    decision_link: "docs/decision-log/2026-06-28-HOS-006-facial-recognition/proposal.yaml"
+    status: "planning"
+    progress: "0%"
+    board_status: "DRAFT — awaiting board + human/legal sign-off"
+    tasks: []  # no tasks until the board clears it
 
 ---
 
@@ -60,19 +92,15 @@ epics: []
 
 ## To Add a New Task
 
-1. Create file: `tasks/backlog/HOS-XXXX-epic-name/01-task-name.yaml`
+1. Create file: `tasks/backlog/HOS-XXXX-epic-name/NN-task-name.yaml`
 2. Add entry to this file under the appropriate epic
 3. Set status to "todo" and priority
 4. Assign to owner (DEV, DEVOPS, QA, CTO, COO, Product)
 
 ## To Update Task Status
 
-1. Update task file: `tasks/backlog/HOS-XXXX.../NN-task.yaml`
-   - Change `status:` field
-   - Add timestamp
-   - Update progress %
-
-2. Update this file: Reflect new status
+1. Update task file: `tasks/backlog/HOS-XXXX.../NN-task.yaml` (status, timestamp, progress %)
+2. Update this file: reflect the new status
 
 ## To Complete a Sprint
 
@@ -84,11 +112,12 @@ epics: []
 
 # Next Actions
 
-- [ ] Create first epic after Board approves decision
-- [ ] Add tasks to backlog
-- [ ] Run first sprint
-- [ ] Track velocity
-- [ ] Calibrate estimates based on learning
+- [x] Run the first board review (HOS-2026-002 — Phase 0 MVP architecture)
+- [x] Remediate the board's CRITICAL findings in code (see decision-log/.../remediation.md)
+- [x] Backfill the epic + tasks from the autonomous build
+- [ ] Get human sign-off on the D3 (auth/public-search) and D1 (cloud-AI DPA) escalations
+- [ ] Provision Tier-1 dependencies (coordinator token, DB, one AI key) — EXTERNAL_DEPENDENCIES.md
+- [ ] Run the board on HOS-2026-006 (facial recognition) before any implementation
 
 ---
 
@@ -96,4 +125,4 @@ epics: []
 
 | Sprint | Committed | Completed | Rate | Trend |
 |--------|-----------|-----------|------|-------|
-| 2026-W26 | TBD | TBD | TBD | baseline |
+| 2026-W26 | 70 | 50 | 71% | baseline |
