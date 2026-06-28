@@ -45,8 +45,29 @@ function tokenStrength(a: string, b: string): number {
   return ratio >= 0.5 ? ratio : 0;
 }
 
-/** Greedy best-pairing assignment score between two token lists, normalized by
- *  the longer list so that extra/unmatched tokens reduce the score. */
+// Cost of an extra trailing token in the LONGER name when the shorter name is
+// fully contained in it — e.g. "Jose Garcia" vs "Jose Garcia Perez", where a
+// family reported one apellido and a shelter logged two. An omitted maternal
+// apellido is the single most common Spanish/Venezuelan intake mismatch, so the
+// extra token costs less than a full mismatch (< 1) but is not free (> 0): the
+// extra surname still carries a little real uncertainty.
+const EXTRA_SURNAME_COST = 0.5;
+
+/** Greedy best-pairing assignment score between two name-token lists, 0..1,
+ *  with Spanish-surname-aware normalization:
+ *
+ *   - **Asymmetric subset** — when every token of the shorter name matches a
+ *     token in the longer one AND at least a given name + one surname agree, the
+ *     extra trailing token(s) in the longer name are only lightly penalized
+ *     (`EXTRA_SURNAME_COST`). "Jose Garcia" vs "Jose Garcia Perez" scores ~0.8,
+ *     not 0.67. A lone matched token (e.g. just a given name) is kept weak — too
+ *     many people share a first name — by normalizing over the longer list.
+ *
+ *   - **Conflict** — when BOTH names carry an unmatched token, each side has a
+ *     positively *different* name component (e.g. distinct paternal apellido),
+ *     which is evidence against a match, not merely missing data. We normalize
+ *     by the union (matched / |A∪B|) so "Jose Garcia" vs "Jose Martinez" stays
+ *     low (~0.33) and never rises above the naive score it had before. */
 function assignmentScore(tokensA: string[], tokensB: string[]): number {
   if (tokensA.length === 0 || tokensB.length === 0) return 0;
 
@@ -60,15 +81,33 @@ function assignmentScore(tokensA: string[], tokensB: string[]): number {
 
   const usedA = new Set<number>();
   const usedB = new Set<number>();
-  let total = 0;
+  let matched = 0;
+  let matchedCount = 0;
   for (const { i, j, strength } of pairs) {
     if (strength <= 0) break;
     if (usedA.has(i) || usedB.has(j)) continue;
     usedA.add(i);
     usedB.add(j);
-    total += strength;
+    matched += strength;
+    matchedCount += 1;
   }
-  return total / Math.max(tokensA.length, tokensB.length);
+
+  const shorter = Math.min(tokensA.length, tokensB.length);
+  const longer = Math.max(tokensA.length, tokensB.length);
+  const unmatchedShort = shorter - matchedCount; // tokens the shorter name could not place
+
+  // Asymmetric subset: the shorter name is fully contained in the longer one.
+  if (unmatchedShort === 0) {
+    const extraTokens = longer - matchedCount; // extra apellido(s) only the longer name has
+    // Be lenient only once a given name + at least one surname agree; otherwise
+    // (a single matched token) keep it weak by normalizing over the longer list.
+    const denom = shorter >= 2 ? shorter + EXTRA_SURNAME_COST * extraTokens : longer;
+    return matched / denom;
+  }
+
+  // Conflict: both names carry a distinct, unmatched component — normalize by the
+  // union so a genuinely different surname is not over-credited.
+  return matched / (tokensA.length + tokensB.length - matchedCount);
 }
 
 /** Similarity 0..1 between two person names, accent- and nickname-aware.

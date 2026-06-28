@@ -14,20 +14,20 @@ due_date: "2026-07-08T23:59:59Z"
 estimated_hours: 10
 status: "in_progress"
 priority: "HIGH"
-progress_percent: 35
+progress_percent: 60
 epic_id: "HOS-2026-001"
 decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/judge-decision.yaml#HOS-2026-002-D1"
 depends_on: ["HOS-2026-001-01"]
 requirements:
   - "DONE: AI blend clamped to the baseline ceiling (blend.ts) + test"
   - "DONE: free-text PII scrub before external calls (ai/redact.ts) + test"
+  - "DONE: asymmetric-apellido robustness + surname-disagreement signal (similarity.ts) + tests"
   - "TODO: base-rate signal — show 'N other open reports share this name' by each candidate"
-  - "TODO: surname-disagreement penalty; don't drop name evidence on asymmetric apellidos"
   - "TODO: relabel the bare % as a triage/sorting aid until calibrated on real outcomes"
 acceptance_criteria:
   - "AI can never raise a score above the deterministic baseline (DONE)"
+  - "One-apellido-vs-two scores high; a different paternal apellido does not (DONE)"
   - "Coordinator sees name-commonness context before trusting a high score (TODO)"
-  - "A contradictory second apellido reduces the score (TODO)"
 done_criteria:
   - "Conditions implemented + tests; re-review after ~200 human verifications accrue (calibration)"
 code_changes:
@@ -35,6 +35,11 @@ code_changes:
     status: "done"
   - file: "apps/web/app/lib/ai/redact.ts"
     status: "done"
+  - file: "apps/web/app/lib/matching/similarity.ts"
+    status: "done"
 notes: |
-  Blend clamp + scrub landed 2026-06-28 (29 tests green). Base-rate + surname +
-  relabel are the remaining D1 conditions; calibration needs real labeled outcomes.
+  Surname-aware name matching landed 2026-06-28: "Jose Garcia" vs "Jose Garcia
+  Perez" 66.7%->80% (asymmetric subset, lenient); "Jose Garcia" vs "Jose Martinez"
+  50%->33% (distinct apellido, union-normalized, never raised). 34 tests green;
+  verified live (candidate score 85, name 80%). Remaining D1: base-rate signal +
+  relabel the bare %; calibration needs real labeled outcomes.

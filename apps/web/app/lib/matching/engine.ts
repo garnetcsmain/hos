@@ -55,7 +55,7 @@ const FACTORS: FactorSpec[] = [
       if (score === null) {
         return { score: null, detail: "One report has no usable name" };
       }
-      return { score, detail: `Name agreement ${(score * 100).toFixed(0)}% (accent + nickname aware)` };
+      return { score, detail: `Name agreement ${(score * 100).toFixed(0)}% (accent + nickname + surname aware)` };
     },
   },
   {
