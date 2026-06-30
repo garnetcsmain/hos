@@ -13,20 +13,34 @@ due_date: "2026-07-04T23:59:59Z"
 estimated_hours: 5
 status: "in_progress"
 priority: "CRITICAL"
-progress_percent: 50
+progress_percent: 75
 epic_id: "HOS-2026-001"
 decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/judge-decision.yaml#HOS-2026-002-D3"
 depends_on: ["HOS-2026-001-03"]
-blocked_by_external: "Turnstile/reCAPTCHA keys for the abuse piece (EXTERNAL_DEPENDENCIES.md #12); the fail-closed change needed nothing and is DONE"
+blocked_by_external: "Turnstile/reCAPTCHA keys for the abuse piece (EXTERNAL_DEPENDENCIES.md #12) and a human threat-model sign-off for the public-search re-scope; the fail-closed gate and the boot guard needed nothing external and are DONE"
 requirements:
   - "DONE: no token + HOS_DEV_OPEN unset => privileged endpoints return 503 (fail closed) + test"
-  - "TODO: boot guard refusing to start unconfigured in a non-local NODE_ENV"
-  - "TODO: Turnstile challenge on public missing/found/search"
-  - "TODO: re-scope open public name+city search (re-identification threat model) — needs human sign-off"
+  - "DONE: boot guard refusing to start unconfigured in a non-local NODE_ENV (instrumentation.ts + bootGuard.ts) + tests"
+  - "TODO (blocked: external keys): Turnstile challenge on public missing/found/search"
+  - "TODO (blocked: human sign-off): re-scope open public name+city search (re-identification threat model)"
 acceptance_criteria:
-  - "Unconfigured deploy does NOT serve PII from coordinator endpoints"
-  - "Public intake rejects automated spam"
+  - "Unconfigured deploy does NOT serve PII from coordinator endpoints (DONE: per-request 503 + boot refusal)"
+  - "Public intake rejects automated spam (TODO: needs Turnstile keys)"
 done_criteria:
-  - "Access-control tests for the fail-closed path"
+  - "Access-control tests for the fail-closed path (DONE) + boot-guard tests (DONE)"
+code_changes:
+  - file: "apps/web/app/lib/http/bootGuard.ts"
+    status: "done"
+  - file: "apps/web/app/lib/http/bootGuard.test.ts"
+    status: "done"
+  - file: "apps/web/instrumentation.ts"
+    status: "done"
+standup:
+  - date: "2026-06-30"
+    progress: "75% - boot guard landed: a non-local NODE_ENV with no HOS_COORDINATOR_TOKEN and no HOS_DEV_OPEN=1 now refuses to start (process exits non-zero) instead of silently serving 503s. Closes the last UNBLOCKED Board D3 condition."
+    verified: "7 unit tests on the pure decision logic; typecheck + lint + build clean; real `next start` smoke test across all four configs (no-token prod exits 1; token/dev-open/dev all start)."
+    blockers: "Remaining D3 items are externally blocked: Turnstile needs keys (EXTERNAL_DEPENDENCIES.md #12); public-search re-scope needs a human threat-model sign-off."
+    next: "When Turnstile keys land, add the challenge to public missing/found/search. Public-search re-scope awaits human sign-off (escalate_to_human)."
 notes: |
-  Raised by the board (Contrarian F3, Judge condition on D3). Do the fail-closed change first; it needs no external setup.
+  Raised by the board (Contrarian F3, Judge condition on D3). Fail-closed gate landed first (needed no setup);
+  the boot guard is its loud companion so a misconfigured deploy fails LOUDLY at startup rather than quietly per request.

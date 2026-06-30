@@ -48,7 +48,7 @@ risks:
     note: "Open public name+city search enables re-identification of people in hiding — needs a Venezuela-2026 threat-model sign-off (Board D3)."
   - status: "mitigated"
     severity: "CRITICAL"
-    note: "Fail-open coordinator auth — fixed to fail-closed with explicit HOS_DEV_OPEN (HOS-2026-001-11)."
+    note: "Fail-open coordinator auth — fixed to fail-closed per request with explicit HOS_DEV_OPEN, and (2026-06-30) a boot guard now refuses to START an unconfigured non-local deploy instead of silently serving 503s (HOS-2026-001-11)."
   - status: "open"
     severity: "HIGH"
     note: "No cloud-AI key may be enabled in a real deployment until a no-retention/no-train DPA is signed (Board D1)."
@@ -62,7 +62,7 @@ epics:
     title: "AI-Assisted Person Matching (Phase 0 family-reunification MVP)"
     decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/"
     status: "active"
-    progress: "55%"
+    progress: "57%"
     tasks:
       - { id: "HOS-2026-001-01", title: "Deterministic, explainable matching engine", owner: "DEV", status: "done", priority: "CRITICAL" }
       - { id: "HOS-2026-001-02", title: "Persistence + append-only audit (repository layer)", owner: "DEV", status: "done", priority: "CRITICAL" }
