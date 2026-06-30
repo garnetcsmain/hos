@@ -1,16 +1,10 @@
 "use client";
 
-import { Player, type PlayerRef } from "@remotion/player";
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { Play, Sparkles } from "lucide-react";
-import type { Lang } from "../LocaleProvider";
 import { useLocale } from "../LocaleProvider";
-import { FPS, VIDEO_H, VIDEO_W } from "./theme";
-import { ChaosToClarity } from "./ChaosToClarity";
-import { MatchPulse } from "./MatchPulse";
-import { SignalsToStructure } from "./SignalsToStructure";
-import { TimelineReconstruct } from "./TimelineReconstruct";
-import { AidJourney } from "./AidJourney";
+import { VIDEO_H, VIDEO_W } from "./theme";
 
 export type CompId =
   | "chaos-to-clarity"
@@ -19,18 +13,24 @@ export type CompId =
   | "timeline-reconstruct"
   | "aid-journey";
 
-type Entry = {
-  component: React.FC<{ lang: Lang }>;
-  durationInFrames: number;
-};
+// A still placeholder shown before the player mounts and while its chunk loads.
+function Placeholder() {
+  return (
+    <div className="absolute inset-0 grid place-items-center">
+      <div className="m-grid-dots absolute inset-0 opacity-40" />
+      <div className="relative flex h-[52px] w-[52px] items-center justify-center rounded-full bg-white/10 text-white/80 ring-1 ring-white/15">
+        <Play className="h-5 w-5" />
+      </div>
+    </div>
+  );
+}
 
-const REGISTRY: Record<CompId, Entry> = {
-  "chaos-to-clarity": { component: ChaosToClarity, durationInFrames: 240 },
-  "match-pulse": { component: MatchPulse, durationInFrames: 210 },
-  "signals-to-structure": { component: SignalsToStructure, durationInFrames: 210 },
-  "timeline-reconstruct": { component: TimelineReconstruct, durationInFrames: 230 },
-  "aid-journey": { component: AidJourney, durationInFrames: 240 },
-};
+// The player runtime (@remotion/player + the compositions) is loaded only when a
+// slot needs it, so it stays out of the landing page's initial JS.
+const RemotionPlayer = dynamic(() => import("./RemotionPlayer"), {
+  ssr: false,
+  loading: () => <Placeholder />,
+});
 
 function prefersReducedMotion() {
   if (typeof window === "undefined" || !window.matchMedia) return false;
@@ -38,10 +38,9 @@ function prefersReducedMotion() {
 }
 
 /**
- * A Remotion <Player> that mounts only when it scrolls near the viewport,
- * auto-plays while visible, and pauses when it leaves — so several animations
- * can live on one page without all rendering at once. Honors reduced-motion by
- * showing a single still frame with a manual play control.
+ * A scroll-aware slot for a Remotion animation. It mounts (and downloads) the
+ * player only when it scrolls near the viewport; the player itself plays while
+ * visible and pauses when it leaves. Honors reduced-motion with a still frame.
  */
 export function LazyPlayer({
   id,
@@ -53,20 +52,17 @@ export function LazyPlayer({
   badge?: string;
 }) {
   const { lang } = useLocale();
-  const entry = REGISTRY[id];
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const playerRef = useRef<PlayerRef | null>(null);
   const [mounted, setMounted] = useState(false);
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
-    // matchMedia is browser-only; read the reduced-motion preference once on
-    // mount (it can't be read during SSR or in a state initializer).
+    // matchMedia is browser-only; read the reduced-motion preference once on mount.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read of a browser media query
     setReduced(prefersReducedMotion());
   }, []);
 
-  // Mount the player when it gets close to the viewport.
+  // Mount the player when it gets close to the viewport (head start to download).
   useEffect(() => {
     const el = wrapRef.current;
     if (!el || mounted) return;
@@ -79,30 +75,11 @@ export function LazyPlayer({
           }
         }
       },
-      { rootMargin: "300px 0px" },
+      { rootMargin: "400px 0px" },
     );
     io.observe(el);
     return () => io.disconnect();
   }, [mounted]);
-
-  // Play while visible, pause while off-screen.
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el || !mounted || reduced) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          const p = playerRef.current;
-          if (!p) continue;
-          if (e.isIntersecting) p.play();
-          else p.pause();
-        }
-      },
-      { threshold: 0.35 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [mounted, reduced]);
 
   return (
     <div
@@ -117,31 +94,7 @@ export function LazyPlayer({
         </div>
       ) : null}
 
-      {mounted ? (
-        <Player
-          ref={playerRef}
-          component={entry.component}
-          durationInFrames={entry.durationInFrames}
-          fps={FPS}
-          compositionWidth={VIDEO_W}
-          compositionHeight={VIDEO_H}
-          inputProps={{ lang }}
-          autoPlay={!reduced}
-          loop
-          acknowledgeRemotionLicense
-          controls={reduced}
-          initialFrame={reduced ? Math.round(entry.durationInFrames * 0.92) : 0}
-          style={{ width: "100%", height: "100%" }}
-          className="block"
-        />
-      ) : (
-        <div className="absolute inset-0 grid place-items-center">
-          <div className="m-grid-dots absolute inset-0 opacity-40" />
-          <div className="relative flex h-[52px] w-[52px] items-center justify-center rounded-full bg-white/10 text-white/80 ring-1 ring-white/15">
-            <Play className="h-5 w-5" />
-          </div>
-        </div>
-      )}
+      {mounted ? <RemotionPlayer id={id} lang={lang} reduced={reduced} /> : <Placeholder />}
     </div>
   );
 }
