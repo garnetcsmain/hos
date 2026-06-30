@@ -1,30 +1,29 @@
 # Active Tasks Summary
-#
-# This is the single source of truth for all active tasks across all epics.
+# Single source of truth for all active tasks across all epics.
 # Update this file as tasks change status.
 
 ---
 
 # Task Summary
-total_tasks: 13
-in_backlog: 4
+total_tasks: 19
+in_backlog: 7
 in_sprint: 9
-in_progress: 3
+in_progress: 4
 in_review: 0
-done: 6
+done: 9
 
 # Current Sprint
-current_sprint: "2026-W26"
-sprint_start: "2026-06-23"
-sprint_end: "2026-06-29"
-sprint_goal: "Ship the Phase 0 family-reunification MVP and stand up the agentic board"
+current_sprint: "2026-W27"
+sprint_start: "2026-06-30"
+sprint_end: "2026-07-06"
+sprint_goal: "Ship Response Coordination Hub (HOS-2026-003) + complete HOS-2026-001 hardening tasks"
 
 # Sprint Velocity
 velocity:
-  committed_hours: 70
-  completed_hours: 50
-  completion_rate: "71%"
-  trend: "baseline (first sprint)"
+  committed_hours: 80
+  completed_hours: 50   # carries over from W26
+  completion_rate: "63%"
+  trend: "active"
 
 # Blockers (All epics)
 active_blockers:
@@ -37,21 +36,21 @@ active_blockers:
   - id: "BLK-003"
     blocks: ["HOS-2026-001-09"]
     note: "No notification-provider creds (WhatsApp/Twilio/Resend/Telegram). EXTERNAL_DEPENDENCIES.md #6-9."
-  - id: "BLK-004"
-    blocks: ["HOS-2026-001-10"]
-    note: "No maps/geocoding key (Google Maps or Mapbox). EXTERNAL_DEPENDENCIES.md #5."
 
-# Risk Summary (raised by the Board, HOS-2026-002)
+# Risk Summary
 risks:
   - status: "open"
     severity: "CRITICAL"
-    note: "Open public name+city search enables re-identification of people in hiding — needs a Venezuela-2026 threat-model sign-off (Board D3)."
+    note: "Open public name+city search enables re-identification of people in hiding — needs Venezuela-2026 threat-model sign-off (Board D3)."
   - status: "mitigated"
     severity: "CRITICAL"
     note: "Fail-open coordinator auth — fixed to fail-closed with explicit HOS_DEV_OPEN (HOS-2026-001-11)."
   - status: "open"
     severity: "HIGH"
     note: "No cloud-AI key may be enabled in a real deployment until a no-retention/no-train DPA is signed (Board D1)."
+  - status: "open"
+    severity: "MEDIUM"
+    note: "Google Maps Static API billing — proxy caches tiles but monitor usage at launch (HOS-2026-003)."
 
 ---
 
@@ -78,32 +77,101 @@ epics:
       - { id: "HOS-2026-001-12", title: "Notification honesty (queued-not-sent) + family-reach path", owner: "DEV", status: "in_progress", priority: "HIGH" }
       - { id: "HOS-2026-001-13", title: "Matching trust hardening (Board D1 conditions)", owner: "DEV", status: "in_progress", priority: "HIGH" }
 
+  - epic_id: "HOS-2026-003"
+    title: "Response Coordination Hub"
+    decision_link: "docs/decision-log/2026-06-30-HOS-003-response-coordination/proposal.yaml"
+    status: "active"
+    progress: "65%"
+    board_status: "PENDING — run: npm run hos run-board --proposal docs/decision-log/2026-06-30-HOS-003-response-coordination/proposal.yaml"
+    tasks:
+      - id: "HOS-2026-003-01"
+        title: "Geotag library + zone grid (VE zones)"
+        owner: "DEV"
+        status: "done"
+        priority: "HIGH"
+        due_date: "2026-06-30"
+        progress: "100%"
+        file: "apps/web/app/lib/geotag.ts"
+
+      - id: "HOS-2026-003-02"
+        title: "BFF coordinate data layer + seed entities"
+        owner: "DEV"
+        status: "done"
+        priority: "HIGH"
+        due_date: "2026-06-30"
+        progress: "100%"
+        file: "apps/web/app/lib/bff/coordinate.ts"
+
+      - id: "HOS-2026-003-03"
+        title: "API routes: /coordinate/geodata + /coordinate/situation + /coordinate/map"
+        owner: "DEV"
+        status: "done"
+        priority: "HIGH"
+        due_date: "2026-06-30"
+        progress: "100%"
+        notes: "OpenAI briefing 10min cache + fallback. Google Maps proxy — key stays server-side."
+
+      - id: "HOS-2026-003-04"
+        title: "/coordinate page — map + briefing + sector grid UI"
+        owner: "DEV"
+        status: "done"
+        priority: "HIGH"
+        due_date: "2026-06-30"
+        progress: "100%"
+        notes: "next build clean — 14 routes, 0 errors."
+
+      - id: "HOS-2026-003-05"
+        title: "Wire geotag to Missing/Found report forms"
+        owner: "DEV"
+        status: "todo"
+        priority: "MEDIUM"
+        due_date: "2026-07-03"
+        progress: "0%"
+        notes: "Auto-assign geotag from lat/lng on report submit."
+
+      - id: "HOS-2026-003-06"
+        title: "Board review + Judge verdict"
+        owner: "COO"
+        status: "in_progress"
+        priority: "HIGH"
+        due_date: "2026-07-02"
+        progress: "10%"
+        notes: "npm run hos run-board --proposal docs/decision-log/2026-06-30-HOS-003-response-coordination/proposal.yaml"
+
   - epic_id: "HOS-2026-006"
     title: "Facial-recognition assisted matching"
     decision_link: "docs/decision-log/2026-06-28-HOS-006-facial-recognition/proposal.yaml"
     status: "planning"
     progress: "0%"
     board_status: "DRAFT — awaiting board + human/legal sign-off"
-    tasks: []  # no tasks until the board clears it
+    tasks: []
 
 ---
 
 # Instructions
 
-## To Add a New Task
+## Daily Routine (Executive Orchestrator)
+```bash
+npm run hos orchestrate
+```
+Or open Claude Code and say: "Daily routine — {today's date}. Act as Executive Orchestrator."
 
+## To Add a New Task
 1. Create file: `tasks/backlog/HOS-XXXX-epic-name/NN-task-name.yaml`
 2. Add entry to this file under the appropriate epic
 3. Set status to "todo" and priority
 4. Assign to owner (DEV, DEVOPS, QA, CTO, COO, Product)
 
 ## To Update Task Status
+1. Update task file (if exists): status, timestamp, progress %
+2. Update this file to reflect new status
 
-1. Update task file: `tasks/backlog/HOS-XXXX.../NN-task.yaml` (status, timestamp, progress %)
-2. Update this file: reflect the new status
+## Run a Board Review
+```bash
+npm run hos run-board --proposal docs/decision-log/YYYY-MM-DD-HOS-XXX/proposal.yaml
+```
 
 ## To Complete a Sprint
-
 1. Archive completed tasks to `tasks/archive/completed/2026-Q2/`
 2. Create next sprint: `tasks/sprints/2026-WNNN-sprint.yaml`
 3. Start new sprint with updated TASKS_ACTIVE.yaml
@@ -112,17 +180,16 @@ epics:
 
 # Next Actions
 
-- [x] Run the first board review (HOS-2026-002 — Phase 0 MVP architecture)
-- [x] Remediate the board's CRITICAL findings in code (see decision-log/.../remediation.md)
-- [x] Backfill the epic + tasks from the autonomous build
-- [ ] Get human sign-off on the D3 (auth/public-search) and D1 (cloud-AI DPA) escalations
+- [ ] Get human sign-off on D3 (auth/public-search) and D1 (cloud-AI DPA) escalations
 - [ ] Provision Tier-1 dependencies (coordinator token, DB, one AI key) — EXTERNAL_DEPENDENCIES.md
-- [ ] Run the board on HOS-2026-006 (facial recognition) before any implementation
+- [ ] Run board review on HOS-2026-003 (Response Coordination Hub)
+- [ ] Run board review on HOS-2026-006 (facial recognition) before any implementation
 
 ---
 
-# Historical Velocity (For Trending)
+# Historical Velocity
 
-| Sprint | Committed | Completed | Rate | Trend |
-|--------|-----------|-----------|------|-------|
-| 2026-W26 | 70 | 50 | 71% | baseline |
+| Sprint   | Committed | Completed | Rate | Trend    |
+|----------|-----------|-----------|------|----------|
+| 2026-W26 | 70h       | 50h       | 71%  | baseline |
+| 2026-W27 | 80h       | TBD       | TBD  | active   |

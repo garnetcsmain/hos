@@ -1,6 +1,7 @@
 import {
   Building2,
   Check,
+  Globe,
   Hospital,
   Map,
   MessageCircle,
@@ -20,6 +21,7 @@ export const navItems = [
   { label: "Found", href: "/found", icon: UserCheck },
   { label: "Matches", href: "/matches", icon: ScanSearch },
   { label: "Verify", href: "/verify", icon: ShieldCheck },
+  { label: "Coordinate", href: "/coordinate", icon: Globe },
   { label: "Messages", href: "/messages", icon: MessageCircle },
   { label: "Sources", href: "/sources", icon: Radio },
 ] as const;

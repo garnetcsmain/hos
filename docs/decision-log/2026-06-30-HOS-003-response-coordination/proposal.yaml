@@ -1,0 +1,82 @@
+decision_id: "HOS-2026-003"
+title: "Response Coordination Hub — Coordinate the whole response, together"
+category: "strategic"
+proposer: "Executive Orchestrator / Product Agent"
+date: "2026-06-30"
+
+summary: >
+  Build the Response Coordination Hub: a unified, real-time coordination layer that
+  connects Missing Persons, Found Persons, Needs, Volunteers, Shelters, and Resources
+  onto a single geotagged map with AI-generated situation reports. This is the module
+  that makes HOS a *coordination platform*, not just a registry.
+
+context:
+  problem: >
+    Phase 0 built the registries and the matching engine. But coordinators —
+    shelter managers, volunteer leads, government liaisons — currently have no single
+    view that shows them *where* the response is happening, *what* is needed, and
+    *who* is available. Each responder sees only their own slice. This is precisely
+    the coordination failure HOS was created to fix.
+  user_impact: >
+    Without the coordination hub, a shelter in Maiquetia may have 40 empty beds while
+    volunteers in Caracas East are turning families away. A needs map without logistics
+    view means resources are sent to visible areas, not highest-need areas.
+    With the hub, coordinators see the whole picture in one glance and act faster.
+  strategic_fit: >
+    This is the module the landing page names as the core promise: "Coordinate the
+    whole response, together." It unlocks Versions 2–5 of the HOS roadmap (Volunteer
+    Ops, Needs Map, Resource Logistics, Shelter Directory) by providing the common
+    map + geotag layer all future modules will share.
+
+scope:
+  in:
+    - Zone-grid geotag system (VE-CCS-001 format): short, radio-communicable
+      location codes attached to every entity in the system
+    - Geotagged map view: Missing clusters, Found locations, Shelters, Needs, Volunteers
+      visualized via Google Maps (key already in Vercel env)
+    - AI Situation Briefing: OpenAI-generated daily situation summary (key in Vercel env)
+      based on current registry state — replaces manual sitrep writing
+    - /coordinate page in the web app with map + briefing + active-sector grid
+    - Server-side proxy for Google Maps Static API (keeps API key out of client bundle)
+    - BFF data model for coordination (extends existing dashboard BFF)
+    - Geotag assignment on all future Missing/Found reports
+
+  out:
+    - Real-time WebSocket streaming (Phase 2 — needs infra upgrade)
+    - Photo/satellite overlay (Phase 3 — storage + licensing TBD)
+    - Full Resource Logistics module (separate epic HOS-2026-004)
+    - Volunteer dispatch scheduling (separate epic HOS-2026-005)
+
+resources:
+  keys_required:
+    - OPENAI_KEY (already in Vercel production + preview)
+    - GOOGLE_MAPS_API_KEY (already in Vercel production + preview)
+  time_estimate: "3–5 days (code-complete); 1 day board review first"
+  team: "DEV agent (Executive Orchestrator coordinates)"
+
+success_criteria:
+  - /coordinate renders a live map with at least 5 types of geotagged entities
+  - AI situation report generates in < 4 seconds from current registry state
+  - Geotag system assigns codes to all La Guaira / Maiquetia / Caracas zones
+  - Google Maps API key never appears in client-side HTML/JS
+  - All entities in Missing/Found registries carry a geotag field
+  - tsc + next build clean; no regressions on existing pages
+
+risks:
+  - OpenAI call latency: if slow, cache the briefing (TTL 10min) rather than blocking UI
+  - Google Maps billing: Static Maps API charges per request; proxy must cache tiles
+  - Scope creep: Volunteer Ops / Resource Logistics are tempting to add now —
+    must stay out of scope (separate epics after board approval)
+  - Geotag adoption: if existing records have no geotag, the map shows nothing —
+    seed geotags from district names on the existing mock data for Phase 0
+
+assumptions:
+  - OPENAI_KEY is a standard OpenAI API key (not Azure)
+  - GOOGLE_MAPS_API_KEY has Static Maps + Geocoding APIs enabled
+  - Phase 0 mock data can be extended with lat/lng + geotag without a schema migration
+
+linked_epics:
+  - HOS-2026-001: AI Matching Engine (shares geotag on reports)
+  - HOS-2026-002: MVP Architecture (extends BFF pattern established there)
+  - HOS-2026-004: Resource Logistics (will consume geotag layer built here)
+  - HOS-2026-005: Volunteer Ops (will consume geotag layer built here)
