@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 import { content } from "./content";
 import { LocaleToggle, useLocale } from "./LocaleProvider";
 
@@ -55,18 +53,6 @@ export function TopNav() {
 
         <div className="flex items-center gap-[10px]">
           <LocaleToggle variant={scrolled ? "light" : "dark"} />
-          <Link
-            href="/console"
-            className={[
-              "group hidden items-center gap-[6px] rounded-full px-[14px] py-[8px] text-[13px] font-bold transition-all sm:inline-flex",
-              scrolled
-                ? "bg-[var(--m-ink)] text-white hover:bg-[#0a1410]"
-                : "bg-white text-[var(--m-ink)] hover:bg-white/90",
-            ].join(" ")}
-          >
-            {tr({ en: "Operational preview", es: "Vista operativa" })}
-            <ArrowUpRight className="h-[15px] w-[15px] transition-transform group-hover:translate-x-[1px] group-hover:-translate-y-[1px]" />
-          </Link>
         </div>
       </div>
     </header>
