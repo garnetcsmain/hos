@@ -45,3 +45,132 @@
     font-family: var(--font-ibm-plex-mono), "IBM Plex Mono", monospace;
   }
 }
+
+/* ============================================================================
+   Marketing / explainer landing page design system.
+   Scoped tokens + motion. Cinematic deep-green canvas, Apple-grade restraint.
+   Kept separate from the operational app tokens above so the live console
+   styling is never affected.
+   ========================================================================== */
+:root {
+  --m-bg: #0a120f;
+  --m-bg-2: #0e1713;
+  --m-bg-3: #101e18;
+  --m-paper: #ffffff;
+  --m-paper-2: #f3f7f4;
+  --m-paper-3: #e9efeb;
+  --m-ink: #0c1712;
+  --m-ink-soft: #38463f;
+  --m-line: #d8e2dc;
+  --m-line-dark: rgba(173, 201, 187, 0.16);
+  --m-on-dark: #ecf3ef;
+  --m-on-dark-soft: #9fb4aa;
+  --m-on-dark-faint: #6f877c;
+
+  --m-green: #34c082;
+  --m-green-deep: #1f8a5a;
+  --m-blue: #5aa6e0;
+  --m-teal: #2dd4bf;
+  --m-red: #ec6f5e;
+  --m-amber: #f0b451;
+  --m-violet: #a78bfa;
+
+  --m-shadow-sm: 0 1px 2px rgba(8, 20, 15, 0.06), 0 4px 14px rgba(8, 20, 15, 0.05);
+  --m-shadow-md: 0 8px 30px rgba(8, 20, 15, 0.1), 0 2px 8px rgba(8, 20, 15, 0.06);
+  --m-shadow-lg: 0 30px 70px rgba(6, 16, 12, 0.18), 0 8px 24px rgba(6, 16, 12, 0.1);
+  --m-shadow-glow: 0 0 0 1px rgba(52, 192, 130, 0.16), 0 18px 60px rgba(20, 120, 80, 0.22);
+}
+
+.hos-landing {
+  background: var(--m-paper);
+  color: var(--m-ink);
+  font-family: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.011em;
+  overflow-x: hidden;
+}
+
+.hos-landing ::selection {
+  background: rgba(52, 192, 130, 0.26);
+}
+
+/* Scroll-reveal: elements start hidden, animate in when observed. */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .m-anim {
+    animation: none !important;
+  }
+}
+
+/* Soft animated aurora used behind dark hero sections. */
+@keyframes m-drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(3%, -4%, 0) scale(1.08); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes m-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes m-pulse-ring {
+  0% { transform: scale(0.6); opacity: 0.7; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+@keyframes m-shimmer {
+  0% { background-position: -460px 0; }
+  100% { background-position: 460px 0; }
+}
+@keyframes m-dash {
+  to { stroke-dashoffset: -1000; }
+}
+@keyframes m-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.m-aurora {
+  background: radial-gradient(60% 60% at 22% 18%, rgba(52, 192, 130, 0.22) 0%, transparent 60%),
+    radial-gradient(50% 50% at 82% 30%, rgba(90, 166, 224, 0.18) 0%, transparent 60%),
+    radial-gradient(60% 60% at 60% 92%, rgba(45, 212, 191, 0.12) 0%, transparent 62%);
+  animation: m-drift 18s ease-in-out infinite;
+}
+
+.m-grid-dots {
+  background-image: radial-gradient(rgba(173, 201, 187, 0.16) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+.m-live-dot {
+  position: relative;
+}
+.m-live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid currentColor;
+  animation: m-pulse-ring 2.4s ease-out infinite;
+}
+
+.m-anim-float { animation: m-float 6s ease-in-out infinite; }
+
+/* Hide scrollbars on horizontal mockup strips while keeping scroll. */
+.m-noscroll::-webkit-scrollbar { display: none; }
+.m-noscroll { scrollbar-width: none; }

@@ -1,5 +1,7 @@
-import { HosDashboard } from "@/app/components/HosDashboard";
+import { LandingPage } from "@/app/landing/LandingPage";
 
+// The front page is now the HOS explainer. The live operations console moved
+// to /console.
 export default function Home() {
-  return <HosDashboard />;
+  return <LandingPage />;
 }

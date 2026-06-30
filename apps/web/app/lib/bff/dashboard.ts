@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 export const navItems = [
-  { label: "Map", href: "/", icon: Map },
+  { label: "Map", href: "/console", icon: Map },
   { label: "Missing", href: "/missing", icon: UserRoundSearch },
   { label: "Found", href: "/found", icon: UserCheck },
   { label: "Matches", href: "/matches", icon: ScanSearch },
