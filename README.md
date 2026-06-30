@@ -126,7 +126,8 @@ No external setup is required: persistence is local SQLite via Node's built-in `
 
 | Capability | Route | Status |
 |------------|-------|--------|
-| Dashboard / Map | `/` | Live |
+| Presentation page (bilingual explainer) | `/` | Live |
+| Operations console / Map | `/console` | Live |
 | Missing Persons Registry | `/missing` | Live |
 | Found Persons Registry | `/found` | Live |
 | AI Match Candidates | `/matches` | Live |
