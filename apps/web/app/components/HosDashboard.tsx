@@ -34,10 +34,10 @@ function Sidebar() {
   const pathname = usePathname();
   return (
     <aside className="flex min-h-screen w-[244px] shrink-0 flex-col bg-[var(--hos-dark)] px-[18px] py-[26px] text-[#B9CAC1] max-[900px]:min-h-0 max-[900px]:w-full max-[900px]:gap-[18px] max-[900px]:py-[18px]">
-      <div className="px-[10px] max-[900px]:px-0">
+      <Link href="/" className="block rounded-[6px] px-[10px] py-[4px] transition hover:bg-[#20352C] max-[900px]:px-0">
         <div className="text-[25px] font-extrabold leading-none text-white">HOS</div>
         <div className="mt-[10px] text-[14px] font-bold leading-none">Response Kit</div>
-      </div>
+      </Link>
       <nav className="mt-[50px] flex flex-col gap-[12px] max-[900px]:mt-0 max-[900px]:flex-row max-[900px]:overflow-x-auto">
         {navItems.map(({ label, href, icon: Icon }) => {
           const active = pathname === href;
