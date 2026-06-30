@@ -1,9 +1,9 @@
-import { db } from "../db/client.ts";
+import { db, lazyStatement } from "../db/client.ts";
 import { mapMissing } from "../db/mappers.ts";
 import { nowIso } from "../domain/time.ts";
 import type { MissingReport, ReportStatus } from "@/app/lib/domain/types";
 
-const insertStmt = db.prepare(
+const insertStmt = lazyStatement(
   `INSERT INTO missing_reports
      (id, created_at, updated_at, full_name, given_name, age, sex,
       last_seen_location, city, last_seen_at, description, sensitive_notes,
@@ -13,7 +13,7 @@ const insertStmt = db.prepare(
 );
 
 export function insertMissing(report: MissingReport): void {
-  insertStmt.run(
+  insertStmt().run(
     report.id,
     report.createdAt,
     report.updatedAt,

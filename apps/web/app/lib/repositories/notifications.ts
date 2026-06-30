@@ -1,15 +1,15 @@
-import { db } from "../db/client.ts";
+import { db, lazyStatement } from "../db/client.ts";
 import { mapNotification } from "../db/mappers.ts";
 import type { Notification, NotificationStatus } from "@/app/lib/domain/types";
 
-const insertStmt = db.prepare(
+const insertStmt = lazyStatement(
   `INSERT INTO notifications
      (id, created_at, missing_id, candidate_id, channel, recipient, status, subject, body)
    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 export function insertNotification(notification: Notification): void {
-  insertStmt.run(
+  insertStmt().run(
     notification.id,
     notification.createdAt,
     notification.missingId,
