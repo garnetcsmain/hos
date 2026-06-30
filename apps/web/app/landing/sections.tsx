@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   AlertTriangle,
   ArrowRight,
@@ -83,18 +82,12 @@ export function HeroSection() {
           </Reveal>
           <Reveal delay={220}>
             <div className="mt-[32px] flex flex-wrap items-center gap-[12px]">
-              <Link
-                href="/console"
-                className="group inline-flex items-center gap-[8px] rounded-full bg-[var(--m-green)] px-[22px] py-[13px] text-[15px] font-bold text-[#04130c] shadow-[0_10px_30px_rgba(52,192,130,0.32)] transition hover:brightness-105"
-              >
-                {tr(h.primaryCta)}
-                <ArrowRight className="h-[17px] w-[17px] transition-transform group-hover:translate-x-[2px]" />
-              </Link>
               <a
                 href="#how"
-                className="inline-flex items-center gap-[8px] rounded-full bg-white/10 px-[22px] py-[13px] text-[15px] font-bold text-white ring-1 ring-white/15 transition hover:bg-white/15"
+                className="group inline-flex items-center gap-[8px] rounded-full bg-[var(--m-green)] px-[22px] py-[13px] text-[15px] font-bold text-[#04130c] shadow-[0_10px_30px_rgba(52,192,130,0.32)] transition hover:brightness-105"
               >
                 {tr(h.secondaryCta)}
+                <ArrowRight className="h-[17px] w-[17px] transition-transform group-hover:translate-x-[2px]" />
               </a>
             </div>
           </Reveal>
