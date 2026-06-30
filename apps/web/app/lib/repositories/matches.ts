@@ -1,9 +1,9 @@
-import { db } from "../db/client.ts";
+import { db, lazyStatement } from "../db/client.ts";
 import { mapCandidate } from "../db/mappers.ts";
 import { nowIso } from "../domain/time.ts";
 import type { MatchCandidate, MatchStatus } from "@/app/lib/domain/types";
 
-const upsertStmt = db.prepare(
+const upsertStmt = lazyStatement(
   `INSERT INTO match_candidates
      (id, created_at, updated_at, missing_id, found_id, score, factors, status, model)
    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -18,7 +18,7 @@ const upsertStmt = db.prepare(
  *  exists. A human decision (status) is intentionally preserved on conflict —
  *  recomputing the score must never resurrect a rejected match. */
 export function upsertCandidate(candidate: MatchCandidate): void {
-  upsertStmt.run(
+  upsertStmt().run(
     candidate.id,
     candidate.createdAt,
     candidate.updatedAt,
