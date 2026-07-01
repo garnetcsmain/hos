@@ -16,6 +16,9 @@ const write = <T>(path: string, body: unknown, method = "POST") =>
 export const getCoordinationBoard = () =>
   request<CoordinationView>("/api/coordination", { headers: coordinatorHeaders() });
 
+export const getMapsConfig = () =>
+  request<{ apiKey: string }>("/api/config/maps", { headers: coordinatorHeaders() });
+
 export const createOrg = (payload: { name: string; kind: OrgKind }) =>
   write<{ org: Org }>("/api/coordination/orgs", payload);
 

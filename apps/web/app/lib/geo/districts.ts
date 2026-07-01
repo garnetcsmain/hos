@@ -1,29 +1,34 @@
 // District-level geography for the coordination map. The coordination board is
 // deliberately district-only — NEVER precise addresses (targeting risk, Board
 // HOS-2026-007: a live needs/site board must not become a targeting map). These
-// are approximate ZONES on a schematic regional map (the La Guaira coast with
-// Caracas inland), not exact coordinates, so nothing here can pinpoint a site.
+// are the CENTROID of each district, so a marker sits over the district as a
+// whole, never over an individual shelter.
 
-export interface DistrictZone {
-  /** absolute-position Tailwind classes for the district's zone on the map */
-  box: string;
+export interface DistrictPoint {
+  lat: number;
+  lng: number;
 }
 
-// Approximate layout: the Caribbean coast runs along the top; La Guaira and
-// Maiquetía are coastal (north), Caracas sits inland (south, behind the mountain).
-export const DISTRICT_ZONES: Record<string, DistrictZone> = {
-  "La Guaira": { box: "left-[5%] top-[14%] w-[30%] h-[28%]" },
-  "Maiquetía": { box: "left-[40%] top-[10%] w-[31%] h-[30%]" },
-  Caracas: { box: "left-[27%] top-[54%] w-[46%] h-[34%]" },
+// Approximate district centroids around the La Guaira coast and Caracas.
+export const DISTRICT_POINTS: Record<string, DistrictPoint> = {
+  "La Guaira": { lat: 10.6009, lng: -66.933 },
+  "Maiquetía": { lat: 10.5985, lng: -66.98 },
+  Caracas: { lat: 10.488, lng: -66.8792 },
 };
 
-// Slots for any district not in the map above, laid out so they never overlap
-// the known zones.
-export const FALLBACK_BOXES = [
-  "left-[73%] top-[52%] w-[24%] h-[28%]",
-  "left-[6%] top-[64%] w-[18%] h-[24%]",
-  "left-[76%] top-[12%] w-[20%] h-[26%]",
-];
+// Where the map opens, framing the whole affected region.
+export const REGION_CENTER: DistrictPoint = { lat: 10.54, lng: -66.93 };
+export const REGION_ZOOM = 11;
+
+// For a district with no known centroid, drop it near the region center with a
+// small deterministic offset so several unknowns don't stack exactly.
+export function pointForDistrict(district: string, index: number): DistrictPoint {
+  const known = DISTRICT_POINTS[district];
+  if (known) return known;
+  const ring = 0.03;
+  const angle = (index * 2 * Math.PI) / 6;
+  return { lat: REGION_CENTER.lat + ring * Math.sin(angle), lng: REGION_CENTER.lng + ring * Math.cos(angle) };
+}
 
 // A generic geographic reference the coordinator can open — the region, not any
 // specific site.
