@@ -46,9 +46,12 @@ export function listFound(status?: ReportStatus): FoundReport[] {
   return rows.map(mapFound);
 }
 
+/** Found reports still available to match. A "matched" report has a
+ *  human-confirmed link awaiting family contact, so it leaves the active pool
+ *  alongside "resolved" ones. */
 export function openFound(): FoundReport[] {
   const rows = db
-    .prepare(`SELECT * FROM found_reports WHERE status != 'resolved' ORDER BY created_at DESC`)
+    .prepare(`SELECT * FROM found_reports WHERE status NOT IN ('resolved', 'matched') ORDER BY created_at DESC`)
     .all();
   return rows.map(mapFound);
 }

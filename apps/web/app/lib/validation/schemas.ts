@@ -74,6 +74,17 @@ export const verificationSchema = z.object({
     .transform((value) => (value === undefined ? null : value)),
 });
 
+// A coordinator records the outcome of the family-reach obligation created when
+// a match is confirmed (Board D4): either the family was actually reached, or a
+// contact attempt failed. Reaching the family is what resolves the case.
+export const familyReachSchema = z.object({
+  notificationId: z.string().trim().min(1).max(40),
+  outcome: z.enum(["reached", "unreachable"]),
+  coordinatorOrg: z.string().trim().min(1, "coordinating organization is required").max(160),
+  note: optionalText(2000),
+});
+
 export type MissingReportInput = z.infer<typeof missingReportSchema>;
 export type FoundReportInput = z.infer<typeof foundReportSchema>;
 export type VerificationInput = z.infer<typeof verificationSchema>;
+export type FamilyReachInput = z.infer<typeof familyReachSchema>;

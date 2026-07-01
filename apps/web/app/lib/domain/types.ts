@@ -5,7 +5,10 @@
 
 export type Sex = "F" | "M" | "U";
 
-export type ReportStatus = "open" | "candidate" | "verifying" | "resolved";
+// "matched" = a human confirmed the link but the family has NOT yet been
+// reached. The case is out of active matching but is NOT publicly "resolved":
+// a bare "Resuelto" must never be the first thing a family learns (Board D4).
+export type ReportStatus = "open" | "candidate" | "verifying" | "matched" | "resolved";
 
 export type MatchStatus = "pending" | "confirmed" | "rejected";
 
@@ -13,7 +16,9 @@ export type Condition = "alive" | "injured" | "hospitalized" | "deceased" | "unk
 
 export type VerificationDecision = "confirmed" | "rejected" | "needs_more";
 
-export type NotificationStatus = "queued" | "sent" | "failed";
+// "delivered" is only written when a channel (or a coordinator callback)
+// actually reached the family — a real receipt, never assumed (Board D4).
+export type NotificationStatus = "queued" | "sent" | "delivered" | "failed";
 
 /** A family's report that they cannot reach a loved one. */
 export interface MissingReport {

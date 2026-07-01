@@ -52,8 +52,14 @@ export interface CandidateDetail extends CandidateView {
 export interface VerifyResult {
   verificationId: string;
   decision: string;
+  confirmed: boolean;
   resolved: boolean;
   notificationId: string | null;
+}
+
+export interface FamilyReachResult {
+  resolved: boolean;
+  status: string;
 }
 
 const COORDINATOR_TOKEN_KEY = "hos_coordinator_token";
@@ -113,6 +119,18 @@ export const verifyCandidate = (payload: unknown) =>
 
 export const listNotifications = () =>
   request<{ notifications: Notification[] }>("/api/notifications", { headers: coordinatorHeaders() });
+
+export const recordFamilyReach = (payload: {
+  notificationId: string;
+  outcome: "reached" | "unreachable";
+  coordinatorOrg: string;
+  note?: string;
+}) =>
+  request<FamilyReachResult>("/api/family-reach", {
+    method: "POST",
+    headers: coordinatorHeaders(),
+    body: JSON.stringify(payload),
+  });
 
 export const recomputeMatches = () =>
   request<{ missing: number; newCandidates: number }>("/api/matches/recompute", {

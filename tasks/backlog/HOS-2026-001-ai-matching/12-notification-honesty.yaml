@@ -14,24 +14,45 @@ due_date: "2026-07-05T23:59:59Z"
 estimated_hours: 8
 status: "in_progress"
 priority: "HIGH"
-progress_percent: 40
+progress_percent: 90
 epic_id: "HOS-2026-001"
 decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/judge-decision.yaml#HOS-2026-002-D4"
 depends_on: ["HOS-2026-001-06"]
 requirements:
   - "DONE: status 'queued' not 'sent'; event 'notification.queued' not 'family.notified'"
-  - "TODO: model a tracked family-reach obligation (callback) or a real family-readable inbox"
-  - "TODO: decouple public 'Resuelto' flip from the queue so a human reaches the family first"
+  - "DONE: tracked family-reach obligation — confirm opens a coordinator_callback obligation; the case becomes 'matched', not resolved; a human records the real contact (familyReach.ts)"
+  - "DONE: decouple public 'Resuelto' flip — resolution + the 'family.reached' receipt are written only when a coordinator records real contact, not on confirm"
+  - "DONE: compassionate 'Fallecida' path — a deceased outcome carries explicit in-person, no-automated-channel guidance"
 acceptance_criteria:
   - "No notification is recorded as delivered without a real receipt (DONE)"
-  - "A family-reach step is tracked, not implied in prose (TODO)"
+  - "A family-reach step is tracked, not implied in prose (DONE)"
+  - "A confirmed match never flips the public status straight to 'Resuelto' (DONE)"
 done_criteria:
-  - "Family-reach path specified + tested"
+  - "Family-reach path specified + tested (DONE); D4 re-review before any external channel is wired"
 code_changes:
+  - file: "apps/web/app/lib/services/familyReach.ts"
+    status: "done"
+  - file: "apps/web/app/lib/services/familyReach.test.ts"
+    status: "done"
+  - file: "apps/web/app/lib/services/familyReach.flow.test.ts"
+    status: "done"
   - file: "apps/web/app/lib/services/verification.ts"
     status: "done"
-  - file: "apps/web/app/components/HosDashboard.tsx"
+  - file: "apps/web/app/lib/domain/types.ts"
     status: "done"
+  - file: "apps/web/app/api/family-reach/route.ts"
+    status: "done"
+  - file: "apps/web/app/components/MessagesInbox.tsx"
+    status: "done"
+  - file: "apps/web/app/components/MatchConsoleParts.tsx"
+    status: "done"
+standup:
+  - date: "2026-06-30"
+    progress: "90% - family-reach obligation landed. Confirming a match no longer resolves the case or claims delivery: it moves both reports to a new 'matched' status and opens a tracked coordinator_callback obligation (queued). A coordinator records the real contact in Messages; only then does the case become 'Resuelto' and a 'family.reached' receipt event is written. An unreachable attempt is tracked (case stays matched). Deceased outcomes carry compassionate, no-automated-channel guidance."
+    verified: "9 new tests (5 pure + 4 in-memory integration; 57 total green); typecheck + lint + build clean; end-to-end API run — confirm returns resolved:false with a queued obligation, family-reach reached returns resolved:true and flips the obligation to delivered."
+    blockers: "None for the code. External-channel delivery (SMS/WhatsApp/email/Telegram) remains blocked (needs a provider + a signed no-retention DPA, escalate_to_human) and is tracked separately as HOS-2026-001-09."
+    next: "D4 re-review of the corrected status semantics + family-reach path. External channel wiring stays gated on human DPA sign-off."
 notes: |
-  Status/event honesty fix landed 2026-06-28 and verified in the running app
-  (Messages inbox shows 'En cola'). The family-reach design is the remaining work.
+  Status/event honesty fix landed 2026-06-28. Family-reach obligation + public-status decoupling landed
+  2026-06-30. Chose the board's "tracked human-callback obligation" option (D4 allowed either that or a
+  family-readable inbox). The case resolves ONLY on a recorded real contact; deceased handled compassionately.

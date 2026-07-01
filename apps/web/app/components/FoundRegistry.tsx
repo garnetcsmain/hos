@@ -34,6 +34,7 @@ const STATUS_CHIP: Record<PublicFound["status"], string> = {
   open: "bg-[#EEF2EF] text-[var(--hos-muted)]",
   candidate: "bg-[#DCEEF8] text-[#0B4F76]",
   verifying: "bg-[#FFF1D6] text-[#7A3D00]",
+  matched: "bg-[#E7E0F6] text-[#4B2E83]",
   resolved: "bg-[#DDEFE8] text-[#16613F]",
 };
 
