@@ -2,10 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Boxes, List, Map as MapIcon, Plus, RefreshCw, X } from "lucide-react";
+import { Boxes, HelpCircle, List, Map as MapIcon, Plus, RefreshCw, X } from "lucide-react";
 import { AppShell } from "@/app/components/HosDashboard";
 import { Term } from "@/app/components/Term";
 import { CoordinationMap } from "@/app/components/CoordinationMap";
+import {
+  startCoordinationTour,
+  useCoordinationTourFirstRun,
+} from "@/app/components/CoordinationTour";
 import { type ModalKind } from "@/app/components/IntakeForms";
 import {
   AddOrgForm,
@@ -150,6 +154,14 @@ export function CoordinationConsole() {
     };
   }, [creating]);
 
+  // First-time coordinators get a short guided walkthrough once the board loads.
+  useCoordinationTourFirstRun(board !== null && !denied && !error);
+
+  const openHelp = () => {
+    setView("list"); // tour anchors live in the list view
+    startCoordinationTour();
+  };
+
   const sortedNeeds = useMemo(() => {
     if (!board) return [];
     const openFirst = (s: string) => (s === "open" ? 0 : s === "claimed" ? 1 : 2);
@@ -235,7 +247,7 @@ export function CoordinationConsole() {
               </p>
             </section>
 
-            <div className="grid grid-cols-4 gap-[12px] max-[760px]:grid-cols-2">
+            <div data-tour="metrics" className="grid grid-cols-4 gap-[12px] max-[760px]:grid-cols-2">
               <Metric value={metrics.open} label="necesidades abiertas" color="text-[var(--hos-warn)]" />
               <Metric value={metrics.critical} label="críticas" color="text-[var(--hos-red)]" />
               <Metric value={metrics.beds} label="camas libres" color="text-[var(--hos-green)]" />
@@ -245,7 +257,7 @@ export function CoordinationConsole() {
             <div className="flex items-center justify-between gap-[12px] max-[620px]:flex-col max-[620px]:items-stretch">
               <div className="flex items-center gap-[14px]">
                 <h2 className="text-[16px] font-extrabold text-[var(--hos-text)]">Panel de coordinación</h2>
-                <div className="flex items-center gap-[2px] rounded-[8px] border border-[var(--hos-border)] bg-white p-[3px]">
+                <div data-tour="view-toggle" className="flex items-center gap-[2px] rounded-[8px] border border-[var(--hos-border)] bg-white p-[3px]">
                   <button
                     type="button"
                     onClick={() => setView("list")}
@@ -263,12 +275,21 @@ export function CoordinationConsole() {
                     <MapIcon className="h-[13px] w-[13px]" strokeWidth={2.4} /> Mapa
                   </button>
                 </div>
+                <button
+                  type="button"
+                  onClick={openHelp}
+                  className="inline-flex h-[30px] items-center gap-[5px] rounded-[6px] px-[8px] text-[12px] font-extrabold text-[var(--hos-muted)] transition hover:text-[var(--hos-text)]"
+                >
+                  <HelpCircle className="h-[15px] w-[15px]" strokeWidth={2.2} />
+                  <span className="max-[620px]:hidden">¿Cómo funciona?</span>
+                </button>
               </div>
               <div className="flex items-center gap-[10px]">
                 <button
                   type="button"
                   onClick={reload}
                   disabled={refreshing}
+                  data-tour="refresh"
                   aria-label="Actualizar el panel"
                   className="inline-flex h-[38px] items-center gap-[6px] rounded-[6px] border border-[var(--hos-border)] bg-white px-[12px] text-[12px] font-extrabold text-[var(--hos-muted)] transition hover:text-[var(--hos-text)] disabled:opacity-60"
                 >
@@ -285,6 +306,7 @@ export function CoordinationConsole() {
                 <button
                   type="button"
                   onClick={openCreate}
+                  data-tour="new-record"
                   className="inline-flex h-[38px] items-center gap-[6px] rounded-[6px] bg-[var(--hos-dark)] px-[14px] text-[13px] font-extrabold text-white"
                 >
                   <Plus className="h-[15px] w-[15px]" strokeWidth={2.6} /> {creating ? "Cerrar" : "Nuevo registro"}
@@ -324,7 +346,7 @@ export function CoordinationConsole() {
                 ) : null}
 
                 <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-[18px] max-[1100px]:grid-cols-1">
-                  <section>
+                  <section data-tour="needs">
                     <div className="mb-[10px] flex items-center justify-between">
                       <h3 className="text-[13px] font-extrabold text-[var(--hos-text)]">Necesidades</h3>
                       <span className="font-data text-[12px] font-bold text-[var(--hos-muted)]">{visibleNeeds.length}</span>
