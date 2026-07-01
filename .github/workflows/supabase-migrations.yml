@@ -5,9 +5,9 @@ name: Supabase migrations
 # for deterministic, tracked migrations (ALTERs / constraints / backfills that
 # the runtime auto-init cannot do).
 #
-# Setup required (once): create two GitHub Environments — "production" and
-# "staging" — each with a secret named SUPABASE_DB_URL set to that branch's
-# Supabase SESSION-pooler connection string:
+# Setup (once): create two GitHub Environments — "production" and "staging" —
+# each with a secret named SUPABASE_DB_URL set to that branch's Supabase
+# SESSION-pooler connection string:
 #
 #   postgres://postgres.<ref>:<pw>@aws-1-<region>.pooler.supabase.com:5432/postgres
 #
@@ -15,6 +15,12 @@ name: Supabase migrations
 # (6543) — the CLI uses named prepared statements, which the transaction pooler
 # rejects with SQLSTATE 42P05. (The app itself uses 6543; the CLI needs 5432.)
 # Add required reviewers to the "production" environment to gate prod migrations.
+#
+# Behavior:
+#   push to main (migrations changed) -> apply to production
+#   pull request (migrations changed) -> dry-run vs staging (skipped if staging
+#                                        env/secret is absent, so it never blocks)
+#   manual dispatch                   -> choose environment + dry-run toggle
 
 on:
   push:
@@ -29,6 +35,10 @@ on:
         type: choice
         options: [staging, production]
         default: staging
+      dry_run:
+        description: Dry-run (no changes applied)
+        type: boolean
+        default: true
 
 concurrency:
   group: supabase-migrations-${{ github.ref }}
@@ -37,7 +47,7 @@ concurrency:
 jobs:
   migrate:
     runs-on: ubuntu-latest
-    # push to main -> production; manual run -> chosen; PR -> staging (dry-run).
+    # push -> production; manual -> chosen; PR -> staging (dry-run).
     environment: ${{ (github.event_name == 'push' && 'production') || github.event.inputs.environment || 'staging' }}
     steps:
       - uses: actions/checkout@v4
@@ -46,16 +56,22 @@ jobs:
         with:
           version: latest
 
-      - name: Apply migrations (dry-run on PRs, apply on main / manual)
+      - name: db push
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          # dry-run for any PR, or when a manual run requests it.
+          DRY_RUN: ${{ github.event_name == 'pull_request' || github.event.inputs.dry_run == 'true' }}
         run: |
           if [ -z "$SUPABASE_DB_URL" ]; then
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              echo "::warning::No SUPABASE_DB_URL for the 'staging' environment — skipping the PR dry-run. Create a 'staging' GitHub Environment with this secret to enable it."
+              exit 0
+            fi
             echo "::error::SUPABASE_DB_URL secret is not set for this environment. See the header of this workflow."
             exit 1
           fi
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "PR: dry-run only (no changes applied)"
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry-run (no changes will be applied):"
             supabase db push --db-url "$SUPABASE_DB_URL" --dry-run
           else
             supabase db push --db-url "$SUPABASE_DB_URL" --yes
