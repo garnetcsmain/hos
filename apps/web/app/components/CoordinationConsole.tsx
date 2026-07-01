@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Boxes, Plus, RefreshCw } from "lucide-react";
+import { Boxes, List, Map as MapIcon, Plus, RefreshCw, X } from "lucide-react";
 import { AppShell } from "@/app/components/HosDashboard";
 import { Term } from "@/app/components/Term";
+import { CoordinationMap } from "@/app/components/CoordinationMap";
 import { type ModalKind } from "@/app/components/IntakeForms";
 import {
   AddOrgForm,
@@ -92,6 +93,8 @@ export function CoordinationConsole() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [nowTick, setNowTick] = useState(() => Date.now());
+  const [view, setView] = useState<"list" | "map">("list");
+  const [district, setDistrict] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -169,6 +172,16 @@ export function CoordinationConsole() {
   }, [board]);
 
   const orgs = board?.orgs ?? [];
+  const allSites = board?.sites ?? [];
+  const allOffers = board?.offers ?? [];
+  const visibleNeeds = district ? sortedNeeds.filter((v) => v.need.district === district) : sortedNeeds;
+  const visibleSites = district ? allSites.filter((v) => v.site.district === district) : allSites;
+  const visibleOffers = district ? allOffers.filter((v) => v.offer.district === district) : allOffers;
+
+  const openCreate = () => {
+    setView("list");
+    setCreating((v) => !v);
+  };
 
   return (
     <AppShell
@@ -229,8 +242,28 @@ export function CoordinationConsole() {
               <Metric value={metrics.sites} label="sitios" color="text-[var(--hos-blue)]" />
             </div>
 
-            <div className="flex items-center justify-between gap-[12px]">
-              <h2 className="text-[16px] font-extrabold text-[var(--hos-text)]">Panel de coordinación</h2>
+            <div className="flex items-center justify-between gap-[12px] max-[620px]:flex-col max-[620px]:items-stretch">
+              <div className="flex items-center gap-[14px]">
+                <h2 className="text-[16px] font-extrabold text-[var(--hos-text)]">Panel de coordinación</h2>
+                <div className="flex items-center gap-[2px] rounded-[8px] border border-[var(--hos-border)] bg-white p-[3px]">
+                  <button
+                    type="button"
+                    onClick={() => setView("list")}
+                    aria-pressed={view === "list"}
+                    className={`inline-flex h-[30px] items-center gap-[5px] rounded-[6px] px-[10px] text-[12px] font-extrabold transition ${view === "list" ? "bg-[var(--hos-dark)] text-white" : "text-[var(--hos-muted)] hover:text-[var(--hos-text)]"}`}
+                  >
+                    <List className="h-[13px] w-[13px]" strokeWidth={2.4} /> Lista
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setView("map")}
+                    aria-pressed={view === "map"}
+                    className={`inline-flex h-[30px] items-center gap-[5px] rounded-[6px] px-[10px] text-[12px] font-extrabold transition ${view === "map" ? "bg-[var(--hos-dark)] text-white" : "text-[var(--hos-muted)] hover:text-[var(--hos-text)]"}`}
+                  >
+                    <MapIcon className="h-[13px] w-[13px]" strokeWidth={2.4} /> Mapa
+                  </button>
+                </div>
+              </div>
               <div className="flex items-center gap-[10px]">
                 <button
                   type="button"
@@ -251,7 +284,7 @@ export function CoordinationConsole() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCreating((v) => !v)}
+                  onClick={openCreate}
                   className="inline-flex h-[38px] items-center gap-[6px] rounded-[6px] bg-[var(--hos-dark)] px-[14px] text-[13px] font-extrabold text-white"
                 >
                   <Plus className="h-[15px] w-[15px]" strokeWidth={2.6} /> {creating ? "Cerrar" : "Nuevo registro"}
@@ -259,52 +292,76 @@ export function CoordinationConsole() {
               </div>
             </div>
 
-            {creating ? (
-              <div className="grid grid-cols-2 gap-[12px] max-[900px]:grid-cols-1">
-                <Panel title="Publicar necesidad"><PostNeedForm orgs={orgs} onChanged={reload} /></Panel>
-                <Panel title="Publicar suministro"><PostOfferForm orgs={orgs} onChanged={reload} /></Panel>
-                <Panel title="Agregar sitio"><AddSiteForm orgs={orgs} onChanged={reload} /></Panel>
-                <Panel title="Registrar organización"><AddOrgForm onChanged={reload} /></Panel>
-              </div>
-            ) : null}
+            {view === "map" ? (
+              <CoordinationMap
+                board={board}
+                activeDistrict={district}
+                onSelect={(d) => {
+                  setDistrict(d);
+                  if (d) setView("list");
+                }}
+              />
+            ) : (
+              <>
+                {creating ? (
+                  <div className="grid grid-cols-2 gap-[12px] max-[900px]:grid-cols-1">
+                    <Panel title="Publicar necesidad"><PostNeedForm orgs={orgs} onChanged={reload} /></Panel>
+                    <Panel title="Publicar suministro"><PostOfferForm orgs={orgs} onChanged={reload} /></Panel>
+                    <Panel title="Agregar sitio"><AddSiteForm orgs={orgs} onChanged={reload} /></Panel>
+                    <Panel title="Registrar organización"><AddOrgForm onChanged={reload} /></Panel>
+                  </div>
+                ) : null}
 
-            <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-[18px] max-[1100px]:grid-cols-1">
-              <section>
-                <div className="mb-[10px] flex items-center justify-between">
-                  <h3 className="text-[13px] font-extrabold text-[var(--hos-text)]">Necesidades</h3>
-                  <span className="font-data text-[12px] font-bold text-[var(--hos-muted)]">{sortedNeeds.length}</span>
+                {district ? (
+                  <div>
+                    <span className="inline-flex items-center gap-[8px] rounded-full bg-[#EEF2EF] px-[12px] py-[6px] text-[12px] font-extrabold text-[var(--hos-text)]">
+                      Distrito: {district}
+                      <button type="button" onClick={() => setDistrict(null)} aria-label="Quitar filtro de distrito">
+                        <X className="h-[13px] w-[13px]" strokeWidth={2.6} />
+                      </button>
+                    </span>
+                  </div>
+                ) : null}
+
+                <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-[18px] max-[1100px]:grid-cols-1">
+                  <section>
+                    <div className="mb-[10px] flex items-center justify-between">
+                      <h3 className="text-[13px] font-extrabold text-[var(--hos-text)]">Necesidades</h3>
+                      <span className="font-data text-[12px] font-bold text-[var(--hos-muted)]">{visibleNeeds.length}</span>
+                    </div>
+                    <div className="flex flex-col gap-[12px]">
+                      {visibleNeeds.length === 0 ? (
+                        <p className="text-[13px] font-bold text-[var(--hos-muted)]">No hay necesidades registradas.</p>
+                      ) : (
+                        visibleNeeds.map((v) => <NeedCard key={v.need.id} view={v} orgs={orgs} onChanged={reload} />)
+                      )}
+                    </div>
+                  </section>
+
+                  <div className="flex flex-col gap-[18px]">
+                    <section>
+                      <div className="mb-[10px] flex items-center justify-between">
+                        <h3 className="text-[13px] font-extrabold text-[var(--hos-text)]">Sitios y capacidad</h3>
+                        <span className="font-data text-[12px] font-bold text-[var(--hos-muted)]">{visibleSites.length}</span>
+                      </div>
+                      <div className="flex flex-col gap-[12px]">
+                        {visibleSites.map((v) => <SiteCard key={v.site.id} view={v} onChanged={reload} />)}
+                      </div>
+                    </section>
+
+                    <section>
+                      <div className="mb-[10px] flex items-center justify-between">
+                        <h3 className="text-[13px] font-extrabold text-[var(--hos-text)]">Suministros ofrecidos</h3>
+                        <span className="font-data text-[12px] font-bold text-[var(--hos-muted)]">{visibleOffers.length}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-[10px] max-[520px]:grid-cols-1">
+                        {visibleOffers.map((v) => <OfferCard key={v.offer.id} view={v} />)}
+                      </div>
+                    </section>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-[12px]">
-                  {sortedNeeds.length === 0 ? (
-                    <p className="text-[13px] font-bold text-[var(--hos-muted)]">No hay necesidades registradas.</p>
-                  ) : (
-                    sortedNeeds.map((v) => <NeedCard key={v.need.id} view={v} orgs={orgs} onChanged={reload} />)
-                  )}
-                </div>
-              </section>
-
-              <div className="flex flex-col gap-[18px]">
-                <section>
-                  <div className="mb-[10px] flex items-center justify-between">
-                    <h3 className="text-[13px] font-extrabold text-[var(--hos-text)]">Sitios y capacidad</h3>
-                    <span className="font-data text-[12px] font-bold text-[var(--hos-muted)]">{board.sites.length}</span>
-                  </div>
-                  <div className="flex flex-col gap-[12px]">
-                    {board.sites.map((v) => <SiteCard key={v.site.id} view={v} onChanged={reload} />)}
-                  </div>
-                </section>
-
-                <section>
-                  <div className="mb-[10px] flex items-center justify-between">
-                    <h3 className="text-[13px] font-extrabold text-[var(--hos-text)]">Suministros ofrecidos</h3>
-                    <span className="font-data text-[12px] font-bold text-[var(--hos-muted)]">{board.offers.length}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-[10px] max-[520px]:grid-cols-1">
-                    {board.offers.map((v) => <OfferCard key={v.offer.id} view={v} />)}
-                  </div>
-                </section>
-              </div>
-            </div>
+              </>
+            )}
           </>
         ) : null}
       </div>
