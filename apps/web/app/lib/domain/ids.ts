@@ -14,6 +14,12 @@ export const newCandidateId = (): string => `MC-${shortId()}`;
 export const newVerificationId = (): string => `VR-${shortId()}`;
 export const newNotificationId = (): string => `NT-${shortId()}`;
 
+// Coordination epic (HOS-2026-007).
+export const newOrgId = (): string => `ORG-${shortId()}`;
+export const newSiteId = (): string => `ST-${shortId()}`;
+export const newNeedId = (): string => `ND-${shortId()}`;
+export const newOfferId = (): string => `OF-${shortId()}`;
+
 /** First/given name derived from a full name, for least-PII public views. */
 export function deriveGivenName(fullName: string): string {
   const first = fullName.trim().split(/\s+/)[0] ?? "";

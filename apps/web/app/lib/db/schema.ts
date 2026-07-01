@@ -90,6 +90,58 @@ CREATE TABLE IF NOT EXISTS notifications (
   body          TEXT NOT NULL DEFAULT ''
 );
 
+-- Coordination epic (HOS-2026-007). Sites/needs/supplies share the same
+-- append-only event store and repository philosophy. Location is coarse
+-- (district), never a precise address; org/actor is a first-class entity.
+CREATE TABLE IF NOT EXISTS orgs (
+  id            TEXT PRIMARY KEY,
+  created_at    TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  kind          TEXT NOT NULL DEFAULT 'other'
+);
+
+CREATE TABLE IF NOT EXISTS sites (
+  id            TEXT PRIMARY KEY,
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  org_id        TEXT NOT NULL REFERENCES orgs(id),
+  district      TEXT NOT NULL DEFAULT '',   -- coarse only; never precise address
+  beds_total    INTEGER NOT NULL DEFAULT 0,
+  beds_free     INTEGER NOT NULL DEFAULT 0,
+  status        TEXT NOT NULL DEFAULT 'active',
+  notes         TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS needs (
+  id            TEXT PRIMARY KEY,
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL,
+  org_id        TEXT NOT NULL REFERENCES orgs(id),
+  site_id       TEXT REFERENCES sites(id),
+  district      TEXT NOT NULL DEFAULT '',
+  category      TEXT NOT NULL DEFAULT 'other',
+  quantity      INTEGER NOT NULL DEFAULT 1,
+  unit          TEXT NOT NULL DEFAULT '',
+  urgency       TEXT NOT NULL DEFAULT 'normal',
+  status        TEXT NOT NULL DEFAULT 'open',
+  claimed_by_org_id TEXT REFERENCES orgs(id),
+  notes         TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS offers (
+  id            TEXT PRIMARY KEY,
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL,
+  org_id        TEXT NOT NULL REFERENCES orgs(id),
+  district      TEXT NOT NULL DEFAULT '',
+  category      TEXT NOT NULL DEFAULT 'other',
+  quantity      INTEGER NOT NULL DEFAULT 1,
+  unit          TEXT NOT NULL DEFAULT '',
+  status        TEXT NOT NULL DEFAULT 'available',
+  notes         TEXT NOT NULL DEFAULT ''
+);
+
 -- Append-only event store / audit log. Never UPDATEd or DELETEd by app code.
 CREATE TABLE IF NOT EXISTS events (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -108,4 +160,8 @@ CREATE INDEX IF NOT EXISTS idx_candidates_found ON match_candidates(found_id);
 CREATE INDEX IF NOT EXISTS idx_candidates_status ON match_candidates(status);
 CREATE INDEX IF NOT EXISTS idx_events_entity ON events(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_missing ON notifications(missing_id);
+CREATE INDEX IF NOT EXISTS idx_sites_org ON sites(org_id);
+CREATE INDEX IF NOT EXISTS idx_needs_status ON needs(status);
+CREATE INDEX IF NOT EXISTS idx_needs_district ON needs(district);
+CREATE INDEX IF NOT EXISTS idx_offers_category ON offers(category);
 `;

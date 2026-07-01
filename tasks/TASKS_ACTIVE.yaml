@@ -6,12 +6,12 @@
 ---
 
 # Task Summary
-total_tasks: 14
+total_tasks: 15
 in_backlog: 5
-in_sprint: 9
+in_sprint: 10
 in_progress: 3
 in_review: 0
-done: 6
+done: 7
 
 # Current Sprint
 current_sprint: "2026-W26"
@@ -89,14 +89,16 @@ epics:
   - epic_id: "HOS-2026-007"
     title: "Whole-response coordination (shelters, needs, supplies)"
     decision_link: "docs/decision-log/2026-07-01-HOS-007-response-coordination/judge_decision.yaml"
-    status: "planning"
-    progress: "0%"
+    status: "active"
+    progress: "70%"
     board_status: "RESHAPE — Judge approved the thin slice (Option B); dispatch/routing/public feed KILLED this cycle"
     tasks:
       # Judge conditions (HOS-2026-007): coordinator-only, coarse district, honest
       # state (site confirms receipt), freshness signal, model org/actor now, reuse
       # the spine, and stay structurally pausable so Phase 0 is never reprioritized.
-      - { id: "HOS-2026-007-01", title: "Coordination slice: sites (capacity) + needs board + advisory supply match", owner: "DEV", status: "todo", priority: "MEDIUM" }
+      # Thin slice built + verified 2026-07-01; remaining scope is later-gate work.
+      - { id: "HOS-2026-007-01", title: "Coordination slice: sites (capacity) + needs board + advisory supply match", owner: "DEV", status: "done", priority: "MEDIUM" }
+      - { id: "HOS-2026-007-02", title: "D4-style re-review of coordination honest-state + freshness; then decide public/aggregated feed + volunteer dispatch (deferred gates)", owner: "CTO", status: "todo", priority: "LOW" }
 
 ---
 

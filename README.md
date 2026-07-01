@@ -116,7 +116,7 @@ npm install
 npm run dev          # http://localhost:3000
 ```
 
-**Pages.** `/` is the public **presentation page** — a bilingual (English/Spanish) explainer of what HOS is and every module it will offer, written for a general audience, with motion graphics and high-fidelity mockups of the platform. The live operations console — the **Family Reunification Map**, under active development — lives at **`/console`** and auto-seeds the Venezuela scenario on first load.
+**Pages.** `/` is the public **presentation page** — a bilingual (English/Spanish) explainer of what HOS is and every module it will offer, written for a general audience, with motion graphics and high-fidelity mockups of the platform. The live operations console — the **Family Reunification Map**, under active development — lives at **`/console`** and auto-seeds the Venezuela scenario on first load. A second console, **Response Coordination** at **`/coordination`** (Phase 1, HOS-2026-007), tracks shelter capacity, a needs board, and supply offers with an advisory needs↔supply matcher; it is coordinator-gated (no public board), records a supply as *received* only when the requesting site confirms real delivery, and flags stale data — see `docs/decision-log/2026-07-01-HOS-007-response-coordination/`.
 
 No external setup is required: persistence is local SQLite via Node's built-in `node:sqlite` (no native build), and matching runs on a deterministic, offline rule engine. Other commands: `npm test` (matching + AI tests, including adversarial false-positive cases), `npm run typecheck`, `npm run build`, `npm run seed`.
 
