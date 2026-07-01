@@ -11,7 +11,7 @@ in_backlog: 5
 in_sprint: 10
 in_progress: 3
 in_review: 0
-done: 7
+done: 8
 
 # Current Sprint
 current_sprint: "2026-W26"
@@ -90,16 +90,16 @@ epics:
   - epic_id: "HOS-2026-007"
     title: "Whole-response coordination (shelters, needs, supplies)"
     decision_link: "docs/decision-log/2026-07-01-HOS-007-response-coordination/judge_decision.yaml"
-    status: "active"
-    progress: "70%"
-    board_status: "RESHAPE — Judge approved the thin slice (Option B); dispatch/routing/public feed KILLED this cycle"
+    status: "paused_at_slice"
+    progress: "100% (approved slice + next-gate re-review complete; deferred gates blocked on human sign-off)"
+    board_status: "RESHAPE delivered — slice built, next-gate re-review CONTINUE (2026-07-01). Epic parked: public feed + dispatch stay CLOSED until human D3 threat-model sign-off + real auth (HOS-2026-001-08)"
     tasks:
       # Judge conditions (HOS-2026-007): coordinator-only, coarse district, honest
       # state (site confirms receipt), freshness signal, model org/actor now, reuse
       # the spine, and stay structurally pausable so Phase 0 is never reprioritized.
       # Thin slice built + verified 2026-07-01; remaining scope is later-gate work.
       - { id: "HOS-2026-007-01", title: "Coordination slice: sites (capacity) + needs board + advisory supply match", owner: "DEV", status: "done", priority: "MEDIUM" }
-      - { id: "HOS-2026-007-02", title: "D4-style re-review of coordination honest-state + freshness; then decide public/aggregated feed + volunteer dispatch (deferred gates)", owner: "CTO", status: "todo", priority: "LOW" }
+      - { id: "HOS-2026-007-02", title: "D4-style re-review of coordination honest-state + freshness; then decide public/aggregated feed + volunteer dispatch (deferred gates)", owner: "CTO", status: "done", priority: "LOW", note: "Gate re-review 2026-07-01 (gate_rereview.yaml): CONTINUE. All 7 conditions MET (honest-state MET_WITH_WATCH: attribution correct but not identity-enforced under shared token). Phase 0 not regressed (clean build, 85/85 tests). Both deferred gates (public feed, dispatch) remain CLOSED pending human D3 threat-model sign-off + real auth (HOS-2026-001-08)." }
 
 ---
 
