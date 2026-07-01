@@ -34,24 +34,47 @@ function Sidebar() {
         <div className="mt-[10px] text-[14px] font-bold leading-none">Kit de respuesta</div>
       </Link>
       <nav className="mt-[50px] flex flex-col gap-[12px] max-[900px]:mt-0 max-[900px]:flex-row max-[900px]:overflow-x-auto">
-        {navItems.map(({ label, href, icon: Icon }) => {
-          const active = pathname === href;
-          return (
-            <Link
+        {navItems
+          .filter((item) => !item.wip)
+          .map(({ label, href, icon: Icon }) => {
+            const active = pathname === href;
+            return (
+              <Link
+                key={label}
+                aria-pressed={active}
+                href={href as Route}
+                className={[
+                  "flex h-[46px] w-[208px] shrink-0 items-center gap-[12px] rounded-[6px] px-[14px] text-left text-[14px] font-semibold transition",
+                  "hover:bg-[#20352C] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#A7F3D0]",
+                  active ? "bg-[#20352C] font-bold text-white" : "text-[#B9CAC1]",
+                ].join(" ")}
+              >
+                <Icon className={active ? "h-5 w-5 text-white" : "h-5 w-5 text-[#89A096]"} strokeWidth={2.4} />
+                <span>{label}</span>
+              </Link>
+            );
+          })}
+
+        <div className="mt-[16px] px-[14px] text-[11px] font-extrabold uppercase tracking-[0.05em] text-[#6E8177] max-[900px]:mt-0 max-[900px]:flex max-[900px]:items-center max-[900px]:px-[6px]">
+          En construcción
+        </div>
+
+        {navItems
+          .filter((item) => item.wip)
+          .map(({ label, icon: Icon }) => (
+            <div
               key={label}
-              aria-pressed={active}
-              href={href as Route}
-              className={[
-                "flex h-[46px] w-[208px] shrink-0 items-center gap-[12px] rounded-[6px] px-[14px] text-left text-[14px] font-semibold transition",
-                "hover:bg-[#20352C] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#A7F3D0]",
-                active ? "bg-[#20352C] font-bold text-white" : "text-[#B9CAC1]",
-              ].join(" ")}
+              aria-disabled="true"
+              title="En construcción"
+              className="flex h-[46px] w-[208px] shrink-0 cursor-not-allowed select-none items-center gap-[12px] rounded-[6px] px-[14px] text-[14px] font-semibold text-[#69796F] opacity-70 max-[900px]:w-auto"
             >
-              <Icon className={active ? "h-5 w-5 text-white" : "h-5 w-5 text-[#89A096]"} strokeWidth={2.4} />
+              <Icon className="h-5 w-5 text-[#5E6F65]" strokeWidth={2.4} />
               <span>{label}</span>
-            </Link>
-          );
-        })}
+              <span className="ml-auto rounded-full bg-[#1B2C24] px-[7px] py-[2px] text-[9px] font-extrabold uppercase tracking-wide text-[#7C978A] max-[900px]:hidden">
+                Pronto
+              </span>
+            </div>
+          ))}
       </nav>
       <div className="mt-auto px-[10px] pb-[54px] max-[900px]:hidden">
         <div className="text-[12px] font-bold text-[#B9CAC1]">Funciona <Term k="sin-conexion">sin conexión</Term></div>
