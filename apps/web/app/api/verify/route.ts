@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { handleError, json } from "@/app/lib/http/respond";
-import { assertCoordinator } from "@/app/lib/http/auth";
+import { requireCoordinator } from "@/app/lib/http/auth";
 import { enforceRateLimit } from "@/app/lib/http/rateLimit";
 import { verificationSchema } from "@/app/lib/validation/schemas";
 import { recordVerification } from "@/app/lib/services/verification";
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 // the case (that happens when the family is actually reached, /api/family-reach).
 export async function POST(request: NextRequest) {
   try {
-    assertCoordinator(request);
+    await requireCoordinator(request);
     enforceRateLimit(request, "verify", 60, 60_000);
     const body = await request.json().catch(() => ({}));
     const input = verificationSchema.parse(body);

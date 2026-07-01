@@ -12,21 +12,40 @@ owner: "CTO"
 created_at: "2026-06-28T00:00:00Z"
 due_date: "2026-07-18T23:59:59Z"
 estimated_hours: 20
-status: "todo"
+status: "in_progress"
 priority: "HIGH"
-progress_percent: 0
+progress_percent: 40
 epic_id: "HOS-2026-001"
 decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/proposal.yaml#HOS-2026-002-D3"
 depends_on: ["HOS-2026-001-03"]
-blocked_by_external: "Auth provider choice + keys (Supabase Auth / Clerk / Auth0 — see EXTERNAL_DEPENDENCIES.md #4)"
+blocked_by_external: "Provider chosen (Supabase Auth, by the human principal). Remaining external: set NEXT_PUBLIC_SUPABASE_URL/ANON_KEY + HOS_COORDINATOR_EMAILS in the env, and a human security sign-off to activate (Board D3). Full org isolation also needs Postgres (HOS-2026-001-07)."
 requirements:
-  - "Session/JWT verification middleware; per-route role checks"
-  - "Org-scoped PII access; audit who-saw-what"
-  - "Keep public intake/search unauthenticated"
+  - "DONE: Supabase session/JWT verification + invite-only allowlist gate (requireCoordinator) augmenting the token gate; inert + unchanged behavior when unconfigured"
+  - "DONE: coordinator sign-in page (/login) + Bearer attachment from the browser session"
+  - "TODO: roles (coordinator / agency-admin / responder) beyond the flat allowlist"
+  - "TODO: org-scoped PII access + who-saw-what audit (needs Postgres + RLS, HOS-2026-001-07)"
+  - "DONE: public intake/search stay unauthenticated (untouched)"
 acceptance_criteria:
-  - "A user can only see their org's PII"
-  - "Coordinator actions attributable to a real identity in the audit log"
+  - "Unconfigured deployments behave exactly as the token gate did (DONE, tested)"
+  - "When configured, only an allowlisted signed-in user is accepted; empty allowlist = nobody (DONE, tested)"
+  - "A user can only see their org's PII (TODO — org isolation, needs Postgres)"
+  - "Coordinator actions attributable to a real identity in the audit log (PARTIAL — session resolves email; wiring identity into event actors is next)"
 done_criteria:
-  - "Board-approved provider + role model; tests for access control"
+  - "Authn layer implemented + tests (DONE); role model + org isolation via a follow-on proposal once Postgres lands; human security sign-off before activation"
+code_changes:
+  - { file: "apps/web/app/lib/auth/allowlist.ts", status: "done" }
+  - { file: "apps/web/app/lib/auth/supabaseConfig.ts", status: "done" }
+  - { file: "apps/web/app/lib/auth/session.ts", status: "done" }
+  - { file: "apps/web/app/lib/http/auth.ts", status: "done" }
+  - { file: "apps/web/app/lib/client/supabase.ts", status: "done" }
+  - { file: "apps/web/app/login/page.tsx", status: "done" }
+standup:
+  - date: "2026-07-01"
+    progress: "40% - authentication layer landed. Supabase sign-in (invite-only email allowlist) now augments the coordinator-token gate via an async requireCoordinator, wired into all 12 coordinator routes. Fully inert when Supabase env is unset (behaves exactly as the token gate — regression-tested). A /login page signs in and attaches the session as a Bearer header. Roles + org isolation remain (need Postgres)."
+    verified: "85 tests (10 new: allowlist + gate matrix); typecheck + lint + build clean; runtime smoke — unconfigured path still 200 via dev-open, /login renders."
+    blockers: "To ACTIVATE: set NEXT_PUBLIC_SUPABASE_URL/ANON_KEY + HOS_COORDINATOR_EMAILS in Vercel + local, and obtain human security sign-off (Board D3). Turn OFF Supabase 'Allow new users to sign up' (invite-only)."
+    next: "Wire the signed-in identity into event actors; then a follow-on proposal for the full role model + org-scoped RLS once Postgres (HOS-2026-001-07) lands."
 notes: |
-  Open a board proposal (HOS-2026-00X) for the provider + role model first.
+  This delivers the AUTHN layer only (sign-in + invite-only gate), which is safe and non-breaking.
+  The role model + org/tenant isolation (authz) is deliberately deferred: it needs Postgres + RLS
+  (HOS-2026-001-07) and should go through its own board proposal, per this task's original note.

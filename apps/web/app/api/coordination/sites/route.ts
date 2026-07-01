@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { handleError, json } from "@/app/lib/http/respond";
-import { assertCoordinator } from "@/app/lib/http/auth";
+import { requireCoordinator } from "@/app/lib/http/auth";
 import { enforceRateLimit } from "@/app/lib/http/rateLimit";
 import { siteCreateSchema, siteUpdateSchema } from "@/app/lib/validation/coordination";
 import { createSite, updateSiteCapacity } from "@/app/lib/services/coordination";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    assertCoordinator(request);
+    await requireCoordinator(request);
     enforceRateLimit(request, "coordination-write", 120, 60_000);
     const body = await request.json().catch(() => ({}));
     const site = createSite(siteCreateSchema.parse(body));
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    assertCoordinator(request);
+    await requireCoordinator(request);
     enforceRateLimit(request, "coordination-write", 120, 60_000);
     const body = await request.json().catch(() => ({}));
     const site = updateSiteCapacity(siteUpdateSchema.parse(body));

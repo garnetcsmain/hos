@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { handleError, json } from "@/app/lib/http/respond";
-import { assertCoordinator } from "@/app/lib/http/auth";
+import { requireCoordinator } from "@/app/lib/http/auth";
 import { ensureSeeded } from "@/app/lib/db/seed";
 import { coordinationView } from "@/app/lib/services/coordination";
 
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 // (Board HOS-2026-007: a live needs/site board must not be a targeting map).
 export async function GET(request: NextRequest) {
   try {
-    assertCoordinator(request);
+    await requireCoordinator(request);
     ensureSeeded();
     return json(coordinationView());
   } catch (error) {
