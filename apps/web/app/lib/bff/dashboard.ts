@@ -15,15 +15,18 @@ import {
   WifiOff,
 } from "lucide-react";
 
+// Coordinación is the module in active use; the rest are still in progress and
+// render grouped + disabled (`wip: true`) so the nav is honest about what works
+// today without hiding the roadmap.
 export const navItems = [
-  { label: "Mapa", href: "/console", icon: Map },
-  { label: "Desaparecidos", href: "/missing", icon: UserRoundSearch },
-  { label: "Encontrados", href: "/found", icon: UserCheck },
-  { label: "Coincidencias", href: "/matches", icon: ScanSearch },
-  { label: "Verificar", href: "/verify", icon: ShieldCheck },
-  { label: "Mensajes", href: "/messages", icon: MessageCircle },
-  { label: "Coordinación", href: "/coordination", icon: Boxes },
-  { label: "Fuentes", href: "/sources", icon: Radio },
+  { label: "Coordinación", href: "/coordination", icon: Boxes, wip: false },
+  { label: "Mapa", href: "/console", icon: Map, wip: true },
+  { label: "Desaparecidos", href: "/missing", icon: UserRoundSearch, wip: true },
+  { label: "Encontrados", href: "/found", icon: UserCheck, wip: true },
+  { label: "Coincidencias", href: "/matches", icon: ScanSearch, wip: true },
+  { label: "Verificar", href: "/verify", icon: ShieldCheck, wip: true },
+  { label: "Mensajes", href: "/messages", icon: MessageCircle, wip: true },
+  { label: "Fuentes", href: "/sources", icon: Radio, wip: true },
 ] as const;
 
 export const districts = [
