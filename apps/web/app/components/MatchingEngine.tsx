@@ -2,29 +2,30 @@
 
 import { useState } from "react";
 import { AppShell } from "@/app/components/HosDashboard";
+import { Term } from "@/app/components/Term";
 import { Check, ShieldAlert, ShieldCheck } from "lucide-react";
 
 const candidates = [
   {
     id: "FP-0491",
-    evidence: "Name fragment + location + scar",
+    evidence: "Parte del nombre + lugar + cicatriz",
     confidence: 87,
-    action: "review",
-    risk: "Consent and family verification required",
+    action: "revisar",
+    risk: "Requiere consentimiento y verificación de la familia",
   },
   {
     id: "FP-0472",
-    evidence: "Age range + backpack",
+    evidence: "Rango de edad + morral",
     confidence: 62,
-    action: "compare",
-    risk: "Photo quality is partial",
+    action: "comparar",
+    risk: "La foto es de baja calidad",
   },
   {
     id: "FP-0440",
-    evidence: "Nearby report only",
+    evidence: "Solo un reporte cercano",
     confidence: 41,
-    action: "dismiss",
-    risk: "Weak evidence, low location certainty",
+    action: "descartar",
+    risk: "Evidencia débil, lugar poco seguro",
   },
 ];
 
@@ -42,8 +43,8 @@ export function MatchingEngine() {
 
   return (
     <AppShell
-      title="AI Matching Engine"
-      subtitle="Candidate review for missing-person and found-person report comparison"
+      title="Motor de coincidencias con IA"
+      subtitle="Revisión de candidatos para comparar reportes de desaparecidos y encontrados"
       trustLayer={trustLayer}
       onToggleTrustLayer={() => setTrustLayer((value) => !value)}
       onOpenFamily={() => undefined}
@@ -54,13 +55,13 @@ export function MatchingEngine() {
         <section className="rounded-[8px] border border-[#B8C2BE] bg-white p-[18px] shadow-sm">
           <div className="flex items-start justify-between gap-[16px] max-[760px]:flex-col">
             <div>
-              <div className="text-[13px] font-bold leading-none text-[var(--hos-muted)]">Candidate review</div>
+              <div className="text-[13px] font-bold leading-none text-[var(--hos-muted)]">Revisión de <Term k="candidato">candidatos</Term></div>
               <div className="mt-[8px] text-[15px] font-bold leading-none text-[var(--hos-muted)]">
-                Probabilities update as new missing and found reports arrive.
+                Las probabilidades cambian a medida que llegan nuevos reportes.
               </div>
             </div>
             <div className="rounded-full bg-[#DCEEF8] px-[14px] py-[8px] text-[14px] font-extrabold text-[#0B4F76]">
-              {candidates.length} candidates
+              {candidates.length} candidatos
             </div>
           </div>
 
@@ -69,24 +70,24 @@ export function MatchingEngine() {
               type="button"
               className="min-h-[92px] rounded-[8px] border-2 border-black bg-[#DCEEF8] p-[16px] text-left"
             >
-              <div className="text-[14px] font-bold uppercase leading-none text-[var(--hos-muted)]">Match score</div>
+              <div className="text-[14px] font-bold uppercase leading-none text-[var(--hos-muted)]"><Term k="puntuacion">Puntuación</Term> de coincidencia</div>
               <div className="mt-[12px] font-data text-[32px] font-bold leading-none text-[#0B4F76]">
                 {selectedCandidate.confidence}%
               </div>
             </button>
             <div className="min-h-[92px] rounded-[8px] border border-[var(--hos-border)] bg-[#FBFDFC] p-[16px]">
-              <div className="text-[14px] font-bold uppercase leading-none text-[var(--hos-muted)]">Shared traits</div>
+              <div className="text-[14px] font-bold uppercase leading-none text-[var(--hos-muted)]">Rasgos en común</div>
               <div className="mt-[12px] text-[32px] font-semibold leading-none text-black">6</div>
             </div>
             <div className="min-h-[92px] rounded-[8px] border border-[var(--hos-border)] bg-[#FBFDFC] p-[16px]">
-              <div className="text-[14px] font-bold uppercase leading-none text-[var(--hos-muted)]">Risk flags</div>
+              <div className="text-[14px] font-bold uppercase leading-none text-[var(--hos-muted)]">Alertas de riesgo</div>
               <div className="mt-[12px] text-[32px] font-semibold leading-none text-black">1</div>
             </div>
           </div>
 
           <div className="mt-[18px] overflow-hidden rounded-[8px] border border-[var(--hos-border)]">
             <div className="grid grid-cols-[180px_minmax(260px,1fr)_140px_150px] bg-[#EEF6F2] max-[980px]:hidden">
-              {["Candidate", "Evidence", "Confidence", "Action"].map((header) => (
+              {["Candidato", "Evidencia", "Confianza", "Acción"].map((header) => (
                 <div key={header} className="border-r border-[#D6E2DD] px-[14px] py-[12px] text-[14px] font-bold text-[var(--hos-muted)] last:border-r-0">
                   {header}
                 </div>
@@ -126,21 +127,21 @@ export function MatchingEngine() {
 
           <div className="mt-[18px] flex items-center justify-between gap-[18px] max-[900px]:flex-col max-[900px]:items-stretch">
             <p className="text-[14px] font-bold leading-[20px] text-[var(--hos-muted)]">
-              AI never confirms identity. Coordinator must compare evidence and request verification.
+              La IA nunca confirma la identidad. El coordinador debe comparar la evidencia y pedir la verificación.
             </p>
             <button
               type="button"
               className="flex h-[44px] items-center justify-center gap-[10px] rounded-[8px] bg-black px-[18px] text-[14px] font-extrabold text-white"
             >
               <Check className="h-4 w-4" />
-              Open review
+              Abrir revisión
             </button>
           </div>
         </section>
 
         <section className="grid grid-cols-[minmax(0,1fr)_300px] gap-[18px] max-[1100px]:grid-cols-1">
           <div className="rounded-[8px] border border-[var(--hos-border)] bg-white p-[16px]">
-            <h3 className="text-[17px] font-extrabold text-[var(--hos-text)]">Selected candidate probability</h3>
+            <h3 className="text-[17px] font-extrabold text-[var(--hos-text)]">Probabilidad del candidato elegido</h3>
             <div className="mt-[12px] rounded-[8px] border border-[#DDE5E1] bg-[#FBFCFB] p-[14px]">
               <div className="flex items-center justify-between gap-[14px]">
                 <div>
@@ -162,7 +163,7 @@ export function MatchingEngine() {
               ) : (
                 <ShieldAlert className="h-5 w-5 text-[var(--hos-yellow)]" />
               )}
-              <h3 className="text-[17px] font-extrabold text-[var(--hos-text)]">Review guidance</h3>
+              <h3 className="text-[17px] font-extrabold text-[var(--hos-text)]">Guía de revisión</h3>
             </div>
             <p className="mt-[12px] text-[13px] font-bold leading-[18px] text-[var(--hos-muted)]">{selectedCandidate.risk}</p>
           </div>

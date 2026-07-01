@@ -16,18 +16,13 @@ import { PwaRegistration } from "@/app/components/PwaRegistration";
 import { ActionModal, type ModalKind } from "@/app/components/IntakeForms";
 import { getDashboard, type DashboardData } from "@/app/lib/client/api";
 import type { HosEvent } from "@/app/lib/domain/types";
-
-const actionKinds: Record<string, Exclude<ModalKind, null>> = {
-  "Report missing person": "missing",
-  "Report found person": "found",
-  "Check a possible match": "match",
-};
+import { Term } from "@/app/components/Term";
 
 const mapAreas = [
   { name: "La Guaira", className: "left-[10%] top-[16%] h-[26%] w-[30%] bg-[#DDEFE8]" },
   { name: "Maiquetia", className: "left-[45%] top-[20%] h-[28%] w-[32%] bg-[#F5E8C9]" },
-  { name: "Caracas West", className: "left-[18%] top-[58%] h-[28%] w-[33%] bg-[#E7EEF8]" },
-  { name: "Caracas East", className: "left-[56%] top-[60%] h-[27%] w-[32%] bg-[#DDEFE8]" },
+  { name: "Caracas Oeste", className: "left-[18%] top-[58%] h-[28%] w-[33%] bg-[#E7EEF8]" },
+  { name: "Caracas Este", className: "left-[56%] top-[60%] h-[27%] w-[32%] bg-[#DDEFE8]" },
 ];
 
 function Sidebar() {
@@ -36,7 +31,7 @@ function Sidebar() {
     <aside className="flex min-h-screen w-[244px] shrink-0 flex-col bg-[var(--hos-dark)] px-[18px] py-[26px] text-[#B9CAC1] max-[900px]:min-h-0 max-[900px]:w-full max-[900px]:gap-[18px] max-[900px]:py-[18px]">
       <Link href="/" className="block rounded-[6px] px-[10px] py-[4px] transition hover:bg-[#20352C] max-[900px]:px-0">
         <div className="text-[25px] font-extrabold leading-none text-white">HOS</div>
-        <div className="mt-[10px] text-[14px] font-bold leading-none">Response Kit</div>
+        <div className="mt-[10px] text-[14px] font-bold leading-none">Kit de respuesta</div>
       </Link>
       <nav className="mt-[50px] flex flex-col gap-[12px] max-[900px]:mt-0 max-[900px]:flex-row max-[900px]:overflow-x-auto">
         {navItems.map(({ label, href, icon: Icon }) => {
@@ -59,15 +54,15 @@ function Sidebar() {
         })}
       </nav>
       <div className="mt-auto px-[10px] pb-[54px] max-[900px]:hidden">
-        <div className="text-[12px] font-bold text-[#B9CAC1]">Offline-ready sync</div>
+        <div className="text-[12px] font-bold text-[#B9CAC1]">Funciona <Term k="sin-conexion">sin conexión</Term></div>
       </div>
     </aside>
   );
 }
 
 export function Header({
-  title = "Family Reunification Map",
-  subtitle = "Venezuela earthquake response · active incident · 72 hour reunification mission",
+  title = "Mapa de reencuentro familiar",
+  subtitle = "Respuesta al terremoto en Venezuela · incidente activo · misión de reencuentro de 72 horas",
   trustLayer,
   onToggleTrustLayer,
   onOpenFamily,
@@ -88,7 +83,7 @@ export function Header({
       </div>
       <div className="flex items-center gap-[14px] max-[900px]:w-full max-[900px]:flex-wrap">
         <button type="button" className="flex h-[29px] items-center rounded-full bg-[#FFEBD5] px-[12px] text-[12px] font-extrabold text-[#7A3D00]">
-          LIVE INCIDENT
+          INCIDENTE EN VIVO
         </button>
         <button
           type="button"
@@ -99,7 +94,7 @@ export function Header({
             trustLayer ? "bg-[#DDEFE8] text-[#16613F]" : "bg-[#EEF2EF] text-[var(--hos-muted)]",
           ].join(" ")}
         >
-          Trust layer {trustLayer ? "on" : "off"}
+          <Term k="capa-confianza">Capa de confianza</Term> {trustLayer ? "activada" : "desactivada"}
         </button>
         <button
           type="button"
@@ -107,7 +102,7 @@ export function Header({
           className="flex h-[52px] items-center gap-[11px] rounded-[6px] bg-[var(--hos-red)] px-[15px] text-[13px] font-extrabold text-white shadow-sm transition hover:bg-[#B63F33] focus:outline-none focus:ring-2 focus:ring-[#F9B4A9]"
         >
           <UserRoundSearch className="h-5 w-5" strokeWidth={2.5} />
-          I can&apos;t reach family
+          No puedo contactar a mi familia
         </button>
       </div>
     </header>
@@ -121,7 +116,7 @@ function MapPanel({ trustLayer }: { trustLayer: boolean }) {
   return (
     <section className="relative min-h-[420px] overflow-hidden rounded-[8px] border border-[var(--hos-border)] bg-[#EAF0ED]">
       <iframe
-        title="Google Maps - HOS family reunification operations"
+        title="Google Maps - operaciones de reencuentro familiar de HOS"
         src={mapUrl}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
@@ -130,7 +125,7 @@ function MapPanel({ trustLayer }: { trustLayer: boolean }) {
       <div className="absolute inset-0 bg-[#EAF0ED]/35" />
       <div className="absolute left-[16px] top-[16px] flex items-center gap-[10px] rounded-full border border-[var(--hos-border)] bg-white/95 px-[12px] py-[9px] shadow-sm">
         <Search className="h-4 w-4 text-[var(--hos-muted)]" />
-        <span className="text-[12px] font-extrabold text-[var(--hos-text)]">La Guaira · Caracas corridor</span>
+        <span className="text-[12px] font-extrabold text-[var(--hos-text)]">Corredor La Guaira · Caracas</span>
       </div>
       {mapAreas.map((area) => (
         <div key={area.name} className={`absolute rounded-[18px] border border-[#B9D4C8] p-[18px] text-left shadow-sm ${area.className}`}>
@@ -154,7 +149,7 @@ function MapPanel({ trustLayer }: { trustLayer: boolean }) {
       {trustLayer ? (
         <div className="absolute right-[16px] top-[16px] flex items-center gap-[8px] rounded-full bg-[#DDEFE8] px-[12px] py-[8px] text-[12px] font-extrabold text-[#16613F] shadow-sm">
           <Layers className="h-4 w-4" />
-          Trust metadata visible
+          <Term k="metadatos">Metadatos</Term> de confianza visibles
         </div>
       ) : null}
     </section>
@@ -186,11 +181,11 @@ function Metrics({ data }: { data: DashboardData | null }) {
 export function ActionPanel({ onOpen }: { onOpen: (kind: Exclude<ModalKind, null>) => void }) {
   return (
     <section className="grid grid-cols-3 gap-[16px] rounded-[8px] border border-[var(--hos-border)] bg-white p-[18px] max-[1180px]:grid-cols-1">
-      {actions.map(({ title, description, icon: Icon, color }) => (
+      {actions.map(({ kind, title, description, icon: Icon, color }) => (
         <button
-          key={title}
+          key={kind}
           type="button"
-          onClick={() => onOpen(actionKinds[title])}
+          onClick={() => onOpen(kind)}
           className="flex min-h-[82px] items-center gap-[18px] rounded-[6px] border border-[#D4DED9] bg-[#F8FAF8] px-[18px] text-left transition hover:border-[var(--hos-border)] hover:bg-white hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--hos-border)]"
         >
           <Icon className={`h-[24px] w-[24px] shrink-0 ${color}`} strokeWidth={2.2} />
@@ -211,7 +206,7 @@ const EVENT_LABELS: Record<string, string> = {
   "match.confirmed": "Coincidencia confirmada",
   "match.rejected": "Coincidencia descartada",
   "report.resolved": "Caso resuelto",
-  "notification.queued": "Notificacion a familia en cola",
+  "notification.queued": "Notificación a la familia en cola",
 };
 
 function eventLabel(event: HosEvent): string {
@@ -227,7 +222,7 @@ function ActivityFeed({ events }: { events: HosEvent[] }) {
     <aside className="rounded-[8px] border border-[var(--hos-border)] bg-white p-[16px]">
       <h2 className="text-[20px] font-extrabold leading-none text-[var(--hos-text)]">Actividad reciente</h2>
       <p className="mt-[14px] text-[13px] font-bold leading-[16px] text-[var(--hos-muted)]">
-        La IA crea candidatos. Las organizaciones verificadas deciden.
+        La IA sugiere <Term k="candidato">candidatos</Term>. Las organizaciones verificadas deciden.
       </p>
       <div className="mt-[16px] flex flex-col">
         {shown.length === 0 ? (
@@ -273,7 +268,7 @@ export function HosDashboard() {
 
   return (
     <AppShell
-      title="Family Reunification Map"
+      title="Mapa de reencuentro familiar"
       trustLayer={trustLayer}
       onToggleTrustLayer={() => setTrustLayer((v) => !v)}
       onOpenFamily={() => setModalKind("family")}

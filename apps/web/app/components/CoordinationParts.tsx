@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BedDouble, Check, Clock, Truck, X } from "lucide-react";
+import { Term } from "@/app/components/Term";
 import {
   createNeed,
   createOffer,
@@ -42,6 +43,15 @@ const NEED_STATUS: Record<string, { label: string; className: string }> = {
 const CATEGORIES = Object.keys(CATEGORY_LABEL) as NeedCategory[];
 const URGENCIES: Urgency[] = ["low", "normal", "high", "critical"];
 const ORG_KINDS: OrgKind[] = ["shelter", "responder", "ngo", "government", "hospital", "other"];
+
+const ORG_KIND_LABEL: Record<OrgKind, string> = {
+  shelter: "Refugio",
+  responder: "Equipo de rescate",
+  ngo: "ONG",
+  government: "Gobierno",
+  hospital: "Hospital",
+  other: "Otro",
+};
 
 const fieldBase =
   "w-full rounded-[6px] border border-[var(--hos-border)] bg-[#F8FAF8] px-[10px] py-[8px] text-[13px] font-semibold text-[var(--hos-text)] outline-none focus:ring-2 focus:ring-[#DDEFE8]";
@@ -220,7 +230,7 @@ export function NeedCard({ view, orgs, onChanged }: { view: NeedView; orgs: Org[
       {need.status === "open" && matches.length > 0 ? (
         <div className="mt-[12px] rounded-[6px] border border-[#CFE3F2] bg-[#F1F8FC] p-[10px]">
           <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#0B4F76]">
-            Sugerencias de suministro (orientativo)
+            Sugerencias de <Term k="suministro">suministro</Term> (solo como guía)
           </div>
           <div className="mt-[8px] flex flex-col gap-[6px]">
             {matches.slice(0, 3).map((m) => (
@@ -407,7 +417,7 @@ export function AddOrgForm({ onChanged }: { onChanged: () => void }) {
     >
       <input className={`${fieldBase} w-auto`} placeholder="Nombre de la organización" value={name} onChange={(e) => setName(e.target.value)} />
       <select className={`${fieldBase} w-auto`} value={kind} onChange={(e) => setKind(e.target.value as OrgKind)}>
-        {ORG_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
+        {ORG_KINDS.map((k) => <option key={k} value={k}>{ORG_KIND_LABEL[k]}</option>)}
       </select>
       <button type="submit" disabled={busy || !name} className="h-[38px] rounded-[6px] border border-[var(--hos-border)] bg-white px-[14px] text-[13px] font-extrabold text-[var(--hos-text)] disabled:opacity-60">
         Registrar organización

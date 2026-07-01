@@ -6,6 +6,7 @@ import { AppShell } from "@/app/components/HosDashboard";
 import { type ModalKind } from "@/app/components/IntakeForms";
 import { listNotifications, recordFamilyReach } from "@/app/lib/client/api";
 import type { Notification, NotificationStatus } from "@/app/lib/domain/types";
+import { Term } from "@/app/components/Term";
 
 // Coordinator inbox for family notifications. A confirmed match opens a tracked
 // family-reach obligation (coordinator_callback channel); the coordinator
@@ -57,7 +58,7 @@ function StatusChip({ status }: { status: string }) {
 function ChannelChip({ channel }: { channel: string }) {
   const callback = channel === FAMILY_REACH_CHANNEL;
   const Icon = callback ? PhoneCall : Smartphone;
-  const label = callback ? "Llamada del coordinador" : channel === "in_app" ? "in_app" : channel;
+  const label = callback ? "Llamada del coordinador" : channel === "in_app" ? "En la app" : channel;
   return (
     <span className="inline-flex h-[26px] items-center gap-[6px] rounded-full bg-[#EEF6F2] px-[12px] text-[12px] font-extrabold text-[var(--hos-muted)]">
       <Icon className="h-[14px] w-[14px]" strokeWidth={2.4} />
@@ -154,7 +155,7 @@ function DeliveryBanner() {
           Un coordinador contacta a la familia — no hay envío automático
         </h2>
         <p className="mt-[8px] text-[13px] font-bold leading-[18px] text-[var(--hos-muted)]">
-          Al confirmar una coincidencia se abre una obligación de contacto: un coordinador debe comunicarse
+          Al confirmar una <Term k="coincidencia">coincidencia</Term> se abre una obligación de contacto: un coordinador debe comunicarse
           con la familia y registrarlo aquí. El caso solo se cierra con ese contacto real. SMS, correo,
           WhatsApp y Telegram siguen pendientes hasta configurar un proveedor; no afirmamos haber entregado
           por esos canales. La IA recomienda, las personas deciden.
@@ -219,7 +220,7 @@ export function MessagesInbox() {
 
   return (
     <AppShell
-      title="Family Messages"
+      title="Mensajes a familias"
       subtitle="Cola de notificaciones a familias · destinatarios redactados · vista de coordinación"
       trustLayer={trustLayer}
       onToggleTrustLayer={() => setTrustLayer((v) => !v)}
