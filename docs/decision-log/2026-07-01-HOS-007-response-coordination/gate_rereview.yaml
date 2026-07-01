@@ -1,0 +1,124 @@
+decision_id: "HOS-2026-007"
+phase: "next_gate_rereview"
+date: "2026-07-01"
+reviewer: "Executive Orchestrator (Judge delegate)"
+reviews_slice: "HOS-2026-007-01 (coordination slice: sites + needs + advisory offer match)"
+follows: "docs/decision-log/2026-07-01-HOS-007-response-coordination/judge_decision.yaml"
+
+purpose: >
+  The RESHAPE verdict approved the thin coordination slice only as a structurally
+  pausable track and required a re-review once the sites + needs slice landed:
+  confirm the honest-state transitions and freshness signal actually work, confirm
+  Phase 0 reunification did not regress, and re-decide the two deferred gates
+  (public/aggregated feed, volunteer dispatch). The slice landed and was verified
+  2026-07-01; this is that re-review.
+
+verdict: "CONTINUE"
+confidence: 0.85
+phase0_regressed: false
+
+# --- Condition-by-condition audit of the landed code ----------------------
+conditions_audit:
+  - id: "SCOPE"
+    condition: "Only sites + needs + optional offer + advisory match; no dispatch, routing, auto-fulfillment, external dep, or geo."
+    status: "MET"
+    evidence: >
+      services/coordination.ts exposes only createOrg/createSite/updateSiteCapacity/
+      createNeed/transitionNeed/createOffer/coordinationView. coordination/match.ts is
+      advisory ("never commits, claims, or fulfills anything"). No routing, no
+      scheduler, no external channel, no lat/lng. Build route map shows only
+      /api/coordination{,/needs,/offers,/orgs,/sites}.
+  - id: "COORDINATOR-ONLY + COARSE LOCATION"
+    condition: "Every read/write behind the coordinator gate; district-level only, never a precise address; no public endpoint."
+    status: "MET"
+    evidence: >
+      Every coordination route (GET board, needs POST/PATCH, sites, offers, orgs)
+      calls requireCoordinator(request) before any work; the board GET comment states
+      there is NO public coordination endpoint. Validation carries only a free-text
+      `district` (1..120 chars) and a shelter `name`; there is no address, lat, lng,
+      or geopoint field anywhere in validation/coordination.ts or domain/coordination.
+  - id: "HONEST STATE"
+    condition: "open -> claimed -> received requires a recorded human confirmation with an attributable actor; receipt confirmed by the requesting site, not the claimer; never optimistic; every transition an append-only event."
+    status: "MET_WITH_WATCH"
+    evidence: >
+      transitionNeed() attributes `receive` to the requesting org (getOrg(need.orgId)),
+      never the claimer; terminal states (received/cancelled) are locked from further
+      change; each transition appends need.claimed/received/cancelled to the shared
+      event store inside a transaction. No status is written optimistically.
+    watch: >
+      Attribution is correct but NOT yet enforceable: under the single shared
+      coordinator token (HOS-2026-001-08 not yet replaced) any coordinator can trigger
+      a `receive`, so the "requesting site, not the claimer" rule is a recorded
+      convention, not an identity-enforced control. This is the same gap that justified
+      deferring dispatch. It is bounded (coordinator-only, fully audited, reversible in
+      the log) and must be closed by real per-org auth before any actor-sensitive action
+      (dispatch, public claims) is built. Tracked against HOS-2026-001-08; no new task
+      required for the slice as shipped.
+  - id: "FRESHNESS"
+    condition: "Capacity and needs carry updated_at and a staleness signal surfaced in the UI; stale must read as stale."
+    status: "MET"
+    evidence: >
+      coordination/freshness.ts (pure, tested) classifies fresh/aging/stale at 6h/24h;
+      coordinationView tags every site and need via freshnessOf(updatedAt, now);
+      components/CoordinationParts.tsx FreshnessBadge renders "Sin actualizar +24h" in
+      red for stale and "Hace horas" for aging on both site and need cards.
+  - id: "MODEL ORG/ACTOR NOW"
+    condition: "Seed real org/actor entities now so multi-org coordination is not a later retrofit."
+    status: "MET"
+    evidence: >
+      Org is a first-class entity (createOrg, orgs table/seed, org.registered event);
+      sites, needs, and offers all carry orgId; every event actor is org-attributed.
+  - id: "MISSION GATE"
+    condition: "Structurally independent and pausable; must not reprioritize or regress Phase 0."
+    status: "MET"
+    evidence: >
+      Coordination is isolated under /api/coordination + /coordination and its own
+      lib/coordination + lib/services/coordination modules; it reuses the shared spine
+      (repositories, event store, coordinator gate, SQLite) without altering Phase 0
+      matching. Removing the coordination routes would not touch reunification. Phase 0
+      regression check below is clean.
+  - id: "MINIMAL, OFFLINE-TOLERANT ENTRY"
+    condition: "Posting a need/capacity is a few fields, usable on a poor connection."
+    status: "MET"
+    evidence: >
+      needCreateSchema requires only orgId + district + category (quantity/urgency/
+      unit/notes optional with defaults); siteCreateSchema requires name + orgId +
+      district. Same offline SQLite path as Phase 0; no external call on the write path.
+
+# --- Phase 0 non-regression evidence --------------------------------------
+phase0_regression_check:
+  build: "npm run build:web clean (Next 16 production build succeeded; all reunification routes present)."
+  tests: "npm run test -w @hos/web => 85/85 pass, including reunification matching, verification, and family-reach suites."
+  conclusion: "No reunification code path changed; coordination is additive. Phase 0 finish line unaffected."
+
+# --- The two deferred gates, re-decided -----------------------------------
+deferred_gates_decision:
+  - gate: "Public / aggregated / de-identified situational feed"
+    decision: "REMAINS CLOSED"
+    blocking_reason: >
+      Still gated on the open Venezuela-2026 threat-model human sign-off (D3). Until a
+      human decides whether targeted-violence adversaries are in scope, no coordination
+      view — even aggregated — may leave the coordinator gate, because a live needs/site
+      board is a targeting map for a population in hiding. No code toward this until D3
+      is signed off.
+  - gate: "Volunteer dispatch / task assignment to named individuals"
+    decision: "REMAINS CLOSED"
+    blocking_reason: >
+      Requires real per-org/per-actor auth (HOS-2026-001-08, still in_progress and env-
+      blocked) plus a consent/safety model. The honest-state WATCH above shows why:
+      attribution today is convention, not enforcement. Do not build dispatch on the
+      shared token.
+
+next_actions:
+  - "No new coordination code this cycle: the slice meets its conditions and both follow-on gates are correctly blocked on human/auth prerequisites. Keep the epic paused at the slice."
+  - "When real auth (HOS-2026-001-08) lands, revisit the HONEST-STATE watch to convert receipt attribution from convention to enforcement; only then reconsider dispatch."
+  - "Escalate (unchanged, still open): the Venezuela-2026 threat model is the single gate on whether any coordination view can ever be public. It is now doubly decisive."
+
+overall: >
+  CONTINUE. The coordination slice was built as reshaped: coordinator-only, coarse
+  district location, honest human-confirmed receipt, visible staleness, org-modeled,
+  and structurally pausable. Phase 0 did not regress (clean build, 85/85 tests). The
+  one residual is that honest-state attribution is not yet identity-enforced under the
+  shared token — correctly the same reason both the public-feed and dispatch gates stay
+  closed. The epic is parked at the slice with nothing further to build until the human
+  D3 threat-model sign-off and real auth unblock the deferred gates.
