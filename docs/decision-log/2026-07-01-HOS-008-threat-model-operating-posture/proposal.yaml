@@ -1,0 +1,137 @@
+decision_id: "HOS-2026-008"
+title: "Operating threat model: adversarial-state posture, data minimization, tiered visibility, and censorship resilience"
+category: "strategic"
+proposer: "Executive Orchestrator (drafted at human principal's request, 2026-07-01)"
+date: "2026-07-01"
+status: "DRAFT — awaiting Board review"
+board_status: "pending"
+
+summary: >
+  Formally answer a question that has been open and unaddressed since the very
+  first architecture review: is a targeted state actor (the current or a
+  successor Venezuelan government) in scope as an adversary against this
+  system's data? Nothing has decided this explicitly; multiple gates have
+  stalled behind the non-answer. This proposal frames the decision, sets the
+  concrete controls that follow from each answer (data minimization/encryption,
+  tiered visibility by role, audit-log exposure policy, censorship-resilient
+  reachability), and requests the human decision the Board cannot make itself.
+
+context:
+  problem: >
+    HOS-2026-002-D3 (2026-06-28) named "the Venezuela-2026 threat model (are
+    targeted-violence adversaries in scope?)" as an open escalation. The
+    HOS-2026-007 Judge decision (2026-07-01) named it again as "doubly
+    decisive" because it gates whether any coordination view can ever be
+    public. The next-gate re-review I ran the same day repeated the same open
+    item verbatim. Three separate reviews have now flagged the identical
+    unanswered question without it ever being decided. Meanwhile the human
+    principal has independently identified the same risk in plain terms
+    (2026-07-01 conversation): "zero-trust knowledge to the current
+    government," plus a request for tiered visibility (refugee vs volunteer vs
+    coordinator) and resilience against the government blocking the site
+    outright. All of these are downstream of one undecided question.
+  user_impact: >
+    If the system is built as though no state adversary exists, and that
+    assumption is wrong, the append-only audit trail, the coordinator roster,
+    and any future location/photo data become a ready-made targeting asset if
+    compelled from the host, intercepted on the network, or leaked by an
+    insider — against the exact population the system exists to protect. If
+    the system is over-secured with no plan (Tor mirrors, full field
+    encryption, minimal retention) before anyone decided it was necessary, that
+    is also a cost: it can consume the same build capacity the Board already
+    ring-fenced for finishing Phase 0 reunification (HOS-2026-007's mission-gate
+    condition), for a risk that may not be live.
+  constraints: >
+    No legal counsel or child/data-protection specialist is on retainer in this
+    build context. No dedicated security engineer. Small, agent-and-one-human
+    team, per the same resource reality that shaped HOS-2026-002-D2/D3.
+
+scope:
+  in:
+    - "An explicit threat-model statement: which adversary classes are in scope — state actor via legal compulsion of the host, state actor via network-level blocking/surveillance, ordinary cybercriminals, trafficking networks, and malicious or careless insiders — and which of today's controls actually block each one."
+    - "A data-minimization and encryption posture for PII: which fields (contact info, precise location, sensitive medical notes, photos) need field-level protection beyond today's transport/at-rest defaults, and who can decrypt."
+    - "A tiered-visibility model: what a refugee/beneficiary may see (status, nearby services, how to contact a center), what a volunteer may see (scoped to their current assignment, which can change day to day), and what a coordinator may see (full case data) — specified as acceptance criteria for the real-auth work already in progress (HOS-2026-001-08), not a new epic."
+    - "An audit-log exposure policy under this threat model: the append-only event store that makes HOS trustworthy is also a rich correlation dataset (who confirmed contact with which family, when, at which site) if it leaks. Decide retention and who may query it under the chosen posture."
+    - "A go/no-go on censorship-resilient reachability (multiple domains, CDN posture, offline-first caching, an out-of-band fallback channel) IF site-blocking is judged plausible enough to plan for."
+  out:
+    - "Actually building mirrors, a Tor onion service, or a second CDN — that is a follow-on infrastructure epic, separately gated, only if this proposal concludes it is warranted."
+    - "Any biometric or continuous-location child-safeguarding feature — tracked separately (see notes) and explicitly NOT bundled into this decision."
+    - "Jurisdictional legal strategy — needs human legal counsel; out of an agent's competence to decide."
+
+options:
+  - id: "A-assume-benign-state"
+    note: >
+      Keep today's posture: coordinator-token/Supabase-Auth gate, standard
+      hosting, transport + provider-level at-rest encryption, no field-level
+      encryption, no reachability plan. Cheapest and fastest, but leaves
+      unaddressed the exact risk the human principal just named directly.
+  - id: "B-assume-adversarial-state-minimize-now"
+    note: >
+      Adopt data minimization and field-level encryption for the most
+      sensitive fields now (contact info, precise location, sensitive medical
+      notes); formalize tiered visibility as HOS-2026-001-08's acceptance
+      criteria (refugee minimal read-only view, volunteer scoped-and-rotating
+      view, coordinator full view); set an audit-log retention/redaction
+      policy under this posture; commit to a reachability PLAN now (mirrors,
+      offline-first caching, an out-of-band fallback channel to announce a
+      mirror if blocked) without building the heavier infrastructure (Tor
+      onion, second CDN) until Phase 0 ships. This is the proposer's
+      recommendation, not a binding choice — the Board and human decide.
+  - id: "C-full-lockdown-now"
+    note: >
+      Build Tor onion hosting, multi-domain/multi-CDN mirroring, full
+      field-level encryption, and minimal audit retention immediately, ahead of
+      finishing Phase 0. Rejected by the proposer: this repeats the exact
+      failure mode the Board already flagged in HOS-2026-007 (a second major
+      initiative pulled ahead of the unfinished reunification mission) — now
+      for a risk that has not yet been confirmed as live.
+
+resources:
+  prerequisites:
+    - "The human principal's direct answer to the core question — this is a political and safety judgment, not something a Board of AI agents may decide unilaterally."
+    - "HOS-2026-001-08 (real auth/roles), already in progress, as the mechanism that tiered visibility rides on."
+    - "Ideally, brief input from someone with humanitarian data-protection experience (ICRC/Sphere-standard familiarity); not a hard blocker for a first decision."
+  time_estimate: >
+    The decision itself is immediate — it is a decision, not code. Tiered
+    visibility rides on HOS-2026-001-08's existing timeline. Field-level
+    encryption for the named sensitive fields: roughly one additional week
+    once auth lands. Reachability infrastructure (if warranted): a separate
+    epic, 1-2 weeks, gated on its own review.
+
+success_criteria:
+  - "HOS-2026-002-D3's open threat-model question is answered explicitly and in writing, not left as a recurring escalation note."
+  - "A concrete data-minimization and encryption requirement list exists that HOS-2026-001-08 and all future features must satisfy."
+  - "Tiered visibility (refugee/volunteer/coordinator) is written into HOS-2026-001-08's acceptance criteria rather than invented later as a separate feature."
+  - "HOS-2026-007's deferred public/aggregated coordination feed gate gets a real, reasoned decision instead of remaining 'still open.'"
+  - "A clear go/no-go on censorship-resilience infrastructure exists, with a rough plan, without committing to build it before Phase 0 finishes."
+
+risks:
+  - "Analysis paralysis: threat modeling can expand without bound. This decision should be scoped tightly to what unblocks the already-stalled gates, not treated as a full security audit."
+  - "Any answer here is a political and safety judgment call that an AI Board should not make unilaterally — it must escalate to and be decided by the human principal, exactly as D3 already required and as this proposal now insists on explicitly."
+  - "Overcorrecting to Option C repeats the Board's already-flagged risk of a second initiative displacing the unfinished Phase 0 mission."
+  - "Undercorrecting to Option A leaves exactly the exposure the human principal has now personally and directly flagged; treating that as hypothetical after being told otherwise would be a failure to listen, not a neutral technical choice."
+
+board_questions_to_answer:
+  - "Contrarian: by what actual mechanism could this data reach a hostile government — legal process against the host, compromise of the host, a malicious insider, or network interception — and which of Option B's controls genuinely blocks each mechanism versus merely appearing to?"
+  - "Principals: does field-level encryption plus tiered visibility survive contact with real coordinator workflows, or does the added friction push coordinators back onto unencrypted WhatsApp — the exact failure mode already named in the HOS-2026-007 User review?"
+  - "Researcher: what do ICRC/UNHCR/Sphere data-protection standards conclude about operating a beneficiary database under an adversarial-state threat model, and what is instructive from comparable real deployments (e.g., the Rohingya biometric data-sharing case already flagged as a research question in HOS-2026-006)?"
+  - "User: would a frightened family or an exposed volunteer actually behave differently — trust the system more, disclose less — knowing this posture is in place, or is it invisible to them either way? What is the minimal information a refugee-facing view needs to be useful (status, nearby services, how to reach a center) without needing coordinator-level detail?"
+  - "Expansionist: does adopting a harder posture now foreclose future value — e.g., handing aggregated, de-identified data to UN/OCHA coordination clusters — that would otherwise be reachable?"
+
+notes:
+  - >
+    This proposal deliberately excludes any biometric or continuous-location
+    child-safeguarding feature (raised in the same conversation as this threat
+    model, in the context of unaccompanied-minor check-in / anti-trafficking
+    alerting). That idea is real and important but is a distinct, higher-stakes
+    decision that deserves its own proposal and its own review — tracked
+    separately, not decided as a side effect of this one.
+
+escalation: >
+  Critical, and the single item this proposal exists to force a real answer
+  on. The core question — "is the current Venezuelan government, or a
+  successor, a threat actor whose access to this data would endanger the
+  people in it" — is a political and safety judgment that must be made by the
+  human principal. This proposal frames the question, lays out what follows
+  from each answer, and recommends Option B; the human answer, once given,
+  becomes the binding input the Board scores the options against.
