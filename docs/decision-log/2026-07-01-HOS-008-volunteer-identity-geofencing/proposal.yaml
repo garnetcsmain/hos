@@ -1,0 +1,142 @@
+decision_id: "HOS-2026-008"
+title: "Volunteer/reporter identity verification (face enrollment + login) and submission geofencing"
+category: "strategic"
+proposer: "Product Agent (requested by principal, 2026-07-01)"
+date: "2026-07-01"
+status: "Board review complete — see judge-decision.yaml"
+board_status: "KILL (D1 face-biometric path) / GREEN_LIGHT (D2 non-biometric path) / RESHAPE (D3 geolocation) — human + legal sign-off still required per escalate_to_human"
+
+summary: >
+  Replace the current fully-anonymous, unauthenticated volunteer/field-reporter
+  submission model with (a) a lightweight identity-enrollment step using face
+  capture + liveness check ("register once, log in with your face") for people
+  who submit found-person / needs / coordination reports, and (b) mandatory
+  geolocation proximity validation at submission time — the device must be
+  physically near the volunteer's assigned/expected location, not just anywhere
+  — to keep field data fresh and attributable. Coordinators are EXEMPT from the
+  geofencing requirement (they legitimately work from a command post, not the
+  field). This is a SEPARATE decision from HOS-2026-006 (facial-recognition
+  ASSISTED MATCHING of missing-person photos against found-person photos, a
+  1:N advisory search between two different individuals). This proposal is
+  1:1 identity VERIFICATION of the same person across time (enrollment vs.
+  login) plus a location integrity check — a different purpose, a different
+  population (our own volunteer corps, not crisis-affected civilians), and a
+  different, arguably HIGHER, risk profile: a compromised registry here is a
+  ready-made target list of who has been helping. Must NOT be built until this
+  clears the Board and a human + legal sign-off, same bar as HOS-2026-006.
+
+context:
+  problem: >
+    Today `/api/found` (and other intake routes) are fully public and
+    anonymous — no registration, no login, no way to know a submission came
+    from who it claims to, or from near where it claims to be from. The
+    principal's original plan (SMS/notification-based validation of
+    submitters) was reconsidered as unreliable for this population: many
+    Venezuelan field volunteers have low digital literacy and low-end phones,
+    where OTP/SMS round-trips are a poor fit (cost, delivery reliability,
+    literacy). The goal is to get fresher, more trustworthy field data without
+    creating friction that excludes the people the system depends on.
+  user_impact: >
+    Done well: coordinators can trust that a "found person at shelter X"
+    report actually came from a real, known volunteer who was physically at
+    shelter X when they filed it — not a stale, spoofed, or duplicate report.
+    Done wrong: legitimate volunteers get locked out during an active crisis
+    because their phone camera is poor, lighting is bad, or they're injured;
+    or worse, a persistent biometric registry of the volunteer network becomes
+    a surveillance/targeting asset against exactly the people running the
+    response, in an authoritarian-state context where being identified as a
+    crisis-response volunteer is not neutral.
+
+scope:
+  in:
+    - "Volunteer/reporter identity enrollment: capture face + liveness check once, tied to a new lightweight account record (name, org, role, assigned zone)"
+    - "Face verification at login (1:1 comparison against the enrolled reference, not open-set 1:N search)"
+    - "Mandatory geolocation capture at every field submission; server-side proximity check against the volunteer's assigned zone/expected location (reuse existing VE-CCS-style zone-grid in apps/web/app/lib/geotag.ts)"
+    - "Coordinators exempted from the geofencing check (command-post work is legitimate); coordinators keep existing Supabase Auth, unaffected by this proposal"
+    - "A non-biometric fallback lane for enrollment/verification failures (support escalation to a human-verified alternative), so face-auth trouble never fully locks a legitimate volunteer out of reporting during a crisis"
+    - "Explicit consent, retention, and deletion policy for volunteer biometric templates, independent from any policy written for HOS-2026-006"
+  out:
+    - "Any cross-linking between this volunteer identity system and the missing/found photo-matching database in HOS-2026-006 — these remain separate systems, separate consent bases, and separate data stores unless a FUTURE proposal explicitly asks to merge them"
+    - "Native mobile app / platform attestation (Play Integrity / App Attest) — v1 assumes the existing Next.js web app; noted as a follow-on if geofencing spoof-resistance proves insufficient"
+    - "Any automatic penalty/ban purely from a geolocation or face-match failure — always a flag for human coordinator review, never an automatic block, consistent with existing 'AI recommends, people decide' principle"
+
+options:
+  - id: "aws-rekognition"
+    note: >
+      Managed: Face Liveness (a check, ~$0.015/check first 500k) + IndexFaces/
+      SearchFacesByImage or CompareFaces for 1:1 verification (~$0.001/image),
+      face-vector storage ~$0.00001/face/month. Fastest to stand up (days once
+      keys exist); the principal already has an AWS account configured
+      locally, though the stored credentials were found to be currently
+      invalid (InvalidClientTokenId) and will need to be rotated/re-issued.
+      No AWS region physically in South America runs Rekognition (nearest is
+      us-east-1) — biometric data leaves the region regardless of choice,
+      same as the org's existing Anthropic/OpenAI usage. Needs a signed DPA +
+      documented legal basis before any real face is processed.
+  - id: "self-hosted-insightface"
+    note: >
+      InsightFace/ArcFace on infra we control, plus an open-source liveness
+      model; store only vectors, minimize raw-photo retention. Best privacy —
+      no volunteer biometric leaves our perimeter. Needs a GPU host (or a
+      right-sized CPU path — inference is much slower without a GPU) and
+      someone to operate it; more setup work than a managed API, but the same
+      pgvector path already provisioned for HOS-2026-006 could be reused.
+  - id: "non-biometric-alternative"
+    note: >
+      Skip face recognition for THIS use case entirely: device-bound
+      cryptographic keypair (generated on first use, stored in the browser/
+      device secure storage) + a memorable PIN/passphrase + the SAME mandatory
+      geolocation proximity check. Gets most of the "is this submission fresh
+      and from roughly the right person/place" integrity benefit without ever
+      building a volunteer face database. Weaker against "someone else uses
+      the volunteer's registered device," stronger against the single biggest
+      risk this proposal creates (a centralized biometric registry of the
+      volunteer corps). Worth the Board explicitly weighing against the face
+      options, not skipping past.
+  - id: "azure-face"
+    note: "Identification is access-gated (Limited Access application, ethics review, approval can take weeks) — likely too slow for this timeline; included for completeness only."
+
+resources:
+  prerequisites:
+    - "A real volunteer/reporter account record to attach an identity to — there is currently NO account system for volunteers (only coordinators have Supabase Auth). This proposal's account layer should reuse/coordinate with HOS-2026-001-08 (Real auth, roles, org isolation), already in_progress, rather than build a second parallel identity system."
+    - "Photo/object storage (S3/R2) — shared prerequisite with HOS-2026-006 (#10 in EXTERNAL_DEPENDENCIES.md)"
+    - "Geolocation capture in the intake UI (browser Geolocation API) + server-side proximity check against apps/web/app/lib/geotag.ts zones"
+    - "A consent + retention + deletion policy specific to volunteer biometric data (cannot reuse HOS-2026-006's policy verbatim — different population, different legal basis)"
+  time_estimate: >
+    Rough draft only, for the Board to stress-test: 2-3 weeks for geolocation-only
+    submission validation (no biometrics, reuses existing geotag.ts) if built alone;
+    6-10 weeks for the full face-enrollment path IF it proceeds in parallel with
+    HOS-2026-001-08's account/roles work already in progress, longer if it has to
+    wait for that work to land first. AWS Rekognition option is faster to integrate
+    than self-hosted InsightFace once accounts and keys exist; the account/roles
+    prerequisite dominates the timeline either way, not the face-recognition vendor
+    choice itself.
+
+success_criteria:
+  - "Geolocation and face verification are always advisory signals a coordinator can see and override, never an automatic block on a legitimate-seeming report, consistent with 'AI recommends, people decide'"
+  - "A documented, tested fallback path exists for volunteers who cannot complete face enrollment/verification (poor camera, injury, lighting) — crisis response participation never fully gates on passing a biometric check"
+  - "No raw biometric image retained beyond the minimum needed to compute/refresh the enrollment template (policy + enforced)"
+  - "Documented consent, revocation (deactivate a volunteer's template immediately on request or offboarding), and deletion policy — signed off before first real enrollment"
+  - "Threat-model sign-off specific to a volunteer-identity registry in the Venezuela 2026 context (distinct from the HOS-2026-006 threat model for missing/found photos)"
+  - "Geolocation proximity threshold and spoofing-resistance approach explicitly chosen and documented (browser Geolocation API accuracy + heuristic checks in v1; native attestation noted as a v2 option, not assumed)"
+
+risks:
+  - "A centralized face+identity registry of the volunteer corps is a higher-value target for a hostile actor than the HOS-2026-006 missing/found DB: it is a ready-made list of exactly who has been participating in an independent crisis-response effort, which can read as opposition-adjacent activity under the current government"
+  - "Coercion: a detained or pressured volunteer can be forced to unlock via face far more easily than they could plausibly 'forget' a passphrase; biometrics can't be rotated after compromise the way a credential can"
+  - "False lockout risk concentrated in exactly the population this system depends on: low-end phones, poor lighting/connectivity, possible injuries — demographic bias in face models compounds this (NIST FRVT found many algorithms 10-100x more likely to misidentify darker-skinned faces; the most accurate algorithms show much smaller gaps, so vendor/model choice matters)"
+  - "Geolocation on a pure web app is spoofable (mock-location tools, browser devtools overrides); without a native app there is no Play Integrity / App Attest-grade attestation available — proximity checks are a deterrent and a signal, not a hard guarantee"
+  - "Consent-in-a-crisis problem, same as HOS-2026-006: a volunteer who needs the (volunteer) role to help may feel they cannot meaningfully decline enrollment"
+  - "Legal/compliance: biometric data of staff/volunteers is still special-category data in most frameworks (GDPR Art. 9, BIPA-style); needs its own DPA and legal basis, independent of HOS-2026-006's"
+
+board_questions_to_answer:
+  - "Contrarian: what happens, step by step, the first time a legitimate volunteer's face verification fails in the field during an active crisis — and separately, what is the worst-case misuse if this volunteer identity+biometric registry is captured by a hostile actor? Is either unfixable?"
+  - "Principals: does building a persistent biometric registry of our OWN volunteer corps violate data-minimization more severely than HOS-2026-006's advisory photo-matching does — and does the non-biometric-alternative option (device key + PIN + geofencing) satisfy the actual goal (fresh, attributable field data) without it?"
+  - "Researcher: what do humanitarian-sector standards say specifically about biometric enrollment of STAFF/VOLUNTEERS (as opposed to beneficiaries/affected populations)? How spoofable is browser-based geolocation in practice, and what do comparable field-data-collection systems (e.g. KoboToolbox, ODK, Ushahidi) do for submission integrity in low-connectivity crises?"
+  - "User: would an overworked shelter volunteer on a shared, cracked-screen Android tolerate face-login every session? What happens to their trust in the whole system the first time they're wrongly locked out during an emergency?"
+  - "Expansionist: is the fresh-and-attributable-field-data upside reachable without ever centralizing a volunteer face database — and if a face-based option is still worth it, what durable advantage (fraud resistance, trust with partner agencies) does it build that a non-biometric approach wouldn't?"
+
+escalation: >
+  Critical/strategic — requires human + legal approval in addition to the Board,
+  same bar as HOS-2026-006. Do not implement before that. Explicitly cross-
+  reference HOS-2026-006 in any legal review: two related but distinct biometric
+  decisions should not be signed off as if they were one.

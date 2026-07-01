@@ -1,0 +1,56 @@
+# Expansionist Review: HOS-2026-008
+
+## My Recommendation
+RESHAPE FOR MORE UPSIDE
+
+The prize here is real and large — but it is **not** the face-enrollment registry, which is the smallest, most legally-encumbered, most easily-copied, and most dangerous slice of this proposal. The durable upside is the **attributed, location-verified, freshness-scored field-report** as a first-class object in the coordination backbone. Reshape to lead with that; treat biometrics as a pluggable, deferrable, opt-in verification method — not the headline.
+
+## Biggest Upside
+**A trustworthy provenance layer for humanitarian field data** — every found-person / needs / coordination report carries a verifiable answer to the three questions coordinators actually act on: *who filed it, from near where, how fresh.* Today `/api/found` answers none of these (verified: the POST handler is rate-limited only — no auth, no identity, no location; the zone concept exists only as coordination seed data, not yet as a submission check).
+
+- **Scale:** every field report HOS ever ingests, across every crisis it's ever deployed to. Provenance is not a feature bolted onto one intake route; it's an attribute the whole ingest spine can carry.
+- **Reach:** directly serves the mission — a coordinator who can *trust* a "found person at La Guaira shelter" report acts on it faster and reunites a family sooner. Untrusted reports get triaged to the bottom or ignored; that delay is measured in people.
+- **Timeline:** the geolocation-only slice is 2–3 weeks (per proposal) and delivers ~80% of the trust value on its own. The biometric slice is 6–10 weeks, gated on HOS-2026-001-08, and delivers the last, riskiest ~20%. The upside curve is steep early and flat late — build in that order.
+
+## Domino Effects
+1. **Unlocks: attributed reports** -> Enables: **a reputation/reliability signal per reporter.** Once a report is tied to a known volunteer account (from HOS-2026-001-08, already in progress) and a location, coordinators accrue a track record: "this org's reports from this zone have been accurate 40/42 times." That reliability score becomes a triage multiplier the system had no way to compute while everything was anonymous. This is a compounding data asset — it gets *more* valuable the longer HOS runs, which anonymous intake never could.
+2. **Unlocks: location-verified provenance** -> Enables: **freshness that means something.** HOS already ships a freshness model (verified: `apps/web/app/lib/coordination/freshness.ts`, fresh/aging/stale from HOS-2026-007). Today freshness answers "*when* was this touched." Provenance lets it answer "when was this touched *by someone who was actually there*" — the difference between a stale map and a live one. The two features multiply.
+3. **Unlocks: a per-report trust score (source × location × recency)** -> Enables: **cross-source corroboration.** Two independent verified reporters near the same coordinates reporting the same found person is a strong signal; one anonymous submission is not. This is the input a matching/dedup engine needs to auto-corroborate — and HOS already has a matching engine and an append-only audit store to hang it on.
+4. **Unlocks: an attributed, auditable ingest record** -> Enables: **defensible handoff to formal institutions.** A UN cluster, ICRC, or a state civil-protection agency will not act on anonymous crowd data, but *will* act on "verified volunteer, known org, GPS-stamped, logged." Provenance is the credential that lets HOS data cross the threshold from "activist tool" to "record an agency will put its name on."
+
+## Moat Opportunity
+**The provenance standard for humanitarian field reporting** — a documented, portable schema for *how a field report proves who-where-when*, plus the append-only audit trail that makes it verifiable after the fact.
+
+This is the durable, compounding advantage, and it's specifically the part competitors don't have. The external scan is the tell: KoboToolbox, ODK, and Ushahidi own field data collection but ship **no built-in identity + location trust layer** (verified from prior research). That's not an accident — it's hard, it's political, and it requires an audit spine most tools lack. HOS already has the spine (append-only event store, per HOS-002/007). The moat is:
+
+- **Data:** the reporter-reliability graph (domino #1) is unique to whoever operates it and deepens with every crisis. It cannot be copied by shipping the same software — it's earned in the field over time.
+- **Standard:** if HOS defines the provenance envelope well and it's crisis-agnostic (HOS is explicitly architected as a reusable, crisis-agnostic pattern per its own docs), other responders adopting *that schema* is the network effect. The moat isn't the face model — anyone can call Rekognition. The moat is being the format agencies trust and other tools interoperate with.
+- **Trust brand:** "HOS-verified report" as a recognizable provenance mark is a positional asset a fast-follower cannot clone by matching features.
+
+Critically: **none of this moat requires biometrics.** A device-bound keypair + PIN + geolocation (the `non-biometric-alternative` option) produces the same attributed, location-verified, reputation-scored report. Biometrics is one possible *proof-of-person* method inside the envelope; the envelope is the moat. Betting the moat on a biometric registry inverts the risk/reward — you take on the single highest-value target list in the whole system (the proposal's own #1 risk, correctly rated above HOS-006) to buy a marginal identity-assurance upgrade that the standard doesn't depend on.
+
+## Adjacent Opportunities
+Once provenance is a spine attribute rather than a `/api/found` bolt-on:
+
+- **Every other crisis type, unchanged.** Flood, earthquake, displacement — verified field reporting is not Venezuela-specific. The architecture is already positioned as reusable; provenance travels with it.
+- **Supply-chain / aid-delivery attestation.** The same "verified actor was physically at this site at this time" primitive that validates a found-person report also validates "aid was actually delivered to this shelter" — plugging straight into the HOS-2026-007 coordination hub's sites/needs/supplies. Proof-of-delivery is a known, hard, unsolved humanitarian problem, and this architecture is a running start on it.
+- **Corroboration-grade situational reporting.** Verified, geo-stamped, timestamped reports from multiple reporters are exactly the substrate for a trustworthy live situation picture — feeding the existing coordination map and the OpenAI situation-briefing surface (HOS-2026-007) with data an agency can stand behind.
+- **A portable "field-responder credential."** An org's verified-volunteer roster becomes reusable across HOS deployments and, eventually, presentable to partner agencies — an identity primitive that outlives any single crisis. (This is upside *and* the sharpest risk — see below.)
+
+## Resource Bottleneck
+**Secure the account/identity foundation and the provenance schema NOW, while they're cheap — before biometrics forces the question.**
+
+1. **Ride HOS-2026-001-08 (real auth, roles, org isolation — already in progress) and make the volunteer/reporter account a first-class citizen of it.** This is the single input that gates *all* the upside above: no account -> no attribution -> no reputation graph -> no moat. It is being built right now; the cost of shaping it to carry provenance today is near-zero, and the cost of retrofitting attribution onto an anonymous ingest spine later is the exact recurring debt HOS-007's board already flagged (org/actor-not-modeled retrofit). Get in front of it.
+2. **Define the provenance envelope as a pluggable, method-agnostic schema** — `(reporter_id, proof_method, location_claim, location_confidence, timestamp, verification_result)` — where `proof_method ∈ {device_key+pin, face, future}`. Building the *slot* now, and shipping it first with the non-biometric method, means face-auth (if it ever clears legal) drops in without re-plumbing, and the moat accrues from day one regardless of which method wins.
+3. **Stand up the geolocation proximity check against a real reusable zone function.** Note a gap the proposal glosses: the referenced `apps/web/app/lib/geotag.ts` / `tagLocation()` **does not exist under that path today** — the VE-CCS/VE-LGU/VE-MAI zones live as coordination *seed data* (`apps/web/app/lib/db/coordinationSeed.ts`, landing content), not as a callable proximity primitive. Promoting that zone concept into an actual shared `tagLocation()` is cheap now and is the reusable building block both this proposal and the coordination hub want. Secure it as shared infrastructure, not a one-off.
+
+The thing NOT to rush to secure: a biometric-template store. That's the one input that gets *more* expensive and *more* dangerous the earlier and bigger you build it, in exactly this authoritarian-state context. Buy it last, small, opt-in, or not at all.
+
+## Confidence Score
+0.72 — high conviction that the provenance-layer framing is the real, compounding, mission-serving upside and that it's largely decoupled from biometrics (the reputation graph, the freshness multiplier, the agency-handoff credential, and the standard all hold with the non-biometric method). Not higher because: (a) the largest dominoes — reputation scoring, cross-source corroboration, agency adoption — depend on HOS-2026-001-08 landing well and on *volume* of verified reports that a small, low-digital-literacy volunteer corps may not generate fast enough to make the reliability graph statistically meaningful in one crisis; (b) "agencies will adopt the standard" is the classic expansionist leap of faith — plausible and concretely motivated here, but unproven; (c) the geolocation-on-a-web-app spoofing weakness the proposal admits could undercut the very provenance guarantee the whole moat rests on, so the upside is only as strong as the location-integrity story turns out to be.
+
+## What I Don't Know
+- **Actual field volume.** How many verified reports/day a real Venezuelan volunteer corps produces — the reputation-graph and corroboration upside is a function of density, and I have no numbers.
+- **Whether any target agency has said the credential would move them.** The "agencies will act on verified-but-not-anonymous data" domino is well-motivated but I've seen no confirming signal from a specific UN cluster / ICRC / civil-protection contact. Without one, #4 is a hypothesis.
+- **How defensible the location claim actually is** without native attestation (Play Integrity / App Attest are explicitly out of v1 scope). If web geolocation is trivially spoofed, the provenance mark is weaker than the moat argument assumes — this is the load-bearing technical unknown.
+- **Whether the non-biometric method is truly sufficient** for the principal's trust bar, or whether there's a specific threat (device sharing / impersonation) that genuinely requires proof-of-*person* and not just proof-of-*device+secret*. If the latter, the biometric slice re-enters the critical path and the risk calculus shifts back toward the Security/Contrarian reviewers' territory — deliberately, that's their call to make, not mine.

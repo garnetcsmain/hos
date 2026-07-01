@@ -88,6 +88,14 @@ epics:
     board_status: "DRAFT — awaiting board + human/legal sign-off"
     tasks: []  # no tasks until the board clears it
 
+  - epic_id: "HOS-2026-008"
+    title: "Volunteer/reporter identity verification (face enrollment + login) and submission geofencing"
+    decision_link: "docs/decision-log/2026-07-01-HOS-008-volunteer-identity-geofencing/judge-decision.yaml"
+    status: "planning"
+    progress: "0%"
+    board_status: "Board run 2026-07-01 — KILL (D1, server-side face-biometric path), GREEN_LIGHT (D2, non-biometric device-key+PIN path), RESHAPE (D3, geolocation advisory signal). ADDENDUM R1 (2026-07-01, docs/decision-log/.../addendum-r1-judge-decision.yaml): principal proposed on-device-only face-uniqueness dedup at registration (no server storage) + role-vs-action scoping of geofencing for remote/text-based volunteers (e.g. translators). Focused re-review (Contrarian+Principals+Researcher): RESHAPE both — (R1-D1) on-device dedup approved as architecture but must not persist raw embeddings (75-95% reconstructable per real research — treat as a real face, not 'just numbers'), must be framed as accidental-duplicate hygiene not anti-Sybil (structurally can't catch cross-device duplicates — same conclusion World ID/Worldcoin reached), needs a cancelable/salted transform if anything is persisted, and needs shared-device cache lifecycle defined; (R1-D2) ACTION-scoping (does this submission carry a location claim?) strongly preferred over ROLE-scoping (is this account's role exempt?) — HOS has no role primitive today and the planned HOS-2026-001-08 taxonomy doesn't even include 'remote/translator', so role-scoping would expand unbuilt work to serve a soft signal and remains gameable via self-declared role; action-scoping is buildable now and closes the gaming vector by construction. Strongly supported by real precedent (Digital Humanitarian Network/Standby Task Force/MicroMappers, Translators Without Borders' 100k+ self-registering remote volunteers). Human + legal sign-off still required before any build."
+    tasks: []  # no tasks until human sign-off; prototyping (cancelable-transform feasibility, real false-match/reject rates) should precede scheduling per R1-D1's next_gate
+
   - epic_id: "HOS-2026-007"
     title: "Whole-response coordination (shelters, needs, supplies)"
     decision_link: "docs/decision-log/2026-07-01-HOS-007-response-coordination/judge_decision.yaml"
@@ -134,6 +142,8 @@ epics:
 - [ ] Get human sign-off on the D3 (auth/public-search) and D1 (cloud-AI DPA) escalations
 - [ ] Provision Tier-1 dependencies (coordinator token, DB, one AI key) — EXTERNAL_DEPENDENCIES.md
 - [ ] Run the board on HOS-2026-006 (facial recognition) before any implementation
+- [x] Run the board on HOS-2026-008 (volunteer identity + geofencing) — 2026-07-01, see judge-decision.yaml
+- [ ] Get human + legal sign-off on HOS-2026-008 D2 (non-biometric identity) and D3 (geolocation) before any implementation
 
 ---
 

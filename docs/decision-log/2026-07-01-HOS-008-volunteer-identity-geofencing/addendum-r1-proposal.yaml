@@ -1,0 +1,99 @@
+decision_id: "HOS-2026-008-R1"
+title: "Refinement of HOS-2026-008: on-device-only face uniqueness check at registration, PIN login unchanged, geolocation re-confirmed with new prior art"
+category: "strategic"
+parent_decision: "HOS-2026-008"
+proposer: "Principal (requested via conversation), refined and drafted by Executive Orchestrator, 2026-07-01"
+date: "2026-07-01"
+status: "DRAFT — focused board review requested by principal (Contrarian + Principals + Researcher only)"
+board_status: "pending"
+
+summary: >
+  The principal accepted HOS-2026-008's D1 (KILL any server-side/persistent face
+  registry) and D2 (GREEN_LIGHT device-bound key + PIN for day-to-day login), but
+  asked whether a ONE-TIME face check at registration could solve duplicate-account
+  prevention without recreating the killed registry. This addendum proposes an
+  **on-device-only face-uniqueness check**: a face embedding is computed entirely
+  in the browser at registration time (a small WASM/TF.js-class model, no server
+  round-trip of the image), and compared ONLY against other embeddings already
+  cached in that SAME device's local storage (IndexedDB) — never against a
+  corpus-wide index, never transmitted to or stored by any HOS server. This
+  catches "same phone re-registering" duplicates; it explicitly does NOT catch
+  "same person registers once on their own phone and once on a friend's phone."
+  That is a known, accepted weaker guarantee than the killed server-side design,
+  traded deliberately for eliminating the central-registry risk entirely: an
+  attacker who fully compromises HOS's backend gets zero biometric data, because
+  none was ever sent. This addendum also re-confirms D3 (geolocation) in light of
+  newly-discovered prior art: the principal's own qclock project (a GPS-geofenced
+  PWA time-clock, different stack — Firebase — but same PWA/browser-geolocation
+  constraints) has a mature, production `haversine.ts` distance function and a
+  `useGeolocation.ts` hook handling Android cold-GPS-fix delays, progressive
+  high-accuracy-then-low-accuracy fallback, and accuracy-aware rejection — all
+  following the exact principle the original board wanted ("client computes for
+  UI, server is still the authority for the decision"). This substantially
+  reduces the "build from scratch" cost the original review flagged, though it
+  is a port of the pattern (different backend/stack), not a copy-paste.
+
+scope:
+  in:
+    - "On-device face-embedding computation at registration only, using a browser-deployable model"
+    - "Comparison ONLY against embeddings cached in that device's own local storage — device-level dedup, not corpus-wide"
+    - "A verifiable engineering invariant that no face image, embedding, or derived biometric is ever transmitted to or stored by any HOS server (must be testable — e.g. network-traffic audit — not just a policy claim)"
+    - "Reconfirm D2 (device-bound key + PIN for day-to-day login) exactly as originally green-lit — unchanged"
+    - "Reconfirm D3 (geolocation as an honest, advisory-only signal) informed by qclock's haversine.ts/useGeolocation.ts as portable prior art, with a revised (likely shorter) time estimate"
+  out:
+    - "Any server-side face storage, comparison, index, or search of any kind, for any purpose, under this decision"
+    - "Cross-device duplicate detection — explicitly accepted as a known, weaker-than-server-side limitation"
+    - "The 'sensitive operations' step-up mechanism — still being defined by the principal in the same conversation; out of scope for THIS review round. Working proposal on the table: gate (a) marking a found person's condition as deceased, (b) editing/retracting a prior report, and (c) switching active volunteer identity on a shared device, behind a device-PIN re-entry (not face). Not yet finalized."
+
+addendum_r1b_role_scoping: >
+  The principal rejected coordinator-vouched registration (the alternative to on-device
+  dedup floated earlier) specifically because HOS's volunteer population is not
+  uniform: it must also accommodate REMOTE, text-based helpers (e.g. a translator)
+  who never set foot in Venezuela and need to start helping immediately, with no
+  local coordinator relationship to vouch for them. A vouching requirement would
+  bottleneck exactly that kind of low-friction remote contributor, so self-service
+  registration (open, on-device-dedup'd) is a hard requirement, not just a
+  preference. This reveals a needed generalization of D3's coordinator exemption:
+  rather than "coordinators are exempt from geofencing" as a special case, the
+  correct rule is "geolocation proximity checking applies ONLY to roles/actions
+  that inherently assert physical presence" (e.g. submitting a found-person report
+  from a claimed shelter location). Coordinators and remote/text-based roles
+  (translators, moderators, or similar) are both naturally exempt under this same
+  rule, for the same underlying reason — neither is claiming to be physically
+  present at a field location. The on-device face-uniqueness dedup check is
+  UNAFFECTED by this distinction and should apply uniformly to every self-
+  registering account regardless of field/remote role, since Sybil-resistance is
+  about identity, not location. This is a scoping clarification to D3, not a new
+  sub-decision — please fold it into whichever verdict you render on the
+  geolocation piece.
+
+resources:
+  prerequisites:
+    - "A browser-deployable face-embedding/uniqueness model realistic on the same low-end Android fleet already documented as a constraint — NOT yet confirmed to perform acceptably; this is the load-bearing unknown for this addendum, parallel to the WebAuthn-persistence unknown already flagged for D2"
+    - "Everything else unchanged from the parent decision (HOS-2026-001-08 sequencing, photo/object storage not needed for this specific piece since no image leaves the device)"
+  time_estimate: >
+    Registration-time on-device dedup: on the order of the original D2 estimate,
+    not materially longer — the model runs client-side and adds one capture step
+    to onboarding, not a new backend system. Geolocation (D3), informed by
+    qclock's existing haversine.ts + useGeolocation.ts as a portable pattern:
+    likely 1-2 weeks rather than the original 2-3 week from-scratch estimate,
+    pending confirmation the port is straightforward across the Firebase/Postgres
+    stack difference.
+
+risks:
+  - "Materially weaker anti-Sybil control than the killed server-side version: trivially defeated by registering from a different device (burner phone, a friend's phone, cleared browser storage/incognito). Acceptable only if the real duplicate-account harm is confusion/redundant-reporting rather than a determined, resourced bad actor running coordinated fake identities."
+  - "The one-time registration capture still requires a working camera and adequate lighting — the User persona's original friction concern (bad camera, poor lighting, injury) still applies ONCE, at signup, even though it no longer recurs daily. A non-biometric enrollment path (skip the check, flag for manual coordinator review) should exist for anyone who can't complete it, consistent with the original 'never fully lock someone out' condition."
+  - "'On-device only, never transmitted' must be an enforced, testable invariant (e.g. a network-request allowlist / CI check that fails if any request contains image or embedding bytes), not merely a design intention — this is the same 'advisory means advisory, prove it, don't just claim it' lesson the original D3 review drew from HOS-2026-002's D4 precedent."
+  - "If browser local storage is ever backed up to a cloud account (e.g. a phone's OS-level backup, or a future 'sync my HOS data' feature), the 'on-device only' guarantee could silently erode. Should be an explicit non-goal to ever sync this specific cache."
+
+board_questions_to_answer:
+  - "Contrarian: does 'on-device only' actually eliminate the target-list/registry risk that drove the original KILL, or is there a residual way this still creates exposure (device seizure of a specific volunteer, OS-level backup sync, a future feature that innocently syncs local storage)? Is the weaker Sybil-resistance an acceptable trade given HOS's actual duplicate-account threat, or does this fail to solve the real problem?"
+  - "Principals: does an on-device-only design change the principles-alignment verdict from the original review — specifically data-minimization and trust-and-honesty? Does this now read as ALIGNED where the server-side version was VIOLATED, or are there residual violations?"
+  - "Researcher: are there real precedents for on-device-only biometric uniqueness/liveness checks (vs. server-side) in low-resource or high-risk-population contexts? Is a browser-deployable (WASM/TF.js-class) face-embedding model realistic in practice on the same low-end Android fleet already documented as a constraint for this project? Separately: sanity-check whether qclock's haversine.ts/useGeolocation.ts pattern is sound, portable prior art for D3, and whether the revised 1-2 week estimate is reasonable."
+
+escalation: >
+  Same bar as the parent decision: strategic, touches biometric data (even if
+  processed only on-device), requires human + legal review before build. The
+  "on-device only" architecture likely satisfies a materially different (lighter)
+  legal analysis than a server-side biometric store would, but that is a legal
+  conclusion to confirm, not assume.

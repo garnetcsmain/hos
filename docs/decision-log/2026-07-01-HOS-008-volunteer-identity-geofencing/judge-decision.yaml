@@ -1,0 +1,129 @@
+decision_id: "HOS-2026-008"
+phase: "judge_synthesis"
+date: "2026-07-01"
+judge: "Judge Agent (synthesized by Executive Orchestrator from 5 independent board reviews)"
+board_inputs_considered: [contrarian, expansionist, principals, researcher, user]
+decisions:
+  - id: "HOS-2026-008-D1"
+    title: "Volunteer identity — face-biometric enrollment/login path (aws-rekognition, self-hosted-insightface, azure-face options)"
+    verdict: "KILL"
+    confidence: 0.9
+    rationale: >
+      All five reviewers converge, independently, on the same fatal problem, and the framework's
+      own kill rule is met exactly: Contrarian found CRITICAL, explicitly-unfixable flaws (a
+      centralized face+identity registry of the volunteer corps is a target list for detention/
+      reprisal; face-as-credential is coercible under duress and non-rotatable after compromise;
+      false-lockout concentrates on the exact population and moment the system depends on), and
+      Researcher independently confirmed the risk is not abstract: Venezuela is currently running
+      VenApp (a citizen-informant app) and "Operación Tun Tun" (door-marking and detention of
+      dissidents, including doxxing of ordinary civic participants like polling-station witnesses).
+      A leaked or subpoenaed volunteer face registry is a direct input to that existing apparatus,
+      not a hypothetical future risk. Principals found the same conclusion via pure principles
+      logic: the face path is VIOLATED on four of six stated HOS principles (information-before-
+      interfaces, trust-and-honesty, data-minimization, crisis-grade-and-reversible), while the
+      non-biometric alternative is ALIGNED or better on all six — and Occam's razor decisively
+      prefers the simpler mechanism since the only capability lost is resistance to a vetted
+      volunteer sharing their own already-unlocked device, a threat of unmeasured and likely small
+      size. Researcher's ground-truth data sharpens this further: best-case commercial face/
+      liveness false-negative rates run ~10.5% and are skewed against darker skin tones, on a
+      population (low-end Android, poor field lighting, possibly injured) that guarantees the
+      worst-case conditions for the model. User walked through the lived consequence concretely
+      (a Petare shelter volunteer on a cracked-screen Tecno Spark, at night, under a flickering
+      light) and confirmed the failure mode is not theoretical. Expansionist — whose mandate is to
+      find the upside case FOR a proposal — independently concluded the durable value (a trusted
+      provenance layer for field reports) does not require centralizing biometrics at all, and
+      that doing so trades a real, permanent, population-concentrated liability for a marginal
+      convenience gain. There is no dissenting voice among the five on this specific sub-thread.
+      This is the exact "fatal flaw + Researcher confirms it's real" condition the governance
+      framework specifies for a KILL, not a RESHAPE.
+    conditions:
+      - "Do not build any face-enrollment, face-login, or face-embedding capability for volunteer/reporter identity under this decision, on any of the three biometric options considered (AWS Rekognition, self-hosted InsightFace, Azure Face)."
+      - "If this is ever revisited, it requires a NEW, standalone proposal with its own necessity-and-proportionality memo showing a concretely measured threat (e.g. a quantified device-sharing/impersonation rate) that the non-biometric path (D2) demonstrably fails to address — not a re-litigation of this same evidence."
+      - "This KILL does not extend to HOS-2026-006 (missing/found photo matching), which remains a separate, independently-pending decision with a different population and purpose. Do not treat this verdict as resolving HOS-2026-006 either way."
+    next_gate: "None scheduled. Re-open only on a materially new proposal per the condition above, not on a fixed timer."
+
+  - id: "HOS-2026-008-D2"
+    title: "Volunteer identity — non-biometric path (device-bound keypair + PIN/passphrase + account record)"
+    verdict: "GREEN_LIGHT"
+    confidence: 0.78
+    rationale: >
+      Convergent support: Principals rates this ALIGNED or better on all six stated principles and
+      identifies it as the Occam's-razor-preferred design. Contrarian says they would move to
+      "PROCEED WITH CONDITIONS" on this path. User confirms it is the lower-friction, lower-fear
+      option for a real shelter volunteer and prefers it be the default rather than a fallback.
+      Expansionist finds the durable moat (a trusted, attributed, freshness-scored field-report
+      layer) is fully reachable through this method alone. Researcher recommends it directly and
+      supplies the strongest external validation: Ushahidi's crisis-mapping precedent shows
+      submitter identity is not actually required to build coordinator trust in field reports —
+      corroboration across sources and volume does the work identity was assumed to be needed for.
+      Confidence is not higher because Researcher flags a genuine, unresolved implementation
+      question: WebAuthn-style device-bound key persistence and platform-authenticator support are
+      "genuinely spotty" on old/budget Android WebViews and browsers, especially across app-data
+      clears — the exact device fleet this population uses. This is an engineering feasibility
+      question to prototype early, not a principle objection.
+    conditions:
+      - "Sequence this AFTER (or in tight, reviewed coordination with) HOS-2026-001-08 (real auth, roles, org isolation) — do not build a second, parallel volunteer identity system; the account record this rests on should BE that system's volunteer/reporter role, not a competing one. Contrarian, Principals, and Researcher all independently flagged building any new identity feature on an unaudited, in-progress auth substrate as its own risk."
+      - "Prototype device-bound key persistence (WebAuthn platform authenticator or equivalent secure storage) on 2-3 real low-end Android devices/browsers BEFORE committing to the full build timeline — Researcher's flagged unknown is whether this works reliably on this exact hardware, not whether the concept is sound."
+      - "Preserve a genuinely anonymous submission path alongside the enrolled path — Contrarian's condition that the existing anonymous /api/found intake must not simply disappear behind an enrollment wall. Enrollment adds a trust signal; it must not become a precondition for helping at all."
+      - "Design an explicit duress/panic consideration even though this method is far less coercible than face: a PIN can still be extracted under pressure. Data-minimization on what a compromised account actually exposes (scope it to submission-signing, nothing else) is the mitigation, not an unattainable duress-proof login."
+      - "Consent and retention/deletion policy still required before first real enrollment, independent of HOS-2026-006's policy — this is a lighter-weight policy than biometrics would have needed (no special-category data), but it is not zero (name, org, role, device key are still personal data about a potentially at-risk volunteer)."
+    next_gate: "Re-review once the WebAuthn/secure-storage prototype result is in and once HOS-2026-001-08 has landed — confirm the account model actually supports this before full build."
+
+  - id: "HOS-2026-008-D3"
+    title: "Geolocation proximity validation at submission time"
+    verdict: "RESHAPE"
+    confidence: 0.85
+    rationale: >
+      Unanimous factual correction first: THREE of five reviewers (Contrarian, Principals,
+      Researcher), independently and without seeing each other's work, verified that the proposal's
+      load-bearing claim — "reuse existing VE-CCS-style zone-grid in apps/web/app/lib/geotag.ts" —
+      is false. That file, `tagLocation()`, and any VE-CCS symbol do not exist anywhere in this
+      repo (confirmed directly by the orchestrator too, including a check of origin/main). The
+      current location handling is free-text Jaccard string overlap in the matching engine, with
+      no coordinates, zones, or proximity math anywhere. The "2-3 weeks, reuse existing" costing in
+      the proposal is wrong and must be corrected before this is scheduled. Beyond that factual
+      defect, the underlying idea survives as an ADVISORY signal only: Researcher's external
+      research (KoboToolbox and ODK's own maintainers, the sector-standard field-data tools) is
+      decisive here — neither tool can detect a mock/spoofed location in a browser context, and
+      HOS would be built the same way (a Next.js web app, no native platform attestation available
+      per the proposal's own scope). Contrarian and Principals both independently concluded the
+      geofence therefore provides close to zero integrity against a motivated adversary while
+      adding real friction for honest volunteers in the fluid, cross-zone reality of an active
+      crisis (reassignments, relaying reports for a colleague, indoor GPS degradation). This
+      matches HOS-2026-002's own D4 precedent almost exactly: a signal that sounds like a
+      guarantee but is not one must be labeled honestly, not silently overstated.
+    conditions:
+      - "Correct the record: there is no existing zone-grid to reuse. Budget this as net-new work — a coordinate capture step, a zone-classification function (informed by whatever real zone concepts exist in coordinationSeed.ts), and the proximity check itself — before committing to any timeline."
+      - "Present the result to users and coordinators as 'device-reported location, unverified' — never as 'confirmed at location' or similar language implying a guarantee the mechanism cannot back. This is a direct application of the trust-and-honesty principle and the HOS-2026-002-D4 precedent (never claim something happened that didn't)."
+      - "Remain strictly advisory: a flag a coordinator can see and dismiss, never an automatic block on submission, consistent with 'AI recommends, people decide.' Add an enforced invariant (a test, not just a comment) so a future capacity crunch cannot silently convert this into a hard gate — Principals and Contrarian both independently warned this exact drift is how HOS-2026-002's fail-open and false-'sent' bugs entered the codebase."
+      - "Design flag economics for a surge BEFORE building, not after: what happens when cross-zone/low-confidence flags outpace coordinator triage capacity during a viral moment. A flag that silently expires unreviewed is the same class of dishonesty as HOS-2026-002-D4's fake 'sent' status — decide the surge policy explicitly."
+      - "Coordinators remain exempt, as proposed — reviewers found this reasonable — but document it as an explicit, signed-off asymmetry (the only continuously-tracked population is the lower-power field volunteers, not the command post), not an incidental side effect."
+    next_gate: "Re-review once the zone-classification primitive is actually built and the surge flag-handling policy is written down; confirm the 'unverified' labeling made it into the actual UI copy, not just the design doc."
+
+overall: >
+  The proposal correctly separated itself from HOS-2026-006, and the board affirms that separation
+  should hold — these remain two independent decisions with different populations and risk
+  profiles; nothing here resolves HOS-2026-006 either way. Within HOS-2026-008 itself, the board's
+  signal is unusually convergent for a five-person panel that reviews in isolation specifically to
+  avoid groupthink: kill the face-biometric path outright (D1), green-light the non-biometric
+  device-key path as the actual v1 design (D2), and reshape the geolocation idea into an honestly-
+  labeled, strictly-advisory signal built on a corrected understanding that its supposed existing
+  building block does not exist (D3). The throughline across all five independent reviews, stated
+  most sharply by the Contrarian and most concretely by the Researcher: this proposal's own risk
+  list already named the reason to kill its own centerpiece (a searchable biometric registry of the
+  volunteer corps is a higher-value target than the HOS-2026-006 missing/found database, in a
+  country where an informant-app-and-house-marking campaign against dissidents is not a future risk
+  but a running one) and the fix is not a mitigation checklist, it is to not build the registry.
+  Every reviewer that engaged with the alternative (device-bound key + PIN + advisory geolocation)
+  found it sufficient for the stated goal — fresher, attributable field data — at a small fraction
+  of the risk and, per the Expansionist, without giving up any of the durable long-term value. The
+  practical effect for the principal's original question ("face recognition or nothing, and how
+  fast") is: face recognition is not the right tool for THIS problem (volunteer identity in this
+  threat context), even though the underlying instinct — crowdsourced data needs an integrity layer
+  beyond hope — is correct and worth building, just with a different, less dangerous mechanism.
+escalate_to_human:
+  - "This is a strategic decision touching biometric data and deploy-time identity — per AGENTIC_ADOPTION.md, it requires human (and, given the KILL rationale rests partly on legal/ethical grounds — ICRC consent-in-crisis guidance, ADA/BIPA-style special-category-data law — ideally legal-literate) review before being treated as final, even though the board's recommendation is unusually one-sided."
+  - "Confirm with a human whether the principal wants to formally close D1 (face path) as killed in the record, or override the board — the board can recommend but the principal, as the human principal, has final say per this project's own governance FAQ ('Can humans override agents? Yes')."
+  - "Sequencing dependency: get a decision from whoever owns HOS-2026-001-08 (real auth/roles/org isolation) on timeline and whether the volunteer/reporter account model can accommodate D2's device-key approach, before scheduling any of this work."
+  - "Legal/consent-framing review specifically for D2: even non-biometric personal data collection (name, org, role, device key) on volunteers in this context deserves a real consent and data-minimization review, not just an internal policy note — ICRC's finding that 'consent in a crisis' is often not a valid legal basis applies in spirit even though the data collected is far less sensitive than biometrics."
+  - "A product decision, not just a technical one: does HOS invest in a native app wrapper (Capacitor/Expo or similar) to get Play Integrity/App Attest-grade location attestation in a v2? v1 geolocation is only ever going to be an honest, soft signal on the current web-only architecture — worth a deliberate yes/no rather than a silent assumption."
