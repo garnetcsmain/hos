@@ -1,0 +1,62 @@
+name: Supabase migrations
+
+# Applies committed migrations in supabase/migrations/ to the hosted database.
+# The app also auto-creates the schema idempotently on first connect, so this is
+# for deterministic, tracked migrations (ALTERs / constraints / backfills that
+# the runtime auto-init cannot do).
+#
+# Setup required (once): create two GitHub Environments — "production" and
+# "staging" — each with a secret named SUPABASE_DB_URL set to that branch's
+# Supabase SESSION-pooler connection string:
+#
+#   postgres://postgres.<ref>:<pw>@aws-1-<region>.pooler.supabase.com:5432/postgres
+#
+# IMPORTANT: use the SESSION pooler (port 5432), NOT the transaction pooler
+# (6543) — the CLI uses named prepared statements, which the transaction pooler
+# rejects with SQLSTATE 42P05. (The app itself uses 6543; the CLI needs 5432.)
+# Add required reviewers to the "production" environment to gate prod migrations.
+
+on:
+  push:
+    branches: [main]
+    paths: ["supabase/migrations/**"]
+  pull_request:
+    paths: ["supabase/migrations/**"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target database
+        type: choice
+        options: [staging, production]
+        default: staging
+
+concurrency:
+  group: supabase-migrations-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    # push to main -> production; manual run -> chosen; PR -> staging (dry-run).
+    environment: ${{ (github.event_name == 'push' && 'production') || github.event.inputs.environment || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Apply migrations (dry-run on PRs, apply on main / manual)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL secret is not set for this environment. See the header of this workflow."
+            exit 1
+          fi
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "PR: dry-run only (no changes applied)"
+            supabase db push --db-url "$SUPABASE_DB_URL" --dry-run
+          else
+            supabase db push --db-url "$SUPABASE_DB_URL" --yes
+          fi
