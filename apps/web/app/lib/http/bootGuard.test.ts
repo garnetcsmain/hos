@@ -37,6 +37,49 @@ test("boot guard: a custom non-local NODE_ENV (staging) is not a free pass", () 
   assert.equal(checkCoordinatorBootConfig({ NODE_ENV: "staging" }).ok, false);
 });
 
+test("boot guard: invite-only Supabase auth (url+key+allowlist) allows start in production", () => {
+  const r = checkCoordinatorBootConfig({
+    NODE_ENV: "production",
+    NEXT_PUBLIC_SUPABASE_URL: "https://proj.supabase.co",
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+    HOS_COORDINATOR_EMAILS: "coord@example.org",
+  });
+  assert.equal(r.ok, true);
+});
+
+test("boot guard: Supabase url+key but an EMPTY allowlist still refuses (admits nobody)", () => {
+  // The regression behind the /coordination 500's sibling failure: turning on
+  // Supabase auth without naming any coordinator must not count as configured.
+  assert.equal(
+    checkCoordinatorBootConfig({
+      NODE_ENV: "production",
+      NEXT_PUBLIC_SUPABASE_URL: "https://proj.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+    }).ok,
+    false,
+  );
+  assert.equal(
+    checkCoordinatorBootConfig({
+      NODE_ENV: "production",
+      NEXT_PUBLIC_SUPABASE_URL: "https://proj.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+      HOS_COORDINATOR_EMAILS: "   ",
+    }).ok,
+    false,
+  );
+});
+
+test("boot guard: Supabase URL without an anon key does not count as configured", () => {
+  assert.equal(
+    checkCoordinatorBootConfig({
+      NODE_ENV: "production",
+      NEXT_PUBLIC_SUPABASE_URL: "https://proj.supabase.co",
+      HOS_COORDINATOR_EMAILS: "coord@example.org",
+    }).ok,
+    false,
+  );
+});
+
 test("boot guard: HOS_DEV_OPEN must be exactly '1', not any truthy string", () => {
   assert.equal(
     checkCoordinatorBootConfig({ NODE_ENV: "production", HOS_DEV_OPEN: "true" }).ok,

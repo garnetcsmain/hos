@@ -77,6 +77,18 @@ export function coordinatorHeaders(): Record<string, string> {
   return headers;
 }
 
+/** An HTTP error that preserves the status code so callers can react to auth
+ *  failures (401/403) differently from other errors — e.g. send a coordinator
+ *  with no/expired session to /login instead of showing a dead-end message. */
+export class ApiError extends Error {
+  readonly status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -84,7 +96,10 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const data = (await response.json().catch(() => ({}))) as T & { error?: string };
   if (!response.ok) {
-    throw new Error((data as { error?: string }).error ?? `request failed (${response.status})`);
+    throw new ApiError(
+      (data as { error?: string }).error ?? `request failed (${response.status})`,
+      response.status,
+    );
   }
   return data as T;
 }
