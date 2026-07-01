@@ -48,10 +48,12 @@ export function listMissing(status?: ReportStatus): MissingReport[] {
   return rows.map(mapMissing);
 }
 
-/** Open reports still seeking a match (anything not yet resolved). */
+/** Open reports still seeking a match. A "matched" case has a human-confirmed
+ *  link awaiting family contact, so it is no longer actively matched (nor is a
+ *  "resolved" one). */
 export function openMissing(): MissingReport[] {
   const rows = db
-    .prepare(`SELECT * FROM missing_reports WHERE status != 'resolved' ORDER BY created_at DESC`)
+    .prepare(`SELECT * FROM missing_reports WHERE status NOT IN ('resolved', 'matched') ORDER BY created_at DESC`)
     .all();
   return rows.map(mapMissing);
 }

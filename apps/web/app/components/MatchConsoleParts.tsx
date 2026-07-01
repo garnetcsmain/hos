@@ -331,7 +331,6 @@ function VerifyPanel({ candidateId, onVerified }: { candidateId: string; onVerif
   }
 
   if (status === "done" && result) {
-    const resolved = result.decision === "confirmed" && result.resolved;
     const chipKey: MatchStatus =
       result.decision === "confirmed" ? "confirmed" : result.decision === "rejected" ? "rejected" : "pending";
     return (
@@ -347,9 +346,10 @@ function VerifyPanel({ candidateId, onVerified }: { candidateId: string; onVerif
             </div>
           </div>
         </div>
-        {resolved ? (
-          <div className="mt-[14px] rounded-[6px] bg-[#DDEFE8] px-[12px] py-[10px] text-[13px] font-extrabold text-[#16613F]">
-            Caso resuelto · familia notificada
+        {result.confirmed ? (
+          <div className="mt-[14px] rounded-[6px] bg-[#E7E0F6] px-[12px] py-[10px] text-[13px] font-extrabold leading-[18px] text-[#4B2E83]">
+            Coincidencia confirmada · pendiente de contactar a la familia. El caso NO se cierra hasta
+            registrar el contacto real en Mensajes.
           </div>
         ) : null}
       </div>

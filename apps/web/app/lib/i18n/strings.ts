@@ -70,6 +70,7 @@ const es: Dict = {
   "status.open": "Abierto",
   "status.candidate": "Con candidato",
   "status.verifying": "En verificación",
+  "status.matched": "Coincidencia confirmada",
   "status.resolved": "Resuelto",
 
   "search.noResults": "Sin resultados.",
@@ -138,6 +139,7 @@ const en: Dict = {
   "status.open": "Open",
   "status.candidate": "Has candidate",
   "status.verifying": "Verifying",
+  "status.matched": "Match confirmed",
   "status.resolved": "Resolved",
 
   "search.noResults": "No results.",

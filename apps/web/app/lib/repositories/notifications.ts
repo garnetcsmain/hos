@@ -22,6 +22,11 @@ export function insertNotification(notification: Notification): void {
   );
 }
 
+export function getNotification(id: string): Notification | null {
+  const row = db.prepare(`SELECT * FROM notifications WHERE id = ?`).get(id);
+  return row ? mapNotification(row) : null;
+}
+
 export function listNotifications(limit = 100): Notification[] {
   const rows = db
     .prepare(`SELECT * FROM notifications ORDER BY created_at DESC LIMIT ?`)

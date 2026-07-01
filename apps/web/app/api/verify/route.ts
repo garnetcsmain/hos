@@ -8,8 +8,9 @@ import { recordVerification } from "@/app/lib/services/verification";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Coordinator records a decision on a candidate. Confirming resolves the case
-// and queues a family notification.
+// Coordinator records a decision on a candidate. Confirming marks the case
+// "matched" and opens a tracked family-reach obligation; it does not resolve
+// the case (that happens when the family is actually reached, /api/family-reach).
 export async function POST(request: NextRequest) {
   try {
     assertCoordinator(request);
@@ -21,6 +22,7 @@ export async function POST(request: NextRequest) {
       {
         verificationId: result.verification.id,
         decision: result.verification.decision,
+        confirmed: result.confirmed,
         resolved: result.resolved,
         notificationId: result.notificationId,
       },
