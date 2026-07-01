@@ -1,0 +1,269 @@
+decision_id: "HOS-2026-012"
+phase: "judge_synthesis"
+date: "2026-07-01"
+judge: "Judge Agent (synthesized by Executive Orchestrator from 5 full board reviews)"
+board_inputs_considered: [contrarian, expansionist, principals, researcher, user]
+
+decisions:
+  - id: "HOS-2026-012-D1"
+    title: "Volunteer skill model (\"switchable day-to-day\")"
+    verdict: "RESHAPE"
+    confidence: 0.78
+    rationale: >
+      A genuine, unresolved tension the board surfaces rather than papers
+      over. Researcher's precedent search directly CONTRADICTS the proposal's
+      framing: Team Rubicon (persistent Roll Call profile built up over
+      time), ESAR-VHP/the federal Medical Reserve Corps (standardized,
+      verified, advance-registered skill registries), and circumstantially
+      FEMA's Volunteer Reception Center intake model all treat skill as a
+      persistent, cumulative, verified record selected FROM per deployment —
+      never a state a person resets or toggles daily. No comparable system
+      models "switchable skill" as this proposal frames it; Researcher flags
+      this as the proposal's least-precedented claim, not a codification of
+      known practice. But Expansionist and User independently arrive at a
+      version that resolves the tension rather than just rejecting it:
+      Expansionist notes the existing `Offer.status` state machine
+      (available/committed/depleted, already Board-approved in HOS-2026-007)
+      is the exact primitive a switchable skill needs — a person has
+      multiple `Offer`s (driving, cooking) and "which am I today" is just
+      which one is currently active, no new state machine required. User,
+      independently and from lived experience, reaches the same place from
+      the opposite direction: "switchable" only works if updating it
+      piggybacks on the moment a task is offered ("¿Puedes hacer esto ahora?
+      Sí / No, pero puedo con esto otro") rather than being a profile page a
+      tired volunteer is expected to remember to visit — a day-old flag
+      trusted blindly is a liability, the same flag double-checked at
+      match-time is honest. Principals independently converges on the same
+      shape from the data-minimization axis: skill state should be
+      current-state, overwritten in place, never an append-only history —
+      which is what makes "switchable" safe rather than a growing liability.
+    conditions:
+      - "Model volunteer skill as current, mutable state (mirroring Offer.status) — never an append-only history of past skills. This is not in tension with 'switchable day-to-day' (the value persists and can change); it is in tension with keeping a LOG of past values, which is not needed for the stated goal and is the thing that would make this dangerous."
+      - "Surface skill correction in the moment a task/match is offered (a one-tap 'can you do this now?' at match time), not only as a self-service profile field a volunteer must remember to update — treat the profile field as a default/fallback, not the sole mechanism, per the User review's specific finding about staleness."
+      - "Treat 'switchable skill' as a genuinely untested, HOS-specific design choice, not an industry-validated pattern — flag it for real pilot validation once built (does it hold up with real coordinators and volunteers), rather than treating Researcher's precedent gap as merely a formality to note and move past."
+      - "Keep 'skill' (a task-matching attribute) namespaced and conceptually distinct from 'capability' (a system permission, per HOS-2026-011's role model) from the first line of the spec — both Principals and Researcher independently re-confirmed this naming/conceptual collision risk is still live."
+
+  - id: "HOS-2026-012-D2"
+    title: "Volunteer personal-needs model (e.g. \"I have a car but no gas\")"
+    verdict: "RESHAPE"
+    confidence: 0.83
+    rationale: >
+      The least contested item on the board — no reviewer treats this as
+      risky in the way location-weighting or durable history are risky, but
+      three reviewers independently sharpen how it should be built.
+      Expansionist's generalization (a person's need is structurally the
+      same `Need` type HOS-2026-007 already built, with a `subjectType:
+      "person"` discriminator instead of a bespoke new shape) is the cleanest
+      resolution and reuses category/district/quantity/urgency fields that
+      already exist. Principals requires this be ephemeral/current-state
+      rather than durably retained (the same logic as D1 — a need that's
+      been met should vanish, not remain a permanent fact about a person).
+      User adds the sharpest, most concrete finding: this must not read as a
+      pinned personal limitation next to a volunteer's name ("I'm offering my
+      car feels generous; I need gas money feels like admitting I can't
+      afford to keep helping") — it should look and behave like the existing
+      anonymous-ish Need/Offer pattern a donor can answer, and it should
+      expire on its own once met or after a short window, not sit as a
+      standing fact visible to every coordinator browsing volunteers.
+    conditions:
+      - "Model a volunteer's personal need as a Need-type record with subjectType: person (per D1/D3's unified-model direction), reusing existing category/district/quantity/urgency fields rather than a new bespoke shape."
+      - "Auto-expire personal-need records (met, or after a short fixed window) rather than letting them persist as a standing fact about a specific volunteer — this is a data-minimization requirement, not a UX nicety."
+      - "Display personal needs the same way org-level needs are shown today — a need to be answered, not a limitation pinned to a named person's profile that every coordinator sees indefinitely."
+
+  - id: "HOS-2026-012-D3"
+    title: "Donor actor type and the underlying one-actor-vs-two-actor-model question"
+    verdict: "RESHAPE"
+    confidence: 0.82
+    rationale: >
+      Converges cleanly despite reviewers approaching it from different
+      angles. Contrarian's finding is the most important and reframes the
+      whole question: this is NOT primarily a naming-collision risk (verified
+      directly — the literal string "donor" collides with nothing in
+      coordination.ts, match.ts, or either migration file today) but a
+      STRUCTURAL one — every table (sites, needs, offers) carries a hard
+      `NOT NULL REFERENCES orgs(id)` foreign key, meaning there is no concept
+      anywhere in the schema of an actor that isn't an org row. Treating
+      "donor" as a naming exercise (as the proposal's own open_questions
+      section does) lets the real question — does HOS have one actor model
+      or two — go unanswered until implementation, which Contrarian is right
+      to insist must be resolved first, not discovered mid-build. Expansionist
+      and Researcher both independently supply the resolution: this is the
+      same generalization as D1/D2. Expansionist's `subjectType: "org" |
+      "person"` discriminator on the existing Need/Offer types makes donor,
+      volunteer-skill, and volunteer-need all the same underlying pattern —
+      not three parallel concepts. Researcher confirms this is real,
+      well-precedented territory with two live technical patterns to choose
+      between, not unprecedented ground: Salesforce NPSP's "two linked types,
+      individual gets a synthetic parent" versus Stripe's "one type plus a
+      discriminator field" (verified directly against both platforms' current
+      API docs) — and separately confirms FEMA/National VOAD doctrine treats
+      affiliated-vs-unaffiliated as a genuine first-order distinction (not a
+      convenience), because it changes which verification/trust workflow
+      applies, which validates that "donor" deserves real structural
+      treatment rather than being squeezed into the existing `OrgKind` enum.
+      Principals, reasoning independently from data-minimization/parsimony,
+      reaches the same practical conclusion — reuse the org-optional pattern
+      HOS-2026-011-D2 already accepted for remote contributors rather than
+      inventing a second authorization idea. User's contribution is the
+      practical bar any resolution must clear: Don Ramón (a small-business
+      donor with no org, no dashboard habit, no `orgId` mental model) will
+      abandon an onboarding flow shaped like the coordinator console; donor
+      reporting must cost about as much effort as texting a sentence.
+    conditions:
+      - "Resolve the actor-model question explicitly and structurally before implementation — do not let 'donor' ship as a fourth ad-hoc OrgKind value or a nullable donorId bolted on next to orgId. Choose deliberately between the subjectType-discriminator pattern (Stripe-style, likely the better fit given HOS's existing singular orgId foreign keys) and a two-linked-types pattern (NPSP-style, individual gets a synthetic org-shaped parent)."
+      - "Whichever pattern is chosen, it must be the SAME mechanism used for volunteer-as-person under D1/D2 — donor and volunteer are both the 'person' side of the same subject model, not two separate new concepts."
+      - "Verify the chosen vocabulary (whatever 'donor' or any related term ends up being) against the existing OrgKind enum and HOS-2026-011's already-verified 'responder' collision before writing any schema, per the discipline that decision already established."
+      - "Donor onboarding must not require organizational scaffolding (accounts, category dropdowns, org-shaped forms) as a precondition to being heard — the reporting effort should approximate a single plain-language message in, with an immediate, concrete acknowledgment back."
+
+  - id: "HOS-2026-012-D4"
+    title: "Location-weighted matching: precision and retention"
+    verdict: "RESHAPE"
+    confidence: 0.85
+    rationale: >
+      The most consequential finding of this review, and the most convergent
+      despite different reviewers framing it differently. Contrarian states
+      it as an outright KILL of the proposal's literal wording ("heavily
+      weighted by location/proximity to maximize response speed" applied to
+      an individual, moving, identity-linked person) — calling it, precisely,
+      "the tracking system HOS-2026-007 and HOS-2026-010 explicitly refused
+      to build, just one layer removed so it doesn't look like it." His
+      argument is structural, not speculative: repeated, timestamped,
+      identity-linked proximity signals ARE a movement diary by construction,
+      regardless of whether any single data point looks alarming — and this
+      project has already named its own threat model twice (VenApp,
+      Operación Tun Tun) as the reason precise/persistent location data about
+      individuals is dangerous specifically in Venezuela's current political
+      climate. Principals independently reaches the same place via a sharper
+      distinction: the proposal's own text correctly diagnoses the PRECISION
+      risk ("closest phone GPS ping") but never addresses the separate
+      RETENTION risk — a coarse, district-only, but durably logged
+      per-volunteer match history is still a registry, just a slower-building
+      one; precision and retention are two different levers, and the
+      proposal only pulls one. Researcher's live research sharpens rather
+      than softens this: de Montjoye et al.'s peer-reviewed re-identification
+      study found coarsening a location signal decays identifiability only as
+      roughly the TENTH ROOT of resolution — a real but weak, slow-acting
+      defense, not a categorical fix — and Singapore's TraceTogether (a
+      purpose-built, coarse, non-biometric, publicly promised
+      contact-tracing-only log) was still compelled into an unrelated murder
+      investigation once state pressure arrived, the canonical case of a
+      coarse, well-intentioned log being repurposed against its own promise.
+      Researcher separately confirms Operación Tun Tun now has a named,
+      documented fatal case (Jesús Manuel Martínez Medina, an electoral
+      witness, detained post-election and dead in custody, per a UN
+      fact-finding mission tracing the detention to a VenApp report) —
+      directly on point for the exact population (civic-participation
+      volunteers) this feature would track. Yet all five reviewers, including
+      Contrarian, agree a coarser, non-persistent version is fine and should
+      proceed: Expansionist frames the honest version as a NEW SCORING
+      DIMENSION on the SAME `rankOffersForNeed`-family function, using the
+      SAME coarse `district` grain HOS-2026-007 and HOS-2026-010 already
+      settled — ambition and honesty are not a tradeoff here, since the
+      cheaper, simpler build is also the safer one. Researcher's own
+      Team Rubicon precedent supports this directly: their location-matching
+      operates at ~25 defined territories/zones, not GPS, and their COO
+      describes this as a deliberate operational choice (containing
+      spread-zone movement), not a limitation they'd remove if they could.
+      User (as Yolanda) states the resolution most starkly: "I will accept
+      the app is a little slower to match me every single time over the app
+      now has a diary of my movements" — and if finer precision is ever
+      operationally necessary, it should be computed ephemerally at match
+      time and discarded, never stored as a queryable per-volunteer history.
+    conditions:
+      - "Location weighting must operate at the SAME coarse district granularity HOS-2026-007 and HOS-2026-010 already settled on — same-district vs. different-district as a scored dimension on the existing rankOffersForNeed-family matcher, not a new fine-grained-proximity primitive or raw GPS."
+      - "Do NOT persist a durable, queryable, per-volunteer match/assignment history (volunteer_id + location + timestamp, however coarse) beyond an operational TTL. If any per-volunteer aggregate is genuinely needed (e.g. 'don't re-suggest someone who already declined three tasks today'), it must be a short-TTL counter, not a permanent log — the same resolution HOS-2026-010-R1 already reached for on-device dedup."
+      - "If genuine sub-district proximity is ever found operationally necessary, it must be computed ephemerally at match time and discarded immediately — never stored as a history that could answer 'where has volunteer X been over the last month,' only 'who is free and close right now.'"
+      - "Satisfy auditability (why were these three shown) by attaching match-scoring reasons to the TASK/Need record, which already has org-level accountability and a lifecycle — not to a durable per-volunteer record. 'Why were these three shown for Need #4821' must be answerable from that Need's own claim event; a per-volunteer log that could answer the inverse question ('everywhere volunteer #219 has been sent') is the registry this condition exists to prevent, and building it 'for debugging' or 'for audit' is exactly how it would re-enter unnoticed."
+      - "Treat this as a hard design constraint set now, not a mitigation layered on later — every reviewer who addressed cost found the safer version (coarse, ephemeral, current-state) is also the cheaper one to build, so there is no resource argument for building the riskier version first and hardening it later."
+    next_gate: "Prototype the district-level scoring dimension against real HOS-2026-007 Need/Offer data before any per-volunteer feature work proceeds, to confirm coarse proximity is operationally sufficient — matching the same 'validate before build' posture HOS-2026-010-R1 required for on-device dedup feasibility."
+
+  - id: "HOS-2026-012-D5"
+    title: "\"Exactly three\" ranked options as the matching UI mechanism"
+    verdict: "RESHAPE"
+    confidence: 0.76
+    rationale: >
+      Splits cleanly into a mechanism the board endorses and a specific
+      number the board finds unsupported. The mechanism — a small set of
+      ranked, scored, plain-language-explained candidates, never
+      auto-committing, human always decides — is well-supported: User
+      explicitly endorses it because it's the same shape as the existing,
+      already-trusted `rankOffersForNeed` (score plus a reasons list, not a
+      black-box rank), and states plainly that being one of several options
+      "feels fine if I can see why — it feels awful if I can't," making
+      visible reasons a condition, not a nicety. Expansionist wants this
+      formalized as a reusable `topN(matches, n, floor)` primitive used
+      across every future advisory-matching surface, not a one-off UI rule.
+      Principals independently treats the not-padding-to-fill-three rule as
+      a live trust-and-honesty requirement, directly citing the proposal's
+      own open question about padding weak matches as evidence the risk is
+      real and not yet resolved. But the SPECIFIC number three has no real
+      evidentiary support: Researcher's dedicated research thread found the
+      field-standard meta-analysis on choice overload (Scheibehenne et al.
+      2010, 50 studies) shows an average effect indistinguishable from zero;
+      Miller's "7±2" is explicitly disclaimed by Miller himself as
+      inapplicable to this kind of design choice; the one real clinical
+      "top-three shown to a human under time pressure" precedent found
+      (the OSISP trauma-triage model) uses three with no stated rationale at
+      all; and the actual dominant, most-deployed crisis-triage protocol in
+      the US (START) uses four fixed categorical buckets via a 15-second
+      deterministic rule, not a ranked shortlist of any size. "Three" reads
+      as an arbitrary starting assumption the proposal treated as settled
+      rather than a validated design choice — Researcher's own framing is
+      precise: the finding is that three is UNVALIDATED, not that it is
+      wrong.
+    conditions:
+      - "Keep the mechanism (a small number of ranked, scored candidates with visible plain-language reasons, never auto-committing) — this is well-supported and should proceed."
+      - "Do not treat 'exactly three' as a validated number. Replace a hardcoded fixed-N with 'as many genuinely-qualifying candidates as clear a real usefulness floor, capped at a small number for screen real estate' — honestly showing fewer than the cap when fewer than the cap actually qualify, per the padding-honesty concern Principals and the proposal's own open question both raise."
+      - "Every option shown must carry the same visible score-plus-reasons format rankOffersForNeed already uses — a black-box rank with no visible reasoning is explicitly what would break trust, per the User review."
+      - "Validate the actual right cap (three, or otherwise) empirically with real HOS coordinator usage once built, rather than asserting a number from general UX folklore that the Researcher's review found does not hold up even in its own source literature."
+
+overall: >
+  This proposal is not one decision but three concepts (volunteer skill,
+  volunteer need, donor) that the board — across all five reviewers,
+  independently — found to be the same underlying pattern seen from three
+  angles: a person (or org) expressing what they have and what they need,
+  matched by the same deterministic, advisory, human-decides engine
+  HOS-2026-007 already built and proved out. Expansionist's `subjectType:
+  "org" | "person"` generalization of the existing Need/Offer model is the
+  single highest-leverage move available here — it turns three separate,
+  parallel schemas into one, resolves Contrarian's structural donor/actor-
+  model objection as a byproduct rather than a separate fight, and lets
+  volunteer skill (D1), volunteer need (D2), and donor (D3) all inherit the
+  same fields, the same lifecycle, and the same matcher, cheaply, while the
+  data is still small — the same "model it now while it's cheap" logic
+  coordination.ts's own authors already used to justify modeling Org early.
+  The one place this proposal asked for something genuinely new and
+  genuinely risky is location-weighted matching on an individual, moving
+  person (D4) — and there the board's convergence, reached independently
+  from five different angles (structural, principled, empirical-research,
+  and lived-experience), is as close to unanimous as this project's board
+  process produces: coarse, district-level, and NOT durably retained per
+  volunteer. Two of this project's last three decisions (HOS-2026-007,
+  HOS-2026-010) already fought this exact fight and landed here; this
+  proposal's own text names the same threat actors (VenApp, Operación Tun
+  Tun) that motivated both prior decisions, and Researcher's research this
+  round adds a named, documented fatality in exactly this population
+  (Jesús Manuel Martínez Medina) that didn't exist as a cited fact in either
+  prior review. A human clicking "assign" on a ranked-by-proximity list
+  does not make the underlying data trail any less reconstructable — "AI
+  recommends, people decide" governs the ACTION, not the DATA the
+  recommendation was built from, and this proposal is the first in the
+  family to genuinely test that distinction rather than trivially satisfy
+  it. Separately, Researcher's research directly tested two of the
+  proposal's own framing assumptions — "switchable day-to-day skill" and
+  "exactly three options" — against real precedent and found neither is
+  supported by comparable systems or by the literature the proposal
+  implicitly leans on; both survive as workable design choices only once
+  reshaped (current-state skill corrected in-the-moment, and a
+  floor-gated cap rather than a hardcoded three), not as originally stated.
+  Nothing in this decision authorizes building anything — like every prior
+  decision in this family, it defines the model and the constraints so a
+  future implementation has a real specification, contingent on HOS-2026-010
+  and HOS-2026-011's own prerequisites (device-key+PIN identity;
+  capabilities-on-scoped-resources authorization) actually landing first.
+
+escalate_to_human:
+  - "The 'switchable day-to-day skill' concept has no supporting precedent in any comparable system the Researcher could find, and several (Team Rubicon, ESAR-VHP/MRC) actively contradict it. This may be a genuine, correct HOS-specific innovation (Researcher notes a small, same-people-rotating-roles volunteer pool could make this a real requirement rather than an untested risk) — but that requires real knowledge of HOS's actual volunteer base size and turnover, which no board reviewer has. A human with that context should confirm this is worth building as a novel pattern before treating Researcher's precedent gap as merely a formality."
+  - "Confirm, before implementation, which structural pattern resolves the donor/volunteer-as-person question — subjectType discriminator (Stripe-style) versus two-linked-types (Salesforce NPSP-style) — since this is a foundational schema decision the whole family of concepts (skill, need, donor) inherits, not a detail to leave to whoever implements it first."
+  - "Same governance bar as the rest of this decision family: this is a strategic, new-data-model, new-actor-type, new-algorithm decision. Human sign-off is expected before implementation, and — per HOS-2026-010 and HOS-2026-011 — this work is additionally sequenced behind both of those decisions' own substrates (device-key+PIN identity; capabilities-on-scoped-resources authorization) actually landing, not just being decided on paper."
+  - "This decision does not resolve whether/how a coerced or compromised volunteer's or donor's account being used to game the 'top-N' matching mechanism (Contrarian's Flaw 2 — Sybil/trust-gaming risk) is addressed — no reviewer proposed a concrete anti-gaming mechanism beyond naming the risk. That needs its own treatment (rate-limiting, trust/vouching tied to HOS-2026-011's capability model) in a future decision before this ships, the same kind of explicitly-named-but-unsolved gap this project's HOS-2026-010-R2 addendum handled for coerced-volunteer-at-volume risk."

@@ -1,0 +1,92 @@
+decision_id: "HOS-2026-012"
+title: "Volunteer skill/needs model, a new donor actor type, and AI-assisted task/supply matching (\"three ranked options, human decides\")"
+category: "strategic"
+proposer: "Product Agent (requested by principal, scoped by Executive Orchestrator, 2026-07-01)"
+date: "2026-07-01"
+status: "Board review complete, judge synthesis delivered 2026-07-01 (full 5-persona: Contrarian, Expansionist, Principals, Researcher, User). See judge-decision.yaml. Human sign-off still required before any implementation."
+board_status: "complete — RESHAPE on all 5 sub-decisions (D1-D5)"
+related_decisions: ["HOS-2026-007 (response coordination — existing Need/Offer domain model + rankOffersForNeed, the reusable architecture this extends)", "HOS-2026-010 (volunteer identity — device-key+PIN substrate this profile would attach to; on-device dedup and action-scoped geofencing are the closest precedent for this proposal's location-precision question)", "HOS-2026-011 (role/authorization model — capability bundles for field-volunteer/remote-contributor; this proposal's 'skill' concept must not be conflated with that authorization model, and the verified 'responder' OrgKind collision must be checked against any new actor-type naming here)"]
+
+summary: >
+  HOS-2026-007 built an advisory, deterministic Need<->Offer matcher for
+  ORGANIZATIONS (a shelter needs water, an NGO offers water) but explicitly
+  kept "people (volunteers, beneficiaries)" out of scope. This proposal asks
+  the board to define three connected things needed to extend matching to
+  PEOPLE: (1) a volunteer skill model where a person's task-relevant skills
+  are switchable day-to-day (a driver one day can be a cook the next), (2) a
+  volunteer personal-needs model for things a volunteer needs in order to
+  help (e.g. "I have a car but no gas"), and (3) a new "donor" actor type —
+  distinct from the existing Org-centric model — who can report their own
+  logistics issues or request volunteer help. All three feed a proposed new
+  matching mode: instead of a full ranked list, the human is shown EXACTLY
+  THREE candidate options, heavily weighted by location/proximity to
+  maximize response speed, and always decides which (if any) to act on —
+  "AI recommends, people decide" applied to people-to-task matching instead
+  of thing-to-thing matching.
+
+context:
+  problem: >
+    HOS today has no data model for what an individual volunteer can DO, what
+    an individual volunteer personally needs in order to help, or for donors
+    who aren't one of the existing organizational actor types. The only
+    matching engine that exists (`rankOffersForNeed`) matches supply
+    offers to supply needs — a thing-to-thing match — and structurally
+    cannot express a person-to-task match (e.g. "which of our registered
+    drivers is closest and free right now") or a person-to-resource-request
+    match (e.g. "this donor has fuel, which stranded driver needs it").
+    Meanwhile HOS-2026-010 just settled how a volunteer's IDENTITY works
+    (device-key+PIN) and HOS-2026-011 just settled how a volunteer's SYSTEM
+    PERMISSIONS work (capability bundles at a scope) — but neither touches
+    what a volunteer can practically DO or NEEDS, which is a third, separate
+    axis this proposal opens.
+  user_impact: >
+    Done well: a coordinator (or eventually an automated dispatch surface)
+    facing a task — "get 40kg of formula from a warehouse to a shelter 6km
+    away in the next hour" — sees three concrete, genuinely actionable
+    options (e.g. a nearby volunteer with a car who has fuel, a nearby
+    volunteer with a motorcycle, a donor two districts over who's offered
+    logistics help) instead of scrolling a raw list or making phone calls,
+    and picks the best fit in seconds. A volunteer whose situation changes
+    (their car breaks down, they run out of gas, they're needed as a
+    translator instead of a driver today) can express that and stop being
+    matched to tasks they can no longer do. Done wrong: a rigid volunteer
+    "profile" that doesn't reflect real day-to-day fluidity, a matching
+    engine that quietly degrades into "closest phone GPS ping" and recreates
+    the exact kind of individually-trackable location data this project has
+    twice now (HOS-2026-007, HOS-2026-010) worked hard to avoid, or a
+    3-option UI that manufactures false confidence by padding weak or
+    unavailable matches just to always show three.
+
+verified_current_state_2026_07_01:
+  - "coordination.ts's own comment states plainly: 'people (volunteers, beneficiaries) are deliberately OUT of scope this cycle' (HOS-2026-007). Confirmed unchanged as of this proposal."
+  - "The only actor type in the coordination domain is `Org` (kind: shelter|responder|ngo|government|hospital|other). No `donor` value exists, and no non-organizational (individual) actor type exists anywhere in the schema."
+  - "`rankOffersForNeed` (apps/web/app/lib/coordination/match.ts) matches Offer<->Need by category, district, and quantity — a thing-to-thing advisory match, structurally unable to represent a person's availability, skill, or a task assignment."
+  - "HOS-2026-010 (volunteer identity) settled device-key+PIN as the identity substrate for volunteers, not yet built. Any per-volunteer skill/needs profile this proposal defines has nothing to attach to until that substrate exists."
+  - "HOS-2026-011 (role/authorization model) settled capabilities-on-scoped-resources as the authorization model and flagged that the planned person-facing 'responder' role collides with the existing OrgKind literal 'responder'. Any new actor-type name this proposal introduces (e.g. 'donor') must be checked against the same OrgKind namespace and the capability-bundle model, and 'skill' (a task-matching attribute) must not be conflated with 'capability' (a system permission) — they are different axes that happen to both describe a volunteer."
+  - "Location-precision-vs-targeting-risk is not a new tension for this project: HOS-2026-007 deliberately restricted Site/Need/Offer location to a coarse `district` field specifically to avoid a targeting risk, and HOS-2026-010 made submission geolocation strictly advisory for the same reason. This proposal's own stated goal — 'must be location based to maximize speed' — asks for MORE location precision than either precedent allows, and for a moving INDIVIDUAL PERSON rather than a fixed shelter or a one-time submission, which HOS-2026-010's Researcher review already flagged as a materially higher-value surveillance target (VenApp, Operación Tun Tun) than either prior case."
+
+open_questions_for_the_board:
+  - "Is a volunteer's skill set an attribute on their HOS-2026-010 identity, or separate day-to-day assignable state? What does 'switchable — a driver today, a cook tomorrow' actually imply for the data model (a current-skill field, a set of skills with one 'active' flag, something else)?"
+  - "Are 'volunteer personal needs' (e.g. has a car but no gas) a new instance of the existing `Need` model (HOS-2026-007), extended to allow a person as the requester instead of only an Org, or do they need a wholly distinct model because they belong to a PERSON, not an organization?"
+  - "Is 'donor' a new `OrgKind` value, a new top-level actor type (a peer of `Org` for people/businesses with no formal org affiliation), or something else entirely? How does an individual donor with no organization fit a domain model that currently assumes every need/offer traces back to an `orgId`?"
+  - "Why exactly three ranked options? Is this a validated UX/decision-science number (e.g. choice-overload research, real crisis-dispatch practice) or a starting assumption the board should pressure-test?"
+  - "How location-weighted can person-to-task matching be without recreating the exact targeting risk HOS-2026-007 and HOS-2026-010 each fought to avoid? Is there a way to get matching speed and usefulness without persisting or transmitting a volunteer's precise, individually-trackable location history?"
+  - "Does this need a new matching engine, or can `rankOffersForNeed`'s existing deterministic/explainable/advisory-only shape (category + proximity + capacity scoring, never auto-committing) be extended to person<->task and person<->request matching directly?"
+  - "What happens when fewer than three real, usable candidates exist, or none score above a sane usefulness floor? Does the UI honestly show fewer than three, or is there a risk of padding with weak/unavailable matches just to fill the slot — the same kind of dishonest-signal failure this project's own D4 precedent (HOS-2026-002) already named and rejected once?"
+
+board_questions_to_answer:
+  - "Contrarian: what are the worst realistic failure modes here — a volunteer's precise movement pattern becoming reconstructable from match/assignment history even if never displayed as a raw location; a donor's identity or location being exploited by whoever they're matched with; gaming the 'exactly three' mechanism (e.g. a bad actor consistently engineering their way into the top three to intercept tasks, supplies, or contact with vulnerable people); a volunteer wasting a trip or real risk exposure because the AI's top three were wrong, stale, or unavailable by the time they act?"
+  - "Expansionist: what's the most ambitious, highest-value version of this that's still honest and buildable — should 'volunteer', 'donor', and even 'beneficiary' eventually unify into one general contributor/participant model with different offer/need types, rather than bolting on three separate concepts? Is the proposal under-scoped by treating skills, personal needs, and the donor type as three independent asks instead of one coherent person-centric model?"
+  - "Principals: apply data minimization and the 'AI recommends, people decide' principle explicitly to the three-option design (already structurally aligned on its face) — but does persisting a volunteer's skill/needs profile plus a history of what they were matched to and where create a re-identifiable behavioral log that's dangerous in the same way as the biometric registry this project already killed in HOS-2026-010, even with zero biometric data involved? Should these profiles be ephemeral/session-scoped rather than durably persisted, and does that conflict with the skill-switching requirement?"
+  - "Researcher: what real precedent exists for people-to-task matching in humanitarian/crisis response specifically (e.g. CrisisCleanup's volunteer-task dispatch, Team Rubicon, VOAD/NVOAD volunteer management systems) and in adjacent location-based matching architectures (ride-share/gig-economy dispatch, for the proximity-scoring mechanics only, not the labor model) — and is there real evidence, one way or the other, for 'exactly three options' as sound UX in a high-stress, low-literacy, time-pressured field context, versus it being an arbitrary number?"
+  - "User: from the actual perspective of a field volunteer choosing between three options on a low-end phone in a stressful moment, and from a donor's perspective reporting something like 'I have a truck but no fuel' — does this flow feel fast and trustworthy, or does an algorithm ranking people feel presumptuous or opaque when a human still has to pick? Is there a risk a volunteer feels reduced to a score?"
+
+escalation: >
+  Strategic per this project's own governance rule: new data model touching
+  volunteer-personal (PII-adjacent) profile data, a new actor type, and a new
+  matching algorithm with a real privacy/location tradeoff at its core. Human
+  sign-off expected before implementation, consistent with the rest of this
+  decision family (HOS-2026-006, HOS-2026-010, HOS-2026-011). This proposal
+  does not authorize building anything — it asks the board to define the
+  model and the matching approach so a future implementation has a real
+  specification, the same role every prior proposal in this family has played.
