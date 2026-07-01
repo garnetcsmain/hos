@@ -35,3 +35,23 @@ export function getBrowserSupabase(): SupabaseClient | null {
   }
   return client;
 }
+
+/** Send a password-reset email. The recovery link returns the user to
+ *  /reset-password ON THE SAME ORIGIN they requested it from — so in production
+ *  it lands on hos-alpha (the unprotected domain), not a Vercel-SSO'd preview.
+ *  The redirect target must be in the Supabase "Redirect URLs" allow-list. */
+export async function sendPasswordReset(email: string): Promise<{ error: string | null }> {
+  const supabase = getBrowserSupabase();
+  if (!supabase) return { error: "auth no está configurado" };
+  const redirectTo = `${window.location.origin}/reset-password`;
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+  return { error: error?.message ?? null };
+}
+
+/** Set a new password for the recovery session established by the email link. */
+export async function updatePassword(password: string): Promise<{ error: string | null }> {
+  const supabase = getBrowserSupabase();
+  if (!supabase) return { error: "auth no está configurado" };
+  const { error } = await supabase.auth.updateUser({ password });
+  return { error: error?.message ?? null };
+}

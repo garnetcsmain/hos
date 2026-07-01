@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getBrowserSupabase, isSupabaseConfiguredClient, SUPABASE_TOKEN_KEY } from "@/app/lib/client/supabase";
+import {
+  getBrowserSupabase,
+  isSupabaseConfiguredClient,
+  sendPasswordReset,
+  SUPABASE_TOKEN_KEY,
+} from "@/app/lib/client/supabase";
 import { COORDINATOR_TOKEN_KEY } from "@/app/lib/client/api";
 
 const field =
@@ -25,10 +30,12 @@ function Card({ children }: { children: React.ReactNode }) {
 
 function SupabaseLogin() {
   const router = useRouter();
+  const [mode, setMode] = useState<"signin" | "reset">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [resetSent, setResetSent] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +51,69 @@ function SupabaseLogin() {
     }
     window.localStorage.setItem(SUPABASE_TOKEN_KEY, data.session.access_token);
     router.push("/coordination");
+  }
+
+  async function submitReset(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    // Always confirm "sent" regardless of the outcome, and NEVER surface the raw
+    // provider error. resetPasswordForEmail applies a per-identity resend
+    // cooldown, so echoing its error would let an attacker distinguish a
+    // registered coordinator (rate-limit error) from an unregistered address
+    // (silent success) — an account-enumeration oracle against the invite-only
+    // roster. Any real failure is swallowed; the coordinator can simply retry.
+    await sendPasswordReset(email);
+    setBusy(false);
+    setResetSent(true);
+  }
+
+  if (mode === "reset") {
+    return (
+      <form onSubmit={submitReset}>
+        {resetSent ? (
+          <div className="rounded-[8px] border border-[#CBE6D8] bg-[#F1FAF5] px-[12px] py-[12px] text-[13px] font-bold leading-[18px] text-[#16613F]">
+            Si tu correo está registrado, te enviamos un enlace para restablecer la contraseña. Revisa
+            tu bandeja de entrada.
+          </div>
+        ) : (
+          <>
+            <p className="text-[13px] font-bold leading-[18px] text-[var(--hos-muted)]">
+              Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.
+            </p>
+            <label className={`${label} mt-[14px]`}>
+              Correo
+              <input
+                className={field}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+              />
+            </label>
+            {error ? <p className="mt-[12px] text-[13px] font-bold text-[var(--hos-red)]">{error}</p> : null}
+            <button
+              type="submit"
+              disabled={busy || !email}
+              className="mt-[18px] h-[44px] w-full rounded-[8px] bg-[var(--hos-dark)] text-[14px] font-extrabold text-white transition hover:opacity-90 disabled:opacity-60"
+            >
+              {busy ? "Enviando…" : "Enviar enlace"}
+            </button>
+          </>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            setMode("signin");
+            setResetSent(false);
+            setError("");
+          }}
+          className="mt-[14px] text-[12px] font-extrabold text-[var(--hos-muted)] underline underline-offset-2 hover:text-[var(--hos-text)]"
+        >
+          Volver a iniciar sesión
+        </button>
+      </form>
+    );
   }
 
   return (
@@ -63,6 +133,16 @@ function SupabaseLogin() {
         className="mt-[18px] h-[44px] w-full rounded-[8px] bg-[var(--hos-dark)] text-[14px] font-extrabold text-white transition hover:opacity-90 disabled:opacity-60"
       >
         {busy ? "Entrando…" : "Iniciar sesión"}
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setMode("reset");
+          setError("");
+        }}
+        className="mt-[14px] text-[12px] font-extrabold text-[var(--hos-muted)] underline underline-offset-2 hover:text-[var(--hos-text)]"
+      >
+        ¿Olvidaste tu contraseña?
       </button>
       <p className="mt-[12px] text-[11px] font-bold leading-[15px] text-[var(--hos-muted)]">
         El acceso es por invitación: su correo debe estar autorizado por un administrador.
