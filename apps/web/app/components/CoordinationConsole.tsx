@@ -198,7 +198,7 @@ export function CoordinationConsole() {
   return (
     <AppShell
       title="Coordinación de respuesta"
-      subtitle="Sitios, necesidades y suministros · vista de coordinación (acceso restringido)"
+      subtitle="Sitios, necesidades y suministros · solo coordinadores"
       trustLayer={trustLayer}
       onToggleTrustLayer={() => setTrustLayer((v) => !v)}
       onOpenFamily={() => setModalKind("family")}
@@ -212,8 +212,7 @@ export function CoordinationConsole() {
           <div className="rounded-[8px] border border-[#F1D8D2] bg-[#FCF1EF] px-[18px] py-[16px]">
             <div className="text-[14px] font-extrabold text-[#8A2C20]">Acceso no autorizado</div>
             <p className="mt-[6px] text-[13px] font-bold leading-[18px] text-[#8A2C20]">
-              Su sesión expiró o su cuenta no está autorizada para coordinación. Inicie sesión con una
-              cuenta invitada por un administrador.
+              Su sesión expiró o no tiene acceso. Inicie sesión con una cuenta autorizada.
             </p>
             <button
               type="button"
@@ -240,10 +239,9 @@ export function CoordinationConsole() {
                 <Boxes className="h-5 w-5 text-[var(--hos-green)]" strokeWidth={2.2} />
               </span>
               <p className="text-[12px] font-bold leading-[17px] text-[var(--hos-muted)]">
-                Ubicaciones por <Term k="distrito">distrito</Term> y solo para coordinadores: esta vista no es pública. Un suministro
-                se marca <span className="font-extrabold"><Term k="recibido">recibido</Term></span> solo cuando el sitio que lo pidió
-                confirma la entrega real — nunca de forma automática. Las sugerencias de suministro son orientativas;
-                una persona siempre decide.
+                Solo coordinadores · no es pública. Ubicaciones por <Term k="distrito">distrito</Term>. Un suministro
+                se marca <span className="font-extrabold"><Term k="recibido">recibido</Term></span> solo cuando el sitio
+                lo confirma, nunca automático. Las sugerencias son solo una guía: decide una persona.
               </p>
             </section>
 
