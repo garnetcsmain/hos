@@ -1,29 +1,40 @@
-// District-level geography for the coordination map. The coordination board is
-// deliberately district-only — NEVER precise addresses (targeting risk, Board
-// HOS-2026-007: a live needs/site board must not become a targeting map). These
-// are approximate ZONES on a schematic regional map (the La Guaira coast with
-// Caracas inland), not exact coordinates, so nothing here can pinpoint a site.
+// District-level geography for the coordination map. The board is deliberately
+// district-only — NEVER precise addresses (targeting risk, Board HOS-2026-007: a
+// live needs/site board must not become a targeting map). These are approximate
+// district CENTROIDS, so a marker points at the district, not any exact site.
 
-export interface DistrictZone {
-  /** absolute-position Tailwind classes for the district's zone on the map */
-  box: string;
+export interface LatLng {
+  lat: number;
+  lng: number;
 }
 
-// Approximate layout: the Caribbean coast runs along the top; La Guaira and
-// Maiquetía are coastal (north), Caracas sits inland (south, behind the mountain).
-export const DISTRICT_ZONES: Record<string, DistrictZone> = {
-  "La Guaira": { box: "left-[5%] top-[14%] w-[30%] h-[28%]" },
-  "Maiquetía": { box: "left-[40%] top-[10%] w-[31%] h-[30%]" },
-  Caracas: { box: "left-[27%] top-[54%] w-[46%] h-[34%]" },
+// Approximate centroids for the pilot region (La Guaira coast + Caracas inland).
+export const DISTRICT_CENTROIDS: Record<string, LatLng> = {
+  "La Guaira": { lat: 10.601, lng: -66.931 },
+  Maiquetía: { lat: 10.598, lng: -66.978 },
+  Maiquetia: { lat: 10.598, lng: -66.978 },
+  Caracas: { lat: 10.4806, lng: -66.9036 },
+  "Caracas Oeste": { lat: 10.505, lng: -66.945 },
+  "Caracas Este": { lat: 10.492, lng: -66.835 },
 };
 
-// Slots for any district not in the map above, laid out so they never overlap
-// the known zones.
-export const FALLBACK_BOXES = [
-  "left-[73%] top-[52%] w-[24%] h-[28%]",
-  "left-[6%] top-[64%] w-[18%] h-[24%]",
-  "left-[76%] top-[12%] w-[20%] h-[26%]",
-];
+// Where to frame the map when there are no known districts to fit to.
+export const REGION_CENTER: LatLng = { lat: 10.53, lng: -66.93 };
+export const REGION_ZOOM = 11;
+
+/** Centroid for a district, or a deterministic spot near the region center for
+ *  an unknown district (so its marker still shows without pretending to a real
+ *  location). Index keeps unknowns from stacking on the same point. */
+export function centroidFor(district: string, index = 0): LatLng {
+  const known = DISTRICT_CENTROIDS[district];
+  if (known) return known;
+  const ring = 0.03;
+  const angle = (index * 2 * Math.PI) / 6;
+  return {
+    lat: REGION_CENTER.lat + ring * Math.cos(angle),
+    lng: REGION_CENTER.lng + ring * Math.sin(angle),
+  };
+}
 
 // A generic geographic reference the coordinator can open — the region, not any
 // specific site.
