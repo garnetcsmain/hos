@@ -1,0 +1,12 @@
+-- 20260627230623 — initial Supabase setup, applied OUT OF BAND on the prod
+-- branch (via the Supabase dashboard) before this repo tracked migrations. It
+-- created no public tables (it predates the HOS schema in 20260701000000).
+--
+-- This is an intentionally EMPTY placeholder so local migration history matches
+-- the prod branch's remote history. Without it, `supabase db push` refuses to
+-- run with a "remote migration versions not found in local migrations
+-- directory" error. It applies nothing (it is already recorded on prod; on a
+-- fresh branch it is a no-op version marker).
+--
+-- If a branch ever needs to reproduce that original setup exactly, replace this
+-- with the real DDL captured via `supabase db pull`.
