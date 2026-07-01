@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Boxes, Plus } from "lucide-react";
+import { Boxes, Plus, RefreshCw } from "lucide-react";
 import { AppShell } from "@/app/components/HosDashboard";
 import { type ModalKind } from "@/app/components/IntakeForms";
 import {
@@ -42,6 +42,23 @@ function hasAnyCredential(): boolean {
   );
 }
 
+/** Compact "updated N ago" label so a coordinator can trust how live the board
+ *  is — stale needs/capacity in an active incident are a real operational risk. */
+function formatAgo(from: number, now: number): string {
+  const s = Math.max(0, Math.round((now - from) / 1000));
+  if (s < 5) return "ahora mismo";
+  if (s < 60) return `hace ${s} s`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.round(m / 60);
+  return `hace ${h} h`;
+}
+
+// Live board: refetch on this cadence so an open console tracks the incident
+// without a manual reload. Paused while a create form is open or the tab is
+// hidden, so it never yanks the board out from under someone mid-entry.
+const AUTO_REFRESH_MS = 45_000;
+
 const URGENCY_RANK: Record<Urgency, number> = { critical: 0, high: 1, normal: 2, low: 3 };
 
 function Metric({ value, label, color }: { value: number; label: string; color: string }) {
@@ -71,10 +88,14 @@ export function CoordinationConsole() {
   const [denied, setDenied] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [creating, setCreating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [nowTick, setNowTick] = useState(() => Date.now());
 
   useEffect(() => {
     let active = true;
     (async () => {
+      if (reloadKey > 0) setRefreshing(true);
       await refreshCoordinatorSession();
       try {
         const res = await getCoordinationBoard();
@@ -82,6 +103,7 @@ export function CoordinationConsole() {
         setBoard(res);
         setError("");
         setDenied(false);
+        setLastUpdated(Date.now());
       } catch (e: unknown) {
         if (!active) return;
         const status = e instanceof ApiError ? e.status : 0;
@@ -98,6 +120,8 @@ export function CoordinationConsole() {
           return;
         }
         setError(e instanceof Error ? e.message : "No se pudo cargar la coordinación.");
+      } finally {
+        if (active) setRefreshing(false);
       }
     })();
     return () => {
@@ -106,6 +130,21 @@ export function CoordinationConsole() {
   }, [reloadKey, router]);
 
   const reload = () => setReloadKey((k) => k + 1);
+
+  // Keep the board live without a manual reload, and keep the "updated N ago"
+  // label ticking. Auto-refresh pauses while a form is open or the tab is hidden.
+  useEffect(() => {
+    const refresh = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      if (creating) return;
+      setReloadKey((k) => k + 1);
+    }, AUTO_REFRESH_MS);
+    const tick = setInterval(() => setNowTick(Date.now()), 1_000);
+    return () => {
+      clearInterval(refresh);
+      clearInterval(tick);
+    };
+  }, [creating]);
 
   const sortedNeeds = useMemo(() => {
     if (!board) return [];
@@ -189,15 +228,34 @@ export function CoordinationConsole() {
               <Metric value={metrics.sites} label="sitios" color="text-[var(--hos-blue)]" />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-[12px]">
               <h2 className="text-[16px] font-extrabold text-[var(--hos-text)]">Panel de coordinación</h2>
-              <button
-                type="button"
-                onClick={() => setCreating((v) => !v)}
-                className="inline-flex h-[38px] items-center gap-[6px] rounded-[6px] bg-[var(--hos-dark)] px-[14px] text-[13px] font-extrabold text-white"
-              >
-                <Plus className="h-[15px] w-[15px]" strokeWidth={2.6} /> {creating ? "Cerrar" : "Nuevo registro"}
-              </button>
+              <div className="flex items-center gap-[10px]">
+                <button
+                  type="button"
+                  onClick={reload}
+                  disabled={refreshing}
+                  aria-label="Actualizar el panel"
+                  className="inline-flex h-[38px] items-center gap-[6px] rounded-[6px] border border-[var(--hos-border)] bg-white px-[12px] text-[12px] font-extrabold text-[var(--hos-muted)] transition hover:text-[var(--hos-text)] disabled:opacity-60"
+                >
+                  <RefreshCw
+                    className={`h-[14px] w-[14px] ${refreshing ? "animate-spin" : ""}`}
+                    strokeWidth={2.4}
+                  />
+                  {lastUpdated ? (
+                    <span className="max-[520px]:hidden">{formatAgo(lastUpdated, nowTick)}</span>
+                  ) : (
+                    <span className="max-[520px]:hidden">Actualizar</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreating((v) => !v)}
+                  className="inline-flex h-[38px] items-center gap-[6px] rounded-[6px] bg-[var(--hos-dark)] px-[14px] text-[13px] font-extrabold text-white"
+                >
+                  <Plus className="h-[15px] w-[15px]" strokeWidth={2.6} /> {creating ? "Cerrar" : "Nuevo registro"}
+                </button>
+              </div>
             </div>
 
             {creating ? (
