@@ -1,14 +1,14 @@
-decision_id: "HOS-2026-008-R1"
-title: "Refinement of HOS-2026-008: on-device-only face uniqueness check at registration, PIN login unchanged, geolocation re-confirmed with new prior art"
+decision_id: "HOS-2026-010-R1"
+title: "Refinement of HOS-2026-010: on-device-only face uniqueness check at registration, PIN login unchanged, geolocation re-confirmed with new prior art"
 category: "strategic"
-parent_decision: "HOS-2026-008"
+parent_decision: "HOS-2026-010"
 proposer: "Principal (requested via conversation), refined and drafted by Executive Orchestrator, 2026-07-01"
 date: "2026-07-01"
 status: "DRAFT — focused board review requested by principal (Contrarian + Principals + Researcher only)"
 board_status: "pending"
 
 summary: >
-  The principal accepted HOS-2026-008's D1 (KILL any server-side/persistent face
+  The principal accepted HOS-2026-010's D1 (KILL any server-side/persistent face
   registry) and D2 (GREEN_LIGHT device-bound key + PIN for day-to-day login), but
   asked whether a ONE-TIME face check at registration could solve duplicate-account
   prevention without recreating the killed registry. This addendum proposes an

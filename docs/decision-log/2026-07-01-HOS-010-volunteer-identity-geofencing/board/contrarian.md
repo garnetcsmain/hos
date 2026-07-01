@@ -1,4 +1,4 @@
-# Contrarian Review: HOS-2026-008
+# Contrarian Review: HOS-2026-010
 
 > Volunteer/reporter identity verification (face enrollment + login) and submission geofencing
 > Reviewer: Contrarian Agent · Date: 2026-07-01 · Status: Board review in progress
@@ -87,7 +87,7 @@ Two more specific breakages:
 
 **What breaks:** The entire proposal presupposes "a lightweight account record (name, org, role, assigned zone)" for volunteers. **No such system exists** (verified: only coordinators have Supabase Auth; `/api/found` and `/api/missing` are fully anonymous). The proposal acknowledges this and points at HOS-2026-001-08 ("Real auth, roles, org isolation") as the dependency — which is `in_progress`, i.e., not done.
 
-**Why it's real:** This makes HOS-008 a proposal to build the second floor of a building whose first floor is still under construction by another crew. The time estimate even admits it: "6–10 weeks for the full face-enrollment path IF it proceeds in parallel with HOS-2026-001-08's account/roles work already in progress, longer if it has to wait." Translation: the headline number depends on a parallelization that may not hold, and on another team's unfinished work landing cleanly. Coupling a *biometric* feature (maximum blast radius if the identity model has a bug — e.g., an org-isolation flaw that lets one org see another's volunteer registry) to an *actively-changing* auth substrate is how you get a security defect at the worst possible layer.
+**Why it's real:** This makes HOS-010 a proposal to build the second floor of a building whose first floor is still under construction by another crew. The time estimate even admits it: "6–10 weeks for the full face-enrollment path IF it proceeds in parallel with HOS-2026-001-08's account/roles work already in progress, longer if it has to wait." Translation: the headline number depends on a parallelization that may not hold, and on another team's unfinished work landing cleanly. Coupling a *biometric* feature (maximum blast radius if the identity model has a bug — e.g., an org-isolation flaw that lets one org see another's volunteer registry) to an *actively-changing* auth substrate is how you get a security defect at the worst possible layer.
 
 **Impact:** Schedule risk, and — more seriously — the risk of building irreversible biometric collection on top of an auth/org-isolation model that is not yet stable or audited.
 

@@ -1,4 +1,4 @@
-# Interim Analysis: HOS-2026-008-R1 (addendum, incl. role-scoping)
+# Interim Analysis: HOS-2026-010-R1 (addendum, incl. role-scoping)
 
 **NOTE ON PROVENANCE:** this is NOT one of the independent, blind board-persona
 reviews this project's governance process calls for. A tooling outage

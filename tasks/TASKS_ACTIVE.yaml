@@ -88,13 +88,21 @@ epics:
     board_status: "DRAFT — awaiting board + human/legal sign-off"
     tasks: []  # no tasks until the board clears it
 
-  - epic_id: "HOS-2026-008"
+  - epic_id: "HOS-2026-010"
     title: "Volunteer/reporter identity verification (face enrollment + login) and submission geofencing"
-    decision_link: "docs/decision-log/2026-07-01-HOS-008-volunteer-identity-geofencing/judge-decision.yaml"
+    decision_link: "docs/decision-log/2026-07-01-HOS-010-volunteer-identity-geofencing/judge-decision.yaml"
     status: "planning"
     progress: "0%"
     board_status: "Board run 2026-07-01 — KILL (D1, server-side face-biometric path), GREEN_LIGHT (D2, non-biometric device-key+PIN path), RESHAPE (D3, geolocation advisory signal). ADDENDUM R1 (2026-07-01, docs/decision-log/.../addendum-r1-judge-decision.yaml): principal proposed on-device-only face-uniqueness dedup at registration (no server storage) + role-vs-action scoping of geofencing for remote/text-based volunteers (e.g. translators). Focused re-review (Contrarian+Principals+Researcher): RESHAPE both — (R1-D1) on-device dedup approved as architecture but must not persist raw embeddings (75-95% reconstructable per real research — treat as a real face, not 'just numbers'), must be framed as accidental-duplicate hygiene not anti-Sybil (structurally can't catch cross-device duplicates — same conclusion World ID/Worldcoin reached), needs a cancelable/salted transform if anything is persisted, and needs shared-device cache lifecycle defined; (R1-D2) ACTION-scoping (does this submission carry a location claim?) strongly preferred over ROLE-scoping (is this account's role exempt?) — HOS has no role primitive today and the planned HOS-2026-001-08 taxonomy doesn't even include 'remote/translator', so role-scoping would expand unbuilt work to serve a soft signal and remains gameable via self-declared role; action-scoping is buildable now and closes the gaming vector by construction. Strongly supported by real precedent (Digital Humanitarian Network/Standby Task Force/MicroMappers, Translators Without Borders' 100k+ self-registering remote volunteers). Human + legal sign-off still required before any build."
-    tasks: []  # no tasks until human sign-off; prototyping (cancelable-transform feasibility, real false-match/reject rates) should precede scheduling per R1-D1's next_gate
+    tasks: []  # no tasks until human sign-off; prototyping (cancelable-transform feasibility, real false-match/reject rates) should precede scheduling per R1-D1's next_gate. ADDENDUM R2 (2026-07-01, addendum-r2-judge-decision.yaml): defined "sensitive operations" scope. Governing rule (Principals, convergent across all 4 reviewers): step-up applies only to actions IRREVERSIBLE OR DESTRUCTIVE TO AN EXISTING RECORD, never to creating new content — applied to HOS's verified two-create-only-endpoint surface, the list is EMPTY today. KILL on content-conditional step-up for condition=deceased (unanimous 4/4 — redundant with existing familyReach.ts/isSensitiveOutcome D4 handling, creates a mis-marking incentive, is a duress footgun, no comparable system gates first-time content creation this way per OWASP/NIST/banking research); replace with a non-auth plain-language confirm dialog if any UX safety net wanted. Edit/retract: standing rule only (append-only/tombstone design primary, PIN step-up secondary) for IF such an endpoint is ever built — none exists, none authorized here. Shared-device identity switch: real requirement, but reclassified OUT of "sensitive ops" and INTO D2/HOS-2026-001-08's session design (incoming volunteer activates their own session with their own PIN at handoff — attribution, not step-up) — carry forward as a named requirement, don't drop it.
+
+  - epic_id: "HOS-2026-011"
+    title: "Platform role and authorization model (agency-admin, remote/digital contributor, org isolation)"
+    decision_link: "docs/decision-log/2026-07-01-HOS-011-role-authorization-model/judge-decision.yaml"
+    status: "planning"
+    progress: "0%"
+    board_status: "Focused board run 2026-07-01 (Contrarian+Principals+Researcher) — RESHAPE on D1-D3 and D5, ESCALATE on D4. (D1) Authorization modeled as capabilities-on-scoped-resources (action, scope in {global,org:<id>,site:<id>,self}), not a flat role enum — coordinator/agency-admin/field-volunteer/remote-contributor are bundles of capabilities at a scope, not first-class primitives; validated against Primero (UNICEF). Rename the planned person-facing 'responder' role to avoid a verified collision with the existing OrgKind enum value 'responder' in coordination.ts. (D2) Remote/digital contributor is its own capability bundle, a structural peer of field-volunteer (not a flag on it) — org-optional registration preserved per HOS-2026-010-R1; no new geofencing mechanism needed, HOS-2026-010-R1-D2's action-scoping already covers it. (D3) Org isolation MUST be Postgres RLS, fail-closed, keyed on a server-set claim — critical finding: zero coordination write route today checks row ownership (requireCoordinator is the only gate on all 12 privileged routes), and if the org claim ever lands in Supabase user_metadata instead of raw_app_meta_data it fails open silently. Needs a real user<->org<->capability-bundle join table (many-to-many). Hard-blocked on HOS-2026-001-07 (Postgres). (D4 ESCALATE — human policy decision, not engineering): org_id exists on coordination tables (sites/needs/offers) but NOT on case/PII tables (missing_reports/found_reports/verifications) — 'agency-admin sees only their org's PII' is UNBUILDABLE on the most sensitive data today without deciding whether reunification case data is a deliberately shared cross-org pool or needs the same org-partitioning as coordination data (a real, currently-unscoped schema change either way). (D5) Mid-tier 'site-lead' role: real per a verified code-level ownership rule (a supply need's 'received' status may only be set by 'the requesting site' per coordination.ts) but not urgent — include site:<id> as a valid scope value now (near-free, same mechanism as org-scope), defer building/onboarding a named site-lead role until after agency-admin+RLS land."
+    tasks: []  # no tasks until D4's human policy decision + human sign-off on the security-model change; hard-blocked on HOS-2026-001-07 (Postgres) same as HOS-2026-001-08's org-isolation work
 
   - epic_id: "HOS-2026-007"
     title: "Whole-response coordination (shelters, needs, supplies)"
@@ -142,8 +150,11 @@ epics:
 - [ ] Get human sign-off on the D3 (auth/public-search) and D1 (cloud-AI DPA) escalations
 - [ ] Provision Tier-1 dependencies (coordinator token, DB, one AI key) — EXTERNAL_DEPENDENCIES.md
 - [ ] Run the board on HOS-2026-006 (facial recognition) before any implementation
-- [x] Run the board on HOS-2026-008 (volunteer identity + geofencing) — 2026-07-01, see judge-decision.yaml
-- [ ] Get human + legal sign-off on HOS-2026-008 D2 (non-biometric identity) and D3 (geolocation) before any implementation
+- [x] Run the board on HOS-2026-010 (volunteer identity + geofencing) — 2026-07-01, see judge-decision.yaml
+- [ ] Get human + legal sign-off on HOS-2026-010 D2 (non-biometric identity) and D3 (geolocation) before any implementation
+- [x] Run the board on HOS-2026-011 (role/authorization model) — 2026-07-01, see judge-decision.yaml
+- [ ] Get a human policy decision on HOS-2026-011-D4 (is case/PII data shared cross-org or org-partitioned?) — blocks scoping the case-table half of org-isolation work
+- [ ] Get human sign-off on HOS-2026-011's security-model change before any implementation; both HOS-2026-010's and HOS-2026-011's org-isolation/RLS work are hard-blocked on HOS-2026-001-07 (Postgres)
 
 ---
 

@@ -1,0 +1,68 @@
+decision_id: "HOS-2026-010-R2"
+title: "Define 'sensitive operations' requiring step-up confirmation for volunteer/reporter actions"
+category: "strategic"
+parent_decision: "HOS-2026-010"
+proposer: "Principal (requested via conversation), scoped by Executive Orchestrator, 2026-07-01"
+date: "2026-07-01"
+status: "DRAFT — board asked to DEFINE scope, not just critique a fixed list"
+board_status: "pending"
+
+summary: >
+  R1 settled identity (device-key + PIN for day-to-day login/submission; face
+  usable only once, on-device, at registration, for duplicate-account hygiene)
+  and geofencing (action-scoped, advisory-only). Left open: the principal
+  wants certain "sensitive operations" to require an EXTRA confirmation step
+  beyond normal day-to-day use — originally proposed as a face re-scan. Given
+  D1's settled KILL (any server-side or repeated/persistent face usage
+  recreates the registry/coercion risk the whole board process was built to
+  avoid), the leading candidate mechanism is instead re-entering the
+  already-established device PIN, not face — but this proposal does not ask
+  the board to just rubber-stamp that; challenge it if warranted. The PRIMARY
+  question is SCOPE: given HOS's actual action surface, which specific
+  volunteer/reporter actions are consequential enough to warrant ANY extra
+  confirmation step, and why? This is deliberately open-ended — the board is
+  asked to DEFINE the list, not merely evaluate a fixed one. A working,
+  NOT-YET-VETTED starter list from the orchestrator is included below to give
+  the board something concrete to react to, extend, or discard.
+
+context:
+  problem: >
+    Day-to-day volunteer actions (submitting a found/missing-person report)
+    should stay low-friction — that is the whole point of moving away from
+    face-based login. But some actions may carry high enough consequence
+    (harm to a family, corruption of the record coordinators rely on, abuse
+    of a compromised session) that a moment of extra friction is worth it.
+    Nobody has defined where that line is yet.
+  scope_note: >
+    Coordinator-side actions (verifying a match, contacting a family) are
+    COMPLETELY OUT OF SCOPE for this question — those already sit behind a
+    separate, existing Supabase Auth system with its own invite-only
+    allowlist, untouched by any of the volunteer-identity work in HOS-2026-010
+    or its addenda. This question is only about the VOLUNTEER/REPORTER side.
+
+verified_action_surface_as_of_2026_07_01: >
+  POST /api/found — submit a found-person report. Public today (pre-this-
+  decision), will require the new volunteer identity once built. Includes a
+  `condition` field (alive | injured | hospitalized | deceased | unknown) set
+  AT SUBMISSION TIME — there is no separate "mark as deceased" action distinct
+  from the initial submission; it is one field value within one create call.
+  POST /api/missing — submit a missing-person report. Same shape, same
+  create-only pattern. NO edit/retract/update endpoint for either report type
+  was found in the codebase as of this session — if the board thinks one
+  should exist, say so explicitly; do not assume it already does.
+
+starter_candidates_not_yet_vetted:
+  - "Submitting a found-person report where condition = deceased. Open question: since this is a field value inside a single create call, not a separate action, is content-conditional step-up (inspect the submission server-side, prompt for PIN re-entry only when condition=deceased is present) worth the added complexity, or is a simpler, content-blind rule (e.g. no step-up on any single create call at all) actually correct?"
+  - "Editing or retracting a previously-submitted report — IF such an endpoint is ever built (none exists today). The concern: a chance to quietly tamper with a record after the fact."
+  - "Switching which volunteer identity is 'active' on a shared device (e.g. shift change at a shelter, one phone, multiple registered volunteers)."
+
+board_questions_to_answer:
+  - "Contrarian: what's the worst realistic outcome if EACH candidate action above is NOT protected by a step-up check — walk through a concrete failure scenario per candidate, not in the abstract. Are there other actions in HOS's real surface (or reasonably foreseeable near-term additions) more consequential than these three that were missed?"
+  - "Principals: apply the six stated HOS principles to decide which candidate actions actually clear a bar worth the friction, versus which are solving a problem HOS doesn't have. Is content-conditional step-up (inspecting submission content server-side to decide) consistent with 'AI recommends, people decide' and 'trust and honesty', or does it introduce a new kind of automated judgment the project should be wary of? Is PIN re-entry (not face) the right mechanism, or does some other option better fit the principles?"
+  - "Researcher: how do comparable systems (banking/finance step-up auth, other crisis-response or field-data tools, general security practice) scope 'this specific action needs re-authentication' versus 'normal session auth is enough'? Is there a common, well-tested pattern HOS should just adopt rather than reinvent?"
+  - "User: walk through a specific volunteer's day and identify, concretely, which moments would actually justify being stopped and asked to re-enter their PIN — and which would just feel like arbitrary friction that erodes trust in the system. Does the shared-device shift-change scenario from the original R1 review belong on this list, and if so, what does that step-up moment actually look like for someone in a hurry?"
+
+escalation: >
+  Strategic per this project's own governance rule (touches the identity/auth
+  layer). Human sign-off on the final scope expected before implementation,
+  consistent with the rest of this decision family.

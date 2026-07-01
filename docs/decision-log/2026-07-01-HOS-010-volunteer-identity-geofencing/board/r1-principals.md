@@ -1,4 +1,4 @@
-# Principals Review: HOS-2026-008-R1 (addendum, incl. role-scoping)
+# Principals Review: HOS-2026-010-R1 (addendum, incl. role-scoping)
 
 ## My Recommendation
 
@@ -99,6 +99,6 @@ Not higher because: (a) I cannot confirm from inside this repo whether a browser
 - `/Users/noctis/projects/hos/.claude/worktrees/xenodochial-taussig-31910c/tasks/backlog/HOS-2026-001-ai-matching/08-real-auth-and-roles.yaml` — verifies the role model is `TODO` and its planned taxonomy is `coordinator / agency-admin / responder` only; the "remote/translator" role ROLE-scoping needs is not in it. Load-bearing for the Occam / technical-debt findings.
 - `/Users/noctis/projects/hos/.claude/worktrees/xenodochial-taussig-31910c/apps/web/app/lib/services/intake.ts:39,81` — confirms intake location (`lastSeenLocation`, `foundLocation`) is still free-text and per-submission; "does this submission assert a location?" is a property of this payload, which is exactly where ACTION-scoping attaches.
 - `/Users/noctis/projects/hos/.claude/worktrees/xenodochial-taussig-31910c/apps/web/app/lib/http/auth.ts` — the current auth surface is a comment-documented "deliberately simple" gate; no role concept in code (confirms nothing to hang role-exemption on today).
-- `/Users/noctis/projects/hos/.claude/worktrees/xenodochial-taussig-31910c/docs/decision-log/2026-07-01-HOS-008-volunteer-identity-geofencing/judge-decision.yaml` — the settled D1/D2/D3 boundaries this review holds fixed (KILL face registry; GREEN device-key+PIN; RESHAPE geofence to honest advisory-only).
+- `/Users/noctis/projects/hos/.claude/worktrees/xenodochial-taussig-31910c/docs/decision-log/2026-07-01-HOS-010-volunteer-identity-geofencing/judge-decision.yaml` — the settled D1/D2/D3 boundaries this review holds fixed (KILL face registry; GREEN device-key+PIN; RESHAPE geofence to honest advisory-only).
 - `/Users/noctis/projects/hos/.claude/worktrees/xenodochial-taussig-31910c/docs/decision-log/2026-06-28-HOS-002-mvp-architecture/board/principals.md` — the HOS-002-D4 "never claim something that didn't happen" precedent underwriting the C2 honesty-scoping finding on "never transmitted."
 - **Absent (searched, not found):** any `haversine`/`useGeolocation`/`navigator.geolocation`/lat-lng capture in the tree (geofence is net-new, confirming D3 status carries into R1); any `qclock` reference outside the decision log (external prior art, correctly not in-repo — estimate is the Researcher's to judge).

@@ -1,4 +1,4 @@
-# Researcher Review: HOS-2026-008-R1 (addendum, incl. role-scoping)
+# Researcher Review: HOS-2026-010-R1 (addendum, incl. role-scoping)
 
 *On-device-only face-uniqueness dedup at registration + role/action-scoped advisory geolocation*
 Reviewer: Researcher Agent · Date: 2026-07-01 · Method: live web research (this round specifically re-verified the two questions an earlier interim pass could not — see provenance note below) + re-read of `board/researcher.md` (original) and `board/r1-interim-orchestrator-analysis.md`

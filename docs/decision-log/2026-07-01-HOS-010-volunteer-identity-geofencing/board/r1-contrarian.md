@@ -1,4 +1,4 @@
-# Contrarian Review: HOS-2026-008-R1 (addendum, incl. role-scoping)
+# Contrarian Review: HOS-2026-010-R1 (addendum, incl. role-scoping)
 
 **Scope of this re-review (focused):** does the refined design — (a) on-device-only
 face dedup at registration, (b) role-scoped OR action-scoped advisory geofencing —
@@ -152,7 +152,7 @@ the "build geolocation from scratch" cost. The code is genuinely good and the co
 real. But qclock's geolocation is **server-authoritative**: its own source says so — the
 client haversine is "for the disambiguation sheet and the offsite UI; **the server is still
 the authority for the punch decision**" (`haversine.ts` lines 5-6), and the punch flow
-rejects low-accuracy fixes server-side (`useGeolocation.ts` lines 34-36). HOS-008's
+rejects low-accuracy fixes server-side (`useGeolocation.ts` lines 34-36). HOS-010's
 board-mandated posture is the **exact inverse**: geolocation is **strictly advisory,
 never a hard block, "device-reported, unverified."**
 **Why it's real:** Importing a codebase built around "server decides in/out of geofence"

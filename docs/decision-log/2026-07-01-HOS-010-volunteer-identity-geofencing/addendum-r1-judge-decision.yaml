@@ -1,8 +1,8 @@
-decision_id: "HOS-2026-008-R1"
+decision_id: "HOS-2026-010-R1"
 phase: "judge_synthesis_addendum"
 date: "2026-07-01"
 judge: "Judge Agent (synthesized by Executive Orchestrator from 3 focused board reviews)"
-parent_decision: "HOS-2026-008"
+parent_decision: "HOS-2026-010"
 board_inputs_considered: [contrarian, principals, researcher]
 note: >
   This addendum does not reopen D1 (KILL, server-side/persistent face registry),
@@ -13,7 +13,7 @@ note: >
   geolocation check.
 
 decisions:
-  - id: "HOS-2026-008-R1-D1"
+  - id: "HOS-2026-010-R1-D1"
     title: "On-device-only face-uniqueness dedup at registration"
     verdict: "RESHAPE"
     confidence: 0.78
@@ -58,7 +58,7 @@ decisions:
       - "A non-biometric fallback lane must exist for registration itself (not only for login), consistent with the parent decision's 'never fully lock someone out' condition — extend it explicitly to this new registration-time check."
     next_gate: "Re-review once the cancelable-transform and false-match/false-reject prototypes return real numbers, and once the shared-device lifecycle decision is made — before this is scheduled as committed work."
 
-  - id: "HOS-2026-008-R1-D2"
+  - id: "HOS-2026-010-R1-D2"
     title: "Geolocation check scoping: role-based vs. action-based exemption"
     verdict: "RESHAPE"
     confidence: 0.85

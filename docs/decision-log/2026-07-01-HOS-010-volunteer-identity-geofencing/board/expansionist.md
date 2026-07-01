@@ -1,4 +1,4 @@
-# Expansionist Review: HOS-2026-008
+# Expansionist Review: HOS-2026-010
 
 ## My Recommendation
 RESHAPE FOR MORE UPSIDE
