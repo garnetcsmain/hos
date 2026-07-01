@@ -14,6 +14,7 @@
 
 import { timingSafeEqual } from "node:crypto";
 import { HttpError } from "../errors.ts";
+import { isSupabaseAuthConfigured } from "../auth/supabaseConfig.ts";
 
 let warnedDevOpen = false;
 
@@ -43,4 +44,36 @@ export function assertCoordinator(request: Request): void {
   if (a.length !== b.length || !timingSafeEqual(a, b)) {
     throw new HttpError(401, "unauthorized: coordinator token required");
   }
+}
+
+export interface CoordinatorGateDeps {
+  sessionFromRequest: (request: Request) => Promise<{ email: string; userId: string } | null>;
+}
+
+// Lazy import so @supabase/supabase-js is never pulled into the edge/build graph
+// of routes; it loads only at request time on the Node runtime.
+async function defaultSessionFromRequest(request: Request) {
+  const { coordinatorFromSupabase } = await import("../auth/session.ts");
+  return coordinatorFromSupabase(request);
+}
+
+// The coordinator gate for routes. When Supabase auth is CONFIGURED, an
+// invite-only signed-in coordinator (valid Supabase session, email on the
+// allowlist) is accepted; a configured service token still works as a
+// break-glass fallback. When Supabase auth is NOT configured, this is exactly
+// the token gate (assertCoordinator) — so existing deployments are unchanged
+// (HOS-2026-001-08, respecting the D3 fail-closed default).
+export async function requireCoordinator(
+  request: Request,
+  deps: CoordinatorGateDeps = { sessionFromRequest: defaultSessionFromRequest },
+): Promise<void> {
+  if (isSupabaseAuthConfigured()) {
+    const identity = await deps.sessionFromRequest(request);
+    if (identity) return;
+    // No valid session: only fall through to the token path if one was provided.
+    if (!request.headers.get("x-hos-coordinator-token")) {
+      throw new HttpError(401, "unauthorized: sign in as a coordinator");
+    }
+  }
+  assertCoordinator(request);
 }

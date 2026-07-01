@@ -62,12 +62,19 @@ export interface FamilyReachResult {
   status: string;
 }
 
-const COORDINATOR_TOKEN_KEY = "hos_coordinator_token";
+export const COORDINATOR_TOKEN_KEY = "hos_coordinator_token";
+// Kept as a literal (mirror of SUPABASE_TOKEN_KEY in client/supabase.ts) so this
+// widely-imported module never pulls @supabase/supabase-js into its bundle.
+const SUPABASE_TOKEN_KEY = "hos_supabase_token";
 
 export function coordinatorHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
+  const headers: Record<string, string> = {};
   const token = window.localStorage.getItem(COORDINATOR_TOKEN_KEY);
-  return token ? { "x-hos-coordinator-token": token } : {};
+  if (token) headers["x-hos-coordinator-token"] = token;
+  const supabaseToken = window.localStorage.getItem(SUPABASE_TOKEN_KEY);
+  if (supabaseToken) headers.authorization = `Bearer ${supabaseToken}`;
+  return headers;
 }
 
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {

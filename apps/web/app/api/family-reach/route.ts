@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { handleError, json } from "@/app/lib/http/respond";
-import { assertCoordinator } from "@/app/lib/http/auth";
+import { requireCoordinator } from "@/app/lib/http/auth";
 import { enforceRateLimit } from "@/app/lib/http/rateLimit";
 import { familyReachSchema } from "@/app/lib/validation/schemas";
 import { recordFamilyReach } from "@/app/lib/services/familyReach";
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 // obligation stays visible for a retry (Board HOS-2026-002-D4).
 export async function POST(request: NextRequest) {
   try {
-    assertCoordinator(request);
+    await requireCoordinator(request);
     enforceRateLimit(request, "family-reach", 60, 60_000);
     const body = await request.json().catch(() => ({}));
     const input = familyReachSchema.parse(body);

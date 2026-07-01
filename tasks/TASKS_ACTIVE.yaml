@@ -33,7 +33,8 @@ active_blockers:
     note: "No hosted Postgres/Supabase credentials yet (DATABASE_URL). See docs/EXTERNAL_DEPENDENCIES.md #3."
   - id: "BLK-002"
     blocks: ["HOS-2026-001-08"]
-    note: "Auth provider not chosen / no keys (Supabase Auth / Clerk / Auth0). EXTERNAL_DEPENDENCIES.md #4."
+    status: "partially resolved"
+    note: "Provider chosen: Supabase Auth (human principal, 2026-07-01). Authn layer built (invite-only sign-in + gate), inert until env keys + a human security sign-off (Board D3). Full org isolation still needs Postgres (BLK-001 / HOS-2026-001-07)."
   - id: "BLK-003"
     blocks: ["HOS-2026-001-09"]
     note: "No notification-provider creds (WhatsApp/Twilio/Resend/Telegram). EXTERNAL_DEPENDENCIES.md #6-9."
@@ -71,7 +72,7 @@ epics:
       - { id: "HOS-2026-001-05", title: "Pluggable multi-provider cloud-AI layer", owner: "DEV", status: "done", priority: "MEDIUM" }
       - { id: "HOS-2026-001-06", title: "Human verification + family notification (in-app)", owner: "DEV", status: "done", priority: "HIGH" }
       - { id: "HOS-2026-001-07", title: "Postgres/Supabase adapter (migrate off SQLite)", owner: "DEV", status: "todo", priority: "HIGH" }
-      - { id: "HOS-2026-001-08", title: "Real auth, roles, and org isolation", owner: "CTO", status: "todo", priority: "HIGH" }
+      - { id: "HOS-2026-001-08", title: "Real auth, roles, and org isolation", owner: "CTO", status: "in_progress", priority: "HIGH" }
       - { id: "HOS-2026-001-09", title: "External notification channels (WhatsApp/SMS/email/Telegram)", owner: "DEV", status: "todo", priority: "HIGH" }
       - { id: "HOS-2026-001-10", title: "Geocoding + maps (real location factor)", owner: "DEV", status: "todo", priority: "MEDIUM" }
       - { id: "HOS-2026-001-11", title: "Harden access: fail-closed gate + abuse protection", owner: "DEV", status: "in_progress", priority: "CRITICAL" }
