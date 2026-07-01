@@ -11,9 +11,9 @@ owner: "DEV"
 created_at: "2026-06-28T00:00:00Z"
 due_date: "2026-07-11T23:59:59Z"
 estimated_hours: 12
-status: "todo"
+status: "in_progress"
 priority: "HIGH"
-progress_percent: 0
+progress_percent: 95
 epic_id: "HOS-2026-001"
 decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/proposal.yaml#HOS-2026-002-D2"
 depends_on: ["HOS-2026-001-02"]
@@ -23,9 +23,33 @@ requirements:
   - "Schema migration + data seed parity with SQLite"
   - "Enable pgvector extension for future learned/photo matching"
 acceptance_criteria:
-  - "All existing tests pass against Postgres"
-  - "No service-layer code changes required (adapter swap only)"
+  - "All existing tests pass against Postgres (same suite, run with DATABASE_URL set)"
+  - >-
+    Adapter swap only: no business logic changed and the repository interface is
+    preserved. REVISED: the interface is now async — a real (network) Postgres
+    driver is async, so repositories/services/routes gained mechanical async/await
+    with zero logic changes. The original 'no service-layer code changes' wording
+    could not hold for a real Postgres; the change was surfaced to the human and
+    approved (2026-07-01).
 done_criteria:
   - "Runs on the hosted DB in a preview deploy"
 notes: |
-  Needs credentials. Deferred until provided per the autonomous-build directive.
+  Built as an async DUAL-adapter: ONE async repository interface implemented by
+  both node:sqlite (zero-setup local/dev/test — preserves the "runs on a laptop"
+  invariant) and Postgres (pg), selected at runtime by DATABASE_URL. pgvector is
+  enabled and a match_embeddings table provisioned for future photo matching.
+  SQLite path fully verified: typecheck clean, 85/85 tests, clean next build, and
+  the DB is never opened at build time.
+  VERIFIED on hosted Postgres 2026-07-01: migration applied to the HOS project
+  (obgwvtnzclyaugmrjukk) — 11 tables + pgvector confirmed on an empty DB — and the
+  FULL suite (85/85) passes against it. So acceptance criterion #1 (tests pass
+  against Postgres) is MET.
+  CONNECTION NOTE: Supabase's DIRECT endpoint (db.<ref>.supabase.co:5432) is now
+  IPv6-only and unreachable from the sandbox and from Vercel (no IPv4 add-on). Use
+  the TRANSACTION POOLER instead:
+    postgres://postgres.obgwvtnzclyaugmrjukk:<pw>@aws-1-us-west-2.pooler.supabase.com:6543/postgres
+  (note the aws-1 prefix for this project). init() uses a transaction-scoped
+  advisory lock so it is pooler-safe.
+  Remaining for done_criteria: a preview deploy on Vercel (needs the pooler URL in
+  Vercel env + a deploy OK), and a one-time cleanup of the integration-test rows
+  left in the pilot DB.

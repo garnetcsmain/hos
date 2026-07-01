@@ -11,7 +11,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
   try {
     await requireCoordinator(request);
     const { id } = await context.params;
-    const detail = candidateDetail(id);
+    const detail = await candidateDetail(id);
     if (!detail) throw notFound(`candidate ${id} not found`);
     return json(detail);
   } catch (error) {

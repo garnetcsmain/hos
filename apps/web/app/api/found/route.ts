@@ -14,8 +14,8 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     enforceRateLimit(request, "found:list", 90, 60_000);
-    ensureSeeded();
-    return json({ reports: listFound().map(toPublicFound) });
+    await ensureSeeded();
+    return json({ reports: (await listFound()).map(toPublicFound) });
   } catch (error) {
     return handleError(error);
   }

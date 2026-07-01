@@ -39,19 +39,19 @@ import type {
   SiteUpdateInput,
 } from "../validation/coordination.ts";
 
-function requireOrg(orgId: string): Org {
-  const org = getOrg(orgId);
+async function requireOrg(orgId: string): Promise<Org> {
+  const org = await getOrg(orgId);
   if (!org) throw badRequest(`unknown org ${orgId}`);
   return org;
 }
 
 // --- Orgs -----------------------------------------------------------------
 
-export function createOrg(input: { name: string; kind: OrgKind }): Org {
+export async function createOrg(input: { name: string; kind: OrgKind }): Promise<Org> {
   const org: Org = { id: newOrgId(), createdAt: nowIso(), name: input.name, kind: input.kind };
-  transaction(() => {
-    insertOrg(org);
-    appendEvent({
+  await transaction(async () => {
+    await insertOrg(org);
+    await appendEvent({
       entityType: "org",
       entityId: org.id,
       type: "org.registered",
@@ -64,8 +64,8 @@ export function createOrg(input: { name: string; kind: OrgKind }): Org {
 
 // --- Sites ----------------------------------------------------------------
 
-export function createSite(input: SiteCreateInput): Site {
-  const org = requireOrg(input.orgId);
+export async function createSite(input: SiteCreateInput): Promise<Site> {
+  const org = await requireOrg(input.orgId);
   const now = nowIso();
   const site: Site = {
     id: newSiteId(),
@@ -79,9 +79,9 @@ export function createSite(input: SiteCreateInput): Site {
     status: "active",
     notes: input.notes,
   };
-  transaction(() => {
-    insertSite(site);
-    appendEvent({
+  await transaction(async () => {
+    await insertSite(site);
+    await appendEvent({
       entityType: "site",
       entityId: site.id,
       type: "site.created",
@@ -92,19 +92,19 @@ export function createSite(input: SiteCreateInput): Site {
   return site;
 }
 
-export function updateSiteCapacity(input: SiteUpdateInput): Site {
-  const site = getSite(input.siteId);
+export async function updateSiteCapacity(input: SiteUpdateInput): Promise<Site> {
+  const site = await getSite(input.siteId);
   if (!site) throw notFound(`site ${input.siteId} not found`);
-  const org = getOrg(site.orgId);
+  const org = await getOrg(site.orgId);
   const bedsFree = Math.min(input.bedsFree, input.bedsTotal);
-  transaction(() => {
-    repoUpdateSiteCapacity(site.id, {
+  await transaction(async () => {
+    await repoUpdateSiteCapacity(site.id, {
       bedsTotal: input.bedsTotal,
       bedsFree,
       status: input.status,
       notes: input.notes,
     });
-    appendEvent({
+    await appendEvent({
       entityType: "site",
       entityId: site.id,
       type: "site.capacity_updated",
@@ -117,9 +117,9 @@ export function updateSiteCapacity(input: SiteUpdateInput): Site {
 
 // --- Needs ----------------------------------------------------------------
 
-export function createNeed(input: NeedCreateInput): Need {
-  const org = requireOrg(input.orgId);
-  if (input.siteId && !getSite(input.siteId)) throw badRequest(`unknown site ${input.siteId}`);
+export async function createNeed(input: NeedCreateInput): Promise<Need> {
+  const org = await requireOrg(input.orgId);
+  if (input.siteId && !(await getSite(input.siteId))) throw badRequest(`unknown site ${input.siteId}`);
   const now = nowIso();
   const need: Need = {
     id: newNeedId(),
@@ -136,9 +136,9 @@ export function createNeed(input: NeedCreateInput): Need {
     claimedByOrgId: null,
     notes: input.notes,
   };
-  transaction(() => {
-    insertNeed(need);
-    appendEvent({
+  await transaction(async () => {
+    await insertNeed(need);
+    await appendEvent({
       entityType: "need",
       entityId: need.id,
       type: "need.posted",
@@ -151,8 +151,8 @@ export function createNeed(input: NeedCreateInput): Need {
 
 const TERMINAL = new Set(["received", "cancelled"]);
 
-export function transitionNeed(input: NeedTransitionInput): Need {
-  const need = getNeed(input.needId);
+export async function transitionNeed(input: NeedTransitionInput): Promise<Need> {
+  const need = await getNeed(input.needId);
   if (!need) throw notFound(`need ${input.needId} not found`);
   if (TERMINAL.has(need.status)) {
     throw badRequest(`need ${need.id} is already ${need.status} and cannot change`);
@@ -166,7 +166,7 @@ export function transitionNeed(input: NeedTransitionInput): Need {
   if (input.action === "claim") {
     if (need.status !== "open") throw badRequest("only an open need can be claimed");
     if (!input.byOrgId) throw badRequest("claiming org is required");
-    const claimer = requireOrg(input.byOrgId);
+    const claimer = await requireOrg(input.byOrgId);
     status = "claimed";
     claimedByOrgId = claimer.id;
     eventType = "need.claimed";
@@ -176,16 +176,16 @@ export function transitionNeed(input: NeedTransitionInput): Need {
     // the claimer, never automatic (Board condition). Attributed to the requester.
     status = "received";
     eventType = "need.received";
-    actor = `org:${getOrg(need.orgId)?.name ?? need.orgId}`;
+    actor = `org:${(await getOrg(need.orgId))?.name ?? need.orgId}`;
   } else {
     status = "cancelled";
     eventType = "need.cancelled";
-    actor = `org:${getOrg(need.orgId)?.name ?? need.orgId}`;
+    actor = `org:${(await getOrg(need.orgId))?.name ?? need.orgId}`;
   }
 
-  transaction(() => {
-    setNeedStatus(need.id, status, claimedByOrgId);
-    appendEvent({
+  await transaction(async () => {
+    await setNeedStatus(need.id, status, claimedByOrgId);
+    await appendEvent({
       entityType: "need",
       entityId: need.id,
       type: eventType,
@@ -198,8 +198,8 @@ export function transitionNeed(input: NeedTransitionInput): Need {
 
 // --- Offers ---------------------------------------------------------------
 
-export function createOffer(input: OfferCreateInput): Offer {
-  const org = requireOrg(input.orgId);
+export async function createOffer(input: OfferCreateInput): Promise<Offer> {
+  const org = await requireOrg(input.orgId);
   const now = nowIso();
   const offer: Offer = {
     id: newOfferId(),
@@ -213,9 +213,9 @@ export function createOffer(input: OfferCreateInput): Offer {
     status: "available",
     notes: input.notes,
   };
-  transaction(() => {
-    insertOffer(offer);
-    appendEvent({
+  await transaction(async () => {
+    await insertOffer(offer);
+    await appendEvent({
       entityType: "offer",
       entityId: offer.id,
       type: "offer.posted",
@@ -230,21 +230,25 @@ export function createOffer(input: OfferCreateInput): Offer {
 
 /** Assemble the coordinator board: sites + needs (with advisory matches) +
  *  offers, each joined to its org and tagged with a freshness signal. */
-export function coordinationView(): CoordinationView {
+export async function coordinationView(): Promise<CoordinationView> {
   const now = nowIso();
-  const orgs = listOrgs();
+  const [orgs, offers, sites, needs] = await Promise.all([
+    listOrgs(),
+    listOffers(),
+    listSites(),
+    listNeeds(),
+  ]);
   const orgById = new Map(orgs.map((o) => [o.id, o]));
-  const offers = listOffers();
 
   return {
     orgs,
     offers: offers.map((offer) => ({ offer, org: orgById.get(offer.orgId) ?? null })),
-    sites: listSites().map((site) => ({
+    sites: sites.map((site) => ({
       site,
       org: orgById.get(site.orgId) ?? null,
       freshness: freshnessOf(site.updatedAt, now),
     })),
-    needs: listNeeds().map((need) => ({
+    needs: needs.map((need) => ({
       need,
       org: orgById.get(need.orgId) ?? null,
       claimedByOrg: need.claimedByOrgId ? orgById.get(need.claimedByOrgId) ?? null : null,

@@ -8,8 +8,8 @@ const insertStmt = lazyStatement(
    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
-export function insertVerification(verification: Verification): void {
-  insertStmt().run(
+export async function insertVerification(verification: Verification): Promise<void> {
+  await insertStmt().run(
     verification.id,
     verification.createdAt,
     verification.candidateId,
@@ -21,8 +21,8 @@ export function insertVerification(verification: Verification): void {
   );
 }
 
-export function verificationsForCandidate(candidateId: string): Verification[] {
-  const rows = db
+export async function verificationsForCandidate(candidateId: string): Promise<Verification[]> {
+  const rows = await db
     .prepare(`SELECT * FROM verifications WHERE candidate_id = ? ORDER BY created_at ASC`)
     .all(candidateId);
   return rows.map(mapVerification);

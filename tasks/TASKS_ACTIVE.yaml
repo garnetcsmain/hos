@@ -9,7 +9,7 @@
 total_tasks: 15
 in_backlog: 5
 in_sprint: 10
-in_progress: 3
+in_progress: 4
 in_review: 0
 done: 8
 
@@ -30,7 +30,8 @@ velocity:
 active_blockers:
   - id: "BLK-001"
     blocks: ["HOS-2026-001-07"]
-    note: "No hosted Postgres/Supabase credentials yet (DATABASE_URL). See docs/EXTERNAL_DEPENDENCIES.md #3."
+    status: "partially resolved"
+    note: "Adapter BUILT (2026-07-01): async dual-adapter — node:sqlite + Postgres/pg behind one repository interface, selected by DATABASE_URL; pgvector enabled. SQLite path verified (typecheck + 85/85 tests + clean next build). Still needs the hosted DATABASE_URL (Supabase project obgwvtnzclyaugmrjukk) to run the suite against Postgres + a preview deploy (both need a human OK to migrate/deploy). See docs/EXTERNAL_DEPENDENCIES.md #3."
   - id: "BLK-002"
     blocks: ["HOS-2026-001-08"]
     status: "partially resolved"
@@ -71,7 +72,7 @@ epics:
       - { id: "HOS-2026-001-04", title: "Spanish-first operator UI", owner: "DEV", status: "done", priority: "HIGH" }
       - { id: "HOS-2026-001-05", title: "Pluggable multi-provider cloud-AI layer", owner: "DEV", status: "done", priority: "MEDIUM" }
       - { id: "HOS-2026-001-06", title: "Human verification + family notification (in-app)", owner: "DEV", status: "done", priority: "HIGH" }
-      - { id: "HOS-2026-001-07", title: "Postgres/Supabase adapter (migrate off SQLite)", owner: "DEV", status: "todo", priority: "HIGH" }
+      - { id: "HOS-2026-001-07", title: "Postgres/Supabase adapter (migrate off SQLite)", owner: "DEV", status: "in_progress", priority: "HIGH", note: "Async dual-adapter built + SQLite-verified 2026-07-01; awaiting DATABASE_URL to verify against hosted Postgres (BLK-001)." }
       - { id: "HOS-2026-001-08", title: "Real auth, roles, and org isolation", owner: "CTO", status: "in_progress", priority: "HIGH" }
       - { id: "HOS-2026-001-09", title: "External notification channels (WhatsApp/SMS/email/Telegram)", owner: "DEV", status: "todo", priority: "HIGH" }
       - { id: "HOS-2026-001-10", title: "Geocoding + maps (real location factor)", owner: "DEV", status: "todo", priority: "MEDIUM" }

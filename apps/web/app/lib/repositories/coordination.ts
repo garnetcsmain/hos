@@ -20,22 +20,25 @@ const insertOrgStmt = lazyStatement(
   `INSERT INTO orgs (id, created_at, name, kind) VALUES (?, ?, ?, ?)`,
 );
 
-export function insertOrg(org: Org): void {
-  insertOrgStmt().run(org.id, org.createdAt, org.name, org.kind);
+export async function insertOrg(org: Org): Promise<void> {
+  await insertOrgStmt().run(org.id, org.createdAt, org.name, org.kind);
 }
 
-export function getOrg(id: string): Org | null {
-  const row = db.prepare(`SELECT * FROM orgs WHERE id = ?`).get(id);
+export async function getOrg(id: string): Promise<Org | null> {
+  const row = await db.prepare(`SELECT * FROM orgs WHERE id = ?`).get(id);
   return row ? mapOrg(row) : null;
 }
 
-export function listOrgs(): Org[] {
-  return db.prepare(`SELECT * FROM orgs ORDER BY name ASC`).all().map(mapOrg);
+export async function listOrgs(): Promise<Org[]> {
+  const rows = await db.prepare(`SELECT * FROM orgs ORDER BY name ASC`).all();
+  return rows.map(mapOrg);
 }
 
-export function countOrgs(): number {
-  const row = db.prepare(`SELECT COUNT(*) AS n FROM orgs`).get() as { n: number };
-  return Number(row.n);
+export async function countOrgs(): Promise<number> {
+  const row = (await db.prepare(`SELECT COUNT(*) AS n FROM orgs`).get()) as
+    | { n: number }
+    | undefined;
+  return Number(row?.n ?? 0);
 }
 
 // --- Sites ----------------------------------------------------------------
@@ -46,8 +49,8 @@ const insertSiteStmt = lazyStatement(
    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
-export function insertSite(site: Site): void {
-  insertSiteStmt().run(
+export async function insertSite(site: Site): Promise<void> {
+  await insertSiteStmt().run(
     site.id,
     site.createdAt,
     site.updatedAt,
@@ -61,25 +64,23 @@ export function insertSite(site: Site): void {
   );
 }
 
-export function getSite(id: string): Site | null {
-  const row = db.prepare(`SELECT * FROM sites WHERE id = ?`).get(id);
+export async function getSite(id: string): Promise<Site | null> {
+  const row = await db.prepare(`SELECT * FROM sites WHERE id = ?`).get(id);
   return row ? mapSite(row) : null;
 }
 
-export function listSites(): Site[] {
-  return db
-    .prepare(`SELECT * FROM sites ORDER BY updated_at DESC`)
-    .all()
-    .map(mapSite);
+export async function listSites(): Promise<Site[]> {
+  const rows = await db.prepare(`SELECT * FROM sites ORDER BY updated_at DESC`).all();
+  return rows.map(mapSite);
 }
 
 /** Update mutable site fields (capacity/status/notes) and bump updated_at so the
  *  freshness signal is honest. */
-export function updateSiteCapacity(
+export async function updateSiteCapacity(
   id: string,
   fields: { bedsTotal: number; bedsFree: number; status: string; notes: string },
-): void {
-  db.prepare(
+): Promise<void> {
+  await db.prepare(
     `UPDATE sites SET beds_total = ?, beds_free = ?, status = ?, notes = ?, updated_at = ? WHERE id = ?`,
   ).run(fields.bedsTotal, fields.bedsFree, fields.status, fields.notes, nowIso(), id);
 }
@@ -92,8 +93,8 @@ const insertNeedStmt = lazyStatement(
    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
-export function insertNeed(need: Need): void {
-  insertNeedStmt().run(
+export async function insertNeed(need: Need): Promise<void> {
+  await insertNeedStmt().run(
     need.id,
     need.createdAt,
     need.updatedAt,
@@ -110,27 +111,27 @@ export function insertNeed(need: Need): void {
   );
 }
 
-export function getNeed(id: string): Need | null {
-  const row = db.prepare(`SELECT * FROM needs WHERE id = ?`).get(id);
+export async function getNeed(id: string): Promise<Need | null> {
+  const row = await db.prepare(`SELECT * FROM needs WHERE id = ?`).get(id);
   return row ? mapNeed(row) : null;
 }
 
-export function listNeeds(status?: NeedStatus): Need[] {
+export async function listNeeds(status?: NeedStatus): Promise<Need[]> {
   const rows = status
-    ? db.prepare(`SELECT * FROM needs WHERE status = ? ORDER BY updated_at DESC`).all(status)
-    : db.prepare(`SELECT * FROM needs ORDER BY updated_at DESC`).all();
+    ? await db.prepare(`SELECT * FROM needs WHERE status = ? ORDER BY updated_at DESC`).all(status)
+    : await db.prepare(`SELECT * FROM needs ORDER BY updated_at DESC`).all();
   return rows.map(mapNeed);
 }
 
 /** Transition a need's status (and optionally its claimer). updated_at is bumped
  *  so a stale item reads as stale. The service layer guards which transitions
  *  are legal and who may make them. */
-export function setNeedStatus(
+export async function setNeedStatus(
   id: string,
   status: NeedStatus,
   claimedByOrgId: string | null,
-): void {
-  db.prepare(
+): Promise<void> {
+  await db.prepare(
     `UPDATE needs SET status = ?, claimed_by_org_id = ?, updated_at = ? WHERE id = ?`,
   ).run(status, claimedByOrgId, nowIso(), id);
 }
@@ -143,8 +144,8 @@ const insertOfferStmt = lazyStatement(
    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
-export function insertOffer(offer: Offer): void {
-  insertOfferStmt().run(
+export async function insertOffer(offer: Offer): Promise<void> {
+  await insertOfferStmt().run(
     offer.id,
     offer.createdAt,
     offer.updatedAt,
@@ -158,9 +159,7 @@ export function insertOffer(offer: Offer): void {
   );
 }
 
-export function listOffers(): Offer[] {
-  return db
-    .prepare(`SELECT * FROM offers ORDER BY updated_at DESC`)
-    .all()
-    .map(mapOffer);
+export async function listOffers(): Promise<Offer[]> {
+  const rows = await db.prepare(`SELECT * FROM offers ORDER BY updated_at DESC`).all();
+  return rows.map(mapOffer);
 }

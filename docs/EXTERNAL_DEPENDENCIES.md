@@ -20,7 +20,7 @@ Legend: ✅ wired (just needs a key) · 🟡 half-wired (adapter to write) · �
 |---|------------|--------|------------------------|----------|------------|
 | 1 | Cloud AI matching boost | ✅ | Anthropic and/or OpenAI | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `HOS_AI_PROVIDERS` | `apps/web/app/lib/ai/` |
 | 2 | Coordinator access gate | ✅ | (self — a shared secret) | `HOS_COORDINATOR_TOKEN` | `apps/web/app/lib/http/auth.ts` |
-| 3 | Production database | 🟡 | Supabase / Postgres (`pgvector`) | `DATABASE_URL` *(or)* `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` | `apps/web/app/lib/db/`, `repositories/` |
+| 3 | Production database | ✅ | Supabase / Postgres (`pgvector`) | `DATABASE_URL` | `apps/web/app/lib/db/`, `repositories/` |
 | 4 | Real user auth + roles | ⬜ | Supabase Auth / Clerk / Auth0 (OIDC) | provider-specific (below) | `http/auth.ts` + new middleware |
 | 5 | Maps / geocoding | 🟡 | Google Maps Platform *(or Mapbox)* | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_API_KEY`, `NEXT_PUBLIC_GOOGLE_MAPS_EMBED_URL` | location factor + map UI |
 | 6 | SMS notifications | ⬜ | Twilio *(or AWS SNS)* | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_SMS_FROM` | new `notifications/channels/` |
@@ -67,20 +67,27 @@ HOS_COORDINATOR_TOKEN=<long-random-string>     # openssl rand -hex 32
   The board flagged this (D3) — **set it before any deploy.** This is a stopgap until
   real auth (#4).
 
-## 3. Production database 🟡 *(adapter to write — ~half a day once I have the URL)*
+## 3. Production database ✅ *(adapter BUILT — give me `DATABASE_URL` to flip it on)*
 
 **What:** replace local `node:sqlite` with managed Postgres for multi-instance,
 backups, HA, and `pgvector` (needed for learned/photo matching later).
 ```
-DATABASE_URL=postgres://user:pass@host:5432/hos        # or:
-SUPABASE_URL=https://<ref>.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=...                           # server-only, never NEXT_PUBLIC
-SUPABASE_ANON_KEY=...                                   # browser-safe
+DATABASE_URL=postgres://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
 ```
-- **Where:** `apps/web/app/lib/db/` + `repositories/`. The repository layer already
-  isolates SQL, so this is an adapter swap, not a rewrite.
-- **Get it:** you have Supabase infra in-repo already — I just need the project ref +
-  keys (or a plain `DATABASE_URL`). Enable the `pgvector` extension while you're there.
+- **Status (HOS-2026-001-07):** the adapter is written and merged behind the
+  repository layer as an **async dual-adapter** — one async interface, two
+  backends (`node:sqlite` for zero-setup local/dev/test, Postgres via `pg` for
+  prod), chosen by `DATABASE_URL`. `pgvector` is enabled and a `match_embeddings`
+  table is provisioned. The SQLite path is fully verified (typecheck + 85/85
+  tests + clean `next build`). All that remains is to point `DATABASE_URL` at the
+  hosted DB and run the suite against Postgres, then a preview deploy.
+- **Where:** `apps/web/app/lib/db/` (client + `backends/{sqlite,postgres}.ts` +
+  `schema.pg.ts`) and the committed migration at `supabase/migrations/`.
+- **Get it:** a Supabase project already exists — **"Humanitarian Operating
+  System (HOS)"**, ref `obgwvtnzclyaugmrjukk`. I just need its **pooler connection
+  string** (Dashboard → Project Settings → Database → Connection string →
+  *Transaction pooler*, with the DB password). Drop it into
+  `apps/web/.env.local` as `DATABASE_URL=` (gitignored) or hand it over.
 - **Cost:** Supabase free tier is fine for a pilot; ~$25/mo Pro for backups + no pausing.
 
 ## 4. Real user auth + roles ⬜ *(design + build — this is the big one)*

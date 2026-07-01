@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     enforceRateLimit(request, "verify", 60, 60_000);
     const body = await request.json().catch(() => ({}));
     const input = verificationSchema.parse(body);
-    const result = recordVerification(input);
+    const result = await recordVerification(input);
     return json(
       {
         verificationId: result.verification.id,

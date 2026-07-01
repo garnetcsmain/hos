@@ -22,8 +22,8 @@ const insertStmt = lazyStatement(
 
 /** Record an event. Caller should already be inside a transaction when the
  *  event accompanies a state change, so the two commit or roll back together. */
-export function appendEvent(event: NewEvent): void {
-  insertStmt().run(
+export async function appendEvent(event: NewEvent): Promise<void> {
+  await insertStmt().run(
     nowIso(),
     event.entityType,
     event.entityId,
@@ -33,8 +33,8 @@ export function appendEvent(event: NewEvent): void {
   );
 }
 
-export function eventsFor(entityType: EntityType, entityId: string): HosEvent[] {
-  const rows = db
+export async function eventsFor(entityType: EntityType, entityId: string): Promise<HosEvent[]> {
+  const rows = await db
     .prepare(
       `SELECT * FROM events WHERE entity_type = ? AND entity_id = ? ORDER BY id ASC`,
     )
@@ -44,16 +44,16 @@ export function eventsFor(entityType: EntityType, entityId: string): HosEvent[] 
 
 /** All events for any of the given entity ids, oldest first — used to build a
  *  cross-entity timeline (missing report + its candidates + notifications). */
-export function eventsForEntities(entityIds: string[]): HosEvent[] {
+export async function eventsForEntities(entityIds: string[]): Promise<HosEvent[]> {
   if (entityIds.length === 0) return [];
   const placeholders = entityIds.map(() => "?").join(", ");
-  const rows = db
+  const rows = await db
     .prepare(`SELECT * FROM events WHERE entity_id IN (${placeholders}) ORDER BY id ASC`)
     .all(...entityIds);
   return rows.map(mapEvent);
 }
 
-export function recentEvents(limit = 50): HosEvent[] {
-  const rows = db.prepare(`SELECT * FROM events ORDER BY id DESC LIMIT ?`).all(limit);
+export async function recentEvents(limit = 50): Promise<HosEvent[]> {
+  const rows = await db.prepare(`SELECT * FROM events ORDER BY id DESC LIMIT ?`).all(limit);
   return rows.map(mapEvent);
 }

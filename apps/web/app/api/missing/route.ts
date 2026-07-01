@@ -14,8 +14,8 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     enforceRateLimit(request, "missing:list", 90, 60_000);
-    ensureSeeded();
-    return json({ reports: listMissing().map(toPublicMissing) });
+    await ensureSeeded();
+    return json({ reports: (await listMissing()).map(toPublicMissing) });
   } catch (error) {
     return handleError(error);
   }

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     await requireCoordinator(request);
     enforceRateLimit(request, "coordination-write", 120, 60_000);
     const body = await request.json().catch(() => ({}));
-    const org = createOrg(orgCreateSchema.parse(body));
+    const org = await createOrg(orgCreateSchema.parse(body));
     return json({ org }, 201);
   } catch (error) {
     return handleError(error);

@@ -14,10 +14,10 @@ const STATUSES = new Set<MatchStatus>(["pending", "confirmed", "rejected"]);
 export async function GET(request: NextRequest) {
   try {
     await requireCoordinator(request);
-    ensureSeeded();
+    await ensureSeeded();
     const raw = request.nextUrl.searchParams.get("status");
     const status = raw && STATUSES.has(raw as MatchStatus) ? (raw as MatchStatus) : undefined;
-    return json({ candidates: listCandidateViews(status) });
+    return json({ candidates: await listCandidateViews(status) });
   } catch (error) {
     return handleError(error);
   }
