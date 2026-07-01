@@ -1,0 +1,63 @@
+decision_id: "HOS-2026-007"
+phase: "judge_synthesis"
+date: "2026-07-01"
+judge: "Judge Agent"
+board_inputs_considered: [contrarian, expansionist, principals, researcher, user]
+
+verdict: "RESHAPE"
+approved_option: "B-thin-slice-reuse-spine"
+confidence: 0.82
+
+rationale: >
+  The board is unanimous in direction: coordination is a real, promised, standing
+  need (Expansionist's wedge->platform, Researcher's 3W/Sahana/HXL precedent,
+  User's Yoli/Marcos day), and it should start now on the smallest honest surface
+  that reuses the existing spine — NOT the full platform. Every reviewer converged
+  on Option B and rejected Option A. Option A (dispatch/routing now) is a KILL for
+  this cycle: it adds real-world safety, consent, and identity obligations on top
+  of the shared-token auth we have not yet replaced (HOS-2026-001-08). Three
+  harms recur across reviews and become hard conditions: (1) a public needs/site
+  board is a targeting map for a vulnerable population (Contrarian CRITICAL, User,
+  Researcher threat-model, echoing D3); (2) a "fulfilled" state written without a
+  real confirmation repeats the D4 false-delivery harm one layer up (Contrarian,
+  Principals, User); (3) stale data is wrong information and the #1 documented
+  failure of coordination boards (Researcher, User, Principals "information before
+  interfaces"). The one thing I cannot certify in advance is that a second epic
+  will not slow the unfinished Phase 0 mission (Contrarian F1, Principals logic
+  #2) — so the slice is approved only as a structurally pausable, non-reprioritizing
+  track. The human principal has explicitly accepted the mission tradeoff and asked
+  to start now; that is recorded, and the reshape keeps the slice small enough that
+  the acceptance is low-regret.
+
+conditions:
+  - "SCOPE: build only `sites` (capacity: free/total, updated_at) and `needs` (category, quantity, district, urgency, status), plus an optional `supply`/offer and an advisory needs<->supply match. NO volunteer dispatch, NO routing, NO auto-fulfillment, NO new external dependency, NO map/geo (that stays on HOS-2026-001-10). Reuse the repository layer, append-only event store, coordinator gate, and offline SQLite."
+  - "COORDINATOR-ONLY + COARSE LOCATION: every coordination read/write is behind the coordinator gate; expose district-level location only, never a precise site address; there is NO public/unauthenticated coordination endpoint in this slice (Contrarian F2, User, D3 threat-model still open)."
+  - "HONEST STATE: need status transitions open -> claimed -> received require a recorded human confirmation with an attributable actor, and RECEIPT is confirmed by the requesting site, not the claiming org. Never write 'fulfilled/received' optimistically (Contrarian F3, User missing-piece, D4 precedent). Every transition is an append-only event."
+  - "FRESHNESS: capacity and needs carry updated_at and a staleness/expiry signal surfaced in the UI; a stale item must read as stale, not as truth (Researcher #1 failure mode, User friction 4)."
+  - "MODEL ORG/ACTOR NOW: seed real org/actor entities in this slice while data is small, paying the debt D2/D3 already named, so multi-org coordination is not a later retrofit (Expansionist bottleneck, Principals debt)."
+  - "MISSION GATE: this epic must be structurally independent and pausable — it must not reprioritize or regress the Phase 0 reunification finish line. If capacity conflicts, Phase 0 wins (AGENTS.md §7)."
+  - "MINIMAL, OFFLINE-TOLERANT ENTRY: posting a need/capacity must be a few fields, usable on a poor connection, or coordinators stay on WhatsApp (User friction 1)."
+
+deferred_to_later_gate:
+  - "Volunteer dispatch / task assignment to named individuals (needs real auth + a consent/safety model) — do NOT build under the shared token."
+  - "Any public or aggregated/de-identified situational feed for funders/clusters — requires the D3 threat-model sign-off first."
+  - "Needs dedup/merge and cross-org interop export (open schema) — valuable (Expansionist moat) but follow-on, not first-slice."
+  - "Geo/map surface — remains HOS-2026-001-10."
+
+next_gate: >
+  Re-review after the sites + needs slice lands: confirm honest-state transitions
+  and freshness work, confirm Phase 0 did not regress, and re-decide the public/
+  aggregated feed and volunteer dispatch as their own gated decisions. Do not wire
+  any external channel or public surface before that review.
+
+escalate_to_human:
+  - "Recorded: the human principal accepted spending build capacity on Phase 1 coordination before Phase 0 ships. The reshape keeps that low-regret by capping the slice; flag if scope grows beyond sites+needs."
+  - "The Venezuela-2026 threat model (are targeted-violence adversaries in scope?) — still open from D3 and now doubly decisive, since it sets whether any coordination view can ever be public."
+
+overall: >
+  GREEN light for a thin, coordinator-only, honest-state coordination slice
+  (sites + needs + supplies match) built on the existing spine; KILL for the
+  full-platform / dispatch option this cycle. Coordination is the right next
+  layer, but it earns scale only if it starts small, never exposes where the
+  vulnerable are, never claims aid that did not arrive, and never steals the
+  oxygen the reunification mission still needs to ship.
