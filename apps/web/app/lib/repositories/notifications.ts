@@ -8,8 +8,8 @@ const insertStmt = lazyStatement(
    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
-export function insertNotification(notification: Notification): void {
-  insertStmt().run(
+export async function insertNotification(notification: Notification): Promise<void> {
+  await insertStmt().run(
     notification.id,
     notification.createdAt,
     notification.missingId,
@@ -22,23 +22,25 @@ export function insertNotification(notification: Notification): void {
   );
 }
 
-export function getNotification(id: string): Notification | null {
-  const row = db.prepare(`SELECT * FROM notifications WHERE id = ?`).get(id);
+export async function getNotification(id: string): Promise<Notification | null> {
+  const row = await db.prepare(`SELECT * FROM notifications WHERE id = ?`).get(id);
   return row ? mapNotification(row) : null;
 }
 
-export function listNotifications(limit = 100): Notification[] {
-  const rows = db
+export async function listNotifications(limit = 100): Promise<Notification[]> {
+  const rows = await db
     .prepare(`SELECT * FROM notifications ORDER BY created_at DESC LIMIT ?`)
     .all(limit);
   return rows.map(mapNotification);
 }
 
-export function setNotificationStatus(id: string, status: NotificationStatus): void {
-  db.prepare(`UPDATE notifications SET status = ? WHERE id = ?`).run(status, id);
+export async function setNotificationStatus(id: string, status: NotificationStatus): Promise<void> {
+  await db.prepare(`UPDATE notifications SET status = ? WHERE id = ?`).run(status, id);
 }
 
-export function countNotifications(): number {
-  const row = db.prepare(`SELECT COUNT(*) AS n FROM notifications`).get() as { n: number };
-  return Number(row.n);
+export async function countNotifications(): Promise<number> {
+  const row = (await db.prepare(`SELECT COUNT(*) AS n FROM notifications`).get()) as
+    | { n: number }
+    | undefined;
+  return Number(row?.n ?? 0);
 }

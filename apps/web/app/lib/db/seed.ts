@@ -229,12 +229,12 @@ function buildFound(seed: FoundSeed): FoundReport {
 }
 
 /** Insert the scenario and run the matcher. Assumes an empty database. */
-export function seedDatabase(): { missing: number; found: number; newCandidates: number } {
-  transaction(() => {
+export async function seedDatabase(): Promise<{ missing: number; found: number; newCandidates: number }> {
+  await transaction(async () => {
     for (const seed of MISSING) {
       const report = buildMissing(seed);
-      insertMissing(report);
-      appendEvent({
+      await insertMissing(report);
+      await appendEvent({
         entityType: "missing_report",
         entityId: report.id,
         type: "report.created",
@@ -244,8 +244,8 @@ export function seedDatabase(): { missing: number; found: number; newCandidates:
     }
     for (const seed of FOUND) {
       const report = buildFound(seed);
-      insertFound(report);
-      appendEvent({
+      await insertFound(report);
+      await appendEvent({
         entityType: "found_report",
         entityId: report.id,
         type: "report.created",
@@ -255,25 +255,30 @@ export function seedDatabase(): { missing: number; found: number; newCandidates:
     }
   });
 
-  const { newCandidates } = recomputeAll();
+  const { newCandidates } = await recomputeAll();
   return { missing: MISSING.length, found: FOUND.length, newCandidates };
 }
 
-export function seedIfEmpty(): boolean {
-  if (countMissing() > 0 || countFound() > 0) return false;
-  seedDatabase();
+export async function seedIfEmpty(): Promise<boolean> {
+  if ((await countMissing()) > 0 || (await countFound()) > 0) return false;
+  await seedDatabase();
   return true;
 }
 
-let ensured = false;
+// Memoized so concurrent first requests share one seed run: the "is it empty?"
+// check and the inserts are no longer a single synchronous unit, so without this
+// two racing requests could both see an empty DB and seed twice.
+let ensurePromise: Promise<void> | null = null;
 /** Cheap guard used by routes so the app is populated on first run in dev. */
-export function ensureSeeded(): void {
-  if (ensured) return;
-  ensured = true;
-  try {
-    seedIfEmpty();
-    seedCoordinationIfEmpty();
-  } catch (error) {
-    console.error("[hos] seed failed:", error);
-  }
+export function ensureSeeded(): Promise<void> {
+  return (ensurePromise ??= (async () => {
+    try {
+      await seedIfEmpty();
+      await seedCoordinationIfEmpty();
+    } catch (error) {
+      console.error("[hos] seed failed:", error);
+      // Don't cache a failed seed — let a later request retry.
+      ensurePromise = null;
+    }
+  })());
 }

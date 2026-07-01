@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     await requireCoordinator(request);
-    return json(recomputeAll());
+    return json(await recomputeAll());
   } catch (error) {
     return handleError(error);
   }

@@ -22,68 +22,68 @@ function hoursAgo(h: number): string {
   return new Date(Date.parse(nowIso()) - h * 3_600_000).toISOString();
 }
 
-export function seedCoordinationIfEmpty(): boolean {
-  if (countOrgs() > 0) return false;
+export async function seedCoordinationIfEmpty(): Promise<boolean> {
+  if ((await countOrgs()) > 0) return false;
 
-  transaction(() => {
+  await transaction(async () => {
     const now = nowIso();
-    const org = (name: string, kind: string) => {
+    const org = async (name: string, kind: string) => {
       const id = newOrgId();
-      insertOrg({ id, createdAt: now, name, kind: kind as never });
+      await insertOrg({ id, createdAt: now, name, kind: kind as never });
       return id;
     };
 
-    const cruzRoja = org("Cruz Roja", "ngo");
-    const refMaiquetia = org("Refugio Maiquetía", "shelter");
-    const hospitalVargas = org("Hospital Vargas", "hospital");
-    const proteccionCivil = org("Protección Civil", "government");
+    const cruzRoja = await org("Cruz Roja", "ngo");
+    const refMaiquetia = await org("Refugio Maiquetía", "shelter");
+    const hospitalVargas = await org("Hospital Vargas", "hospital");
+    const proteccionCivil = await org("Protección Civil", "government");
 
     const siteMaiquetia = newSiteId();
     const siteLaGuaira = newSiteId();
-    insertSite({
+    await insertSite({
       id: siteMaiquetia, createdAt: now, updatedAt: now, name: "Refugio Maiquetía 12",
       orgId: refMaiquetia, district: "Maiquetía", bedsTotal: 60, bedsFree: 8, status: "active",
       notes: "Familias con niños; falta fórmula infantil.",
     });
-    insertSite({
+    await insertSite({
       id: siteLaGuaira, createdAt: hoursAgo(30), updatedAt: hoursAgo(30), name: "Refugio La Guaira",
       orgId: proteccionCivil, district: "La Guaira", bedsTotal: 80, bedsFree: 25, status: "active",
       notes: "Capacidad no confirmada desde ayer.",
     });
-    insertSite({
+    await insertSite({
       id: newSiteId(), createdAt: now, updatedAt: now, name: "Albergue Catia",
       orgId: cruzRoja, district: "Caracas", bedsTotal: 40, bedsFree: 0, status: "active", notes: "",
     });
 
-    const need = (over: Record<string, unknown>) => {
+    const need = async (over: Record<string, unknown>) => {
       const id = newNeedId();
-      insertNeed({
+      await insertNeed({
         id, createdAt: now, updatedAt: now, orgId: refMaiquetia, siteId: null,
         district: "Maiquetía", category: "other", quantity: 1, unit: "", urgency: "normal",
         status: "open", claimedByOrgId: null, notes: "", ...over,
       } as never);
-      appendEvent({ entityType: "need", entityId: id, type: "need.posted", actor: "org:seed", payload: {} });
+      await appendEvent({ entityType: "need", entityId: id, type: "need.posted", actor: "org:seed", payload: {} });
       return id;
     };
 
-    need({ siteId: siteMaiquetia, category: "formula", quantity: 30, unit: "latas", urgency: "critical", notes: "Fórmula 0-6 meses" });
-    need({ siteId: siteMaiquetia, category: "water", quantity: 500, unit: "L", urgency: "high" });
-    need({ orgId: proteccionCivil, siteId: siteLaGuaira, district: "La Guaira", category: "medical", quantity: 20, unit: "dosis", urgency: "high", notes: "Insulina", updatedAt: hoursAgo(28) });
-    need({ orgId: cruzRoja, district: "Caracas", category: "food", quantity: 200, unit: "raciones", urgency: "normal", status: "claimed", claimedByOrgId: proteccionCivil });
+    await need({ siteId: siteMaiquetia, category: "formula", quantity: 30, unit: "latas", urgency: "critical", notes: "Fórmula 0-6 meses" });
+    await need({ siteId: siteMaiquetia, category: "water", quantity: 500, unit: "L", urgency: "high" });
+    await need({ orgId: proteccionCivil, siteId: siteLaGuaira, district: "La Guaira", category: "medical", quantity: 20, unit: "dosis", urgency: "high", notes: "Insulina", updatedAt: hoursAgo(28) });
+    await need({ orgId: cruzRoja, district: "Caracas", category: "food", quantity: 200, unit: "raciones", urgency: "normal", status: "claimed", claimedByOrgId: proteccionCivil });
 
-    const offer = (over: Record<string, unknown>) => {
+    const offer = async (over: Record<string, unknown>) => {
       const id = newOfferId();
-      insertOffer({
+      await insertOffer({
         id, createdAt: now, updatedAt: now, orgId: cruzRoja, district: "Maiquetía",
         category: "other", quantity: 1, unit: "", status: "available", notes: "", ...over,
       } as never);
-      appendEvent({ entityType: "offer", entityId: id, type: "offer.posted", actor: "org:seed", payload: {} });
+      await appendEvent({ entityType: "offer", entityId: id, type: "offer.posted", actor: "org:seed", payload: {} });
       return id;
     };
 
-    offer({ category: "water", quantity: 1000, unit: "L", district: "Maiquetía" });
-    offer({ orgId: proteccionCivil, category: "food", quantity: 300, unit: "raciones", district: "Caracas" });
-    offer({ orgId: hospitalVargas, category: "medical", quantity: 50, unit: "dosis", district: "La Guaira", notes: "Insulina disponible" });
+    await offer({ category: "water", quantity: 1000, unit: "L", district: "Maiquetía" });
+    await offer({ orgId: proteccionCivil, category: "food", quantity: 300, unit: "raciones", district: "Caracas" });
+    await offer({ orgId: hospitalVargas, category: "medical", quantity: 50, unit: "dosis", district: "La Guaira", notes: "Insulina disponible" });
   });
 
   return true;

@@ -15,12 +15,16 @@ const { insertNotification, getNotification } = await import("../repositories/no
 const { eventsForEntities } = await import("../repositories/events.ts");
 const { recordVerification } = await import("./verification.ts");
 const { recordFamilyReach, FAMILY_REACH_CHANNEL } = await import("./familyReach.ts");
+const { resetAllTablesForTests } = await import("../db/testing.ts");
+
+// Clean slate so this suite is re-runnable against a shared Postgres too.
+await resetAllTablesForTests();
 
 const NOW = "2026-06-30T00:00:00Z";
 
 /** Seed a pending candidate ready to confirm. Unique suffix per test so the
  *  shared in-memory DB does not collide across tests. */
-function seedPair(suffix: string, condition: Condition = "alive") {
+async function seedPair(suffix: string, condition: Condition = "alive") {
   const missing: MissingReport = {
     id: `MP-${suffix}`,
     createdAt: NOW,
@@ -73,9 +77,9 @@ function seedPair(suffix: string, condition: Condition = "alive") {
     status: "pending",
     model: "rule-engine@v1",
   };
-  insertMissing(missing);
-  insertFound(found);
-  upsertCandidate(candidate);
+  await insertMissing(missing);
+  await insertFound(found);
+  await upsertCandidate(candidate);
   return { missing, found, candidate };
 }
 
@@ -90,27 +94,27 @@ function confirm(candidateId: string) {
   });
 }
 
-test("confirm creates a 'matched' case and a queued obligation, NOT resolved", () => {
-  const { missing, found, candidate } = seedPair("A");
-  const result = confirm(candidate.id);
+test("confirm creates a 'matched' case and a queued obligation, NOT resolved", async () => {
+  const { missing, found, candidate } = await seedPair("A");
+  const result = await confirm(candidate.id);
 
   assert.equal(result.confirmed, true);
   assert.equal(result.resolved, false, "a confirm must not resolve the case");
   assert.ok(result.notificationId);
 
-  assert.equal(getMissing(missing.id)?.status, "matched");
-  assert.equal(getFound(found.id)?.status, "matched");
+  assert.equal((await getMissing(missing.id))?.status, "matched");
+  assert.equal((await getFound(found.id))?.status, "matched");
 
-  const obligation = getNotification(result.notificationId!);
+  const obligation = await getNotification(result.notificationId!);
   assert.equal(obligation?.channel, FAMILY_REACH_CHANNEL);
   assert.equal(obligation?.status, "queued");
 });
 
-test("reaching the family resolves the case and writes the real receipt", () => {
-  const { missing, found, candidate } = seedPair("B");
-  const { notificationId } = confirm(candidate.id);
+test("reaching the family resolves the case and writes the real receipt", async () => {
+  const { missing, found, candidate } = await seedPair("B");
+  const { notificationId } = await confirm(candidate.id);
 
-  const reach = recordFamilyReach({
+  const reach = await recordFamilyReach({
     notificationId: notificationId!,
     outcome: "reached",
     coordinatorOrg: "Cruz Roja",
@@ -119,19 +123,19 @@ test("reaching the family resolves the case and writes the real receipt", () => 
 
   assert.equal(reach.resolved, true);
   assert.equal(reach.status, "delivered");
-  assert.equal(getNotification(notificationId!)?.status, "delivered");
-  assert.equal(getMissing(missing.id)?.status, "resolved");
-  assert.equal(getFound(found.id)?.status, "resolved");
+  assert.equal((await getNotification(notificationId!))?.status, "delivered");
+  assert.equal((await getMissing(missing.id))?.status, "resolved");
+  assert.equal((await getFound(found.id))?.status, "resolved");
 
-  const types = eventsForEntities([notificationId!]).map((e) => e.type);
+  const types = (await eventsForEntities([notificationId!])).map((e) => e.type);
   assert.ok(types.includes("family.reached"), "a real receipt event is written");
 });
 
-test("an unreachable attempt is tracked and leaves the case matched", () => {
-  const { missing, candidate } = seedPair("C");
-  const { notificationId } = confirm(candidate.id);
+test("an unreachable attempt is tracked and leaves the case matched", async () => {
+  const { missing, candidate } = await seedPair("C");
+  const { notificationId } = await confirm(candidate.id);
 
-  const reach = recordFamilyReach({
+  const reach = await recordFamilyReach({
     notificationId: notificationId!,
     outcome: "unreachable",
     coordinatorOrg: "Cruz Roja",
@@ -139,15 +143,15 @@ test("an unreachable attempt is tracked and leaves the case matched", () => {
   });
 
   assert.equal(reach.resolved, false);
-  assert.equal(getNotification(notificationId!)?.status, "queued", "obligation stays open for retry");
-  assert.equal(getMissing(missing.id)?.status, "matched", "case is not resolved by a failed attempt");
+  assert.equal((await getNotification(notificationId!))?.status, "queued", "obligation stays open for retry");
+  assert.equal((await getMissing(missing.id))?.status, "matched", "case is not resolved by a failed attempt");
 
-  const types = eventsForEntities([notificationId!]).map((e) => e.type);
+  const types = (await eventsForEntities([notificationId!])).map((e) => e.type);
   assert.ok(types.includes("family.reach_attempted"));
 });
 
-test("recordFamilyReach rejects a notification that is not an obligation", () => {
-  insertNotification({
+test("recordFamilyReach rejects a notification that is not an obligation", async () => {
+  await insertNotification({
     id: "NT-NOTOBLIG",
     createdAt: NOW,
     missingId: "MP-A",
@@ -158,7 +162,7 @@ test("recordFamilyReach rejects a notification that is not an obligation", () =>
     subject: "s",
     body: "b",
   });
-  assert.throws(() =>
+  await assert.rejects(
     recordFamilyReach({
       notificationId: "NT-NOTOBLIG",
       outcome: "reached",

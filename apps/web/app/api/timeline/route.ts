@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     await requireCoordinator(request);
     const missingId = request.nextUrl.searchParams.get("missingId");
     if (!missingId) throw badRequest("missingId is required");
-    return json({ missingId, events: missingTimeline(missingId) });
+    return json({ missingId, events: await missingTimeline(missingId) });
   } catch (error) {
     return handleError(error);
   }

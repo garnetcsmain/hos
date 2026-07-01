@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     await requireCoordinator(request);
-    return json({ notifications: listNotifications() });
+    return json({ notifications: await listNotifications() });
   } catch (error) {
     return handleError(error);
   }

@@ -11,8 +11,8 @@ const insertStmt = lazyStatement(
    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
-export function insertFound(report: FoundReport): void {
-  insertStmt().run(
+export async function insertFound(report: FoundReport): Promise<void> {
+  await insertStmt().run(
     report.id,
     report.createdAt,
     report.updatedAt,
@@ -34,37 +34,39 @@ export function insertFound(report: FoundReport): void {
   );
 }
 
-export function getFound(id: string): FoundReport | null {
-  const row = db.prepare(`SELECT * FROM found_reports WHERE id = ?`).get(id);
+export async function getFound(id: string): Promise<FoundReport | null> {
+  const row = await db.prepare(`SELECT * FROM found_reports WHERE id = ?`).get(id);
   return row ? mapFound(row) : null;
 }
 
-export function listFound(status?: ReportStatus): FoundReport[] {
+export async function listFound(status?: ReportStatus): Promise<FoundReport[]> {
   const rows = status
-    ? db.prepare(`SELECT * FROM found_reports WHERE status = ? ORDER BY created_at DESC`).all(status)
-    : db.prepare(`SELECT * FROM found_reports ORDER BY created_at DESC`).all();
+    ? await db.prepare(`SELECT * FROM found_reports WHERE status = ? ORDER BY created_at DESC`).all(status)
+    : await db.prepare(`SELECT * FROM found_reports ORDER BY created_at DESC`).all();
   return rows.map(mapFound);
 }
 
 /** Found reports still available to match. A "matched" report has a
  *  human-confirmed link awaiting family contact, so it leaves the active pool
  *  alongside "resolved" ones. */
-export function openFound(): FoundReport[] {
-  const rows = db
+export async function openFound(): Promise<FoundReport[]> {
+  const rows = await db
     .prepare(`SELECT * FROM found_reports WHERE status NOT IN ('resolved', 'matched') ORDER BY created_at DESC`)
     .all();
   return rows.map(mapFound);
 }
 
-export function setFoundStatus(id: string, status: ReportStatus): void {
-  db.prepare(`UPDATE found_reports SET status = ?, updated_at = ? WHERE id = ?`).run(
+export async function setFoundStatus(id: string, status: ReportStatus): Promise<void> {
+  await db.prepare(`UPDATE found_reports SET status = ?, updated_at = ? WHERE id = ?`).run(
     status,
     nowIso(),
     id,
   );
 }
 
-export function countFound(): number {
-  const row = db.prepare(`SELECT COUNT(*) AS n FROM found_reports`).get() as { n: number };
-  return Number(row.n);
+export async function countFound(): Promise<number> {
+  const row = (await db.prepare(`SELECT COUNT(*) AS n FROM found_reports`).get()) as
+    | { n: number }
+    | undefined;
+  return Number(row?.n ?? 0);
 }

@@ -38,19 +38,20 @@ interface CandidatePair {
   found: FoundReport;
 }
 
-function join(candidate: MatchCandidate): CandidatePair | null {
-  const missing = getMissing(candidate.missingId);
-  const found = getFound(candidate.foundId);
+async function join(candidate: MatchCandidate): Promise<CandidatePair | null> {
+  const missing = await getMissing(candidate.missingId);
+  const found = await getFound(candidate.foundId);
   if (!missing || !found) return null;
   return { candidate, missing, found };
 }
 
 /** Names of all currently-open reports (both sides) — the pool a name could be
  *  confused within. Loaded once per request, not once per candidate. */
-function openNamePool(): Array<{ id: string; fullName: string }> {
+async function openNamePool(): Promise<Array<{ id: string; fullName: string }>> {
+  const [missing, found] = await Promise.all([openMissing(), openFound()]);
   return [
-    ...openMissing().map((r) => ({ id: r.id, fullName: r.fullName })),
-    ...openFound().map((r) => ({ id: r.id, fullName: r.fullName })),
+    ...missing.map((r) => ({ id: r.id, fullName: r.fullName })),
+    ...found.map((r) => ({ id: r.id, fullName: r.fullName })),
   ];
 }
 
@@ -64,21 +65,23 @@ function withBaseRate(
   return { ...pair, nameBaseRate: countSharedName(pair.missing.fullName, otherNames) };
 }
 
-export function listCandidateViews(status?: MatchStatus): CandidateView[] {
-  const pairs = listCandidates(status)
-    .map(join)
-    .filter((pair): pair is CandidatePair => pair !== null);
-  const pool = openNamePool();
+export async function listCandidateViews(status?: MatchStatus): Promise<CandidateView[]> {
+  const candidates = await listCandidates(status);
+  const pairs = (await Promise.all(candidates.map(join))).filter(
+    (pair): pair is CandidatePair => pair !== null,
+  );
+  const pool = await openNamePool();
   return pairs.map((pair) => withBaseRate(pair, pool));
 }
 
 /** Full timeline for a case: the missing report, every candidate it spawned,
  *  the linked found reports, and any verifications — oldest first. */
-export function missingTimeline(missingId: string): HosEvent[] {
-  const candidates = candidatesForMissing(missingId);
-  const verificationIds = candidates.flatMap((c) =>
-    verificationsForCandidate(c.id).map((v) => v.id),
+export async function missingTimeline(missingId: string): Promise<HosEvent[]> {
+  const candidates = await candidatesForMissing(missingId);
+  const verificationLists = await Promise.all(
+    candidates.map((c) => verificationsForCandidate(c.id)),
   );
+  const verificationIds = verificationLists.flat().map((v) => v.id);
   const ids = [
     missingId,
     ...candidates.map((c) => c.id),
@@ -88,15 +91,15 @@ export function missingTimeline(missingId: string): HosEvent[] {
   return eventsForEntities(Array.from(new Set(ids)));
 }
 
-export function candidateDetail(candidateId: string): CandidateDetail | null {
-  const candidate = getCandidate(candidateId);
+export async function candidateDetail(candidateId: string): Promise<CandidateDetail | null> {
+  const candidate = await getCandidate(candidateId);
   if (!candidate) return null;
-  const pair = join(candidate);
+  const pair = await join(candidate);
   if (!pair) return null;
-  const view = withBaseRate(pair, openNamePool());
+  const view = withBaseRate(pair, await openNamePool());
   return {
     ...view,
-    verifications: verificationsForCandidate(candidate.id),
-    timeline: missingTimeline(candidate.missingId),
+    verifications: await verificationsForCandidate(candidate.id),
+    timeline: await missingTimeline(candidate.missingId),
   };
 }

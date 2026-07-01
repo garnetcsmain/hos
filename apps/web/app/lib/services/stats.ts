@@ -17,14 +17,16 @@ export interface DashboardStats {
   recentEvents: HosEvent[];
 }
 
-export function dashboardStats(): DashboardStats {
-  return {
-    missing: countMissing(),
-    found: countFound(),
-    candidates: countCandidates(),
-    pending: countCandidates("pending"),
-    confirmed: countCandidates("confirmed"),
-    notifications: countNotifications(),
-    recentEvents: recentEvents(12),
-  };
+export async function dashboardStats(): Promise<DashboardStats> {
+  const [missing, found, candidates, pending, confirmed, notifications, events] =
+    await Promise.all([
+      countMissing(),
+      countFound(),
+      countCandidates(),
+      countCandidates("pending"),
+      countCandidates("confirmed"),
+      countNotifications(),
+      recentEvents(12),
+    ]);
+  return { missing, found, candidates, pending, confirmed, notifications, recentEvents: events };
 }

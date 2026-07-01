@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   try {
     enforceRateLimit(request, "search", 60, 60_000);
     const query = request.nextUrl.searchParams.get("q") ?? "";
-    return json(searchPublic(query));
+    return json(await searchPublic(query));
   } catch (error) {
     return handleError(error);
   }

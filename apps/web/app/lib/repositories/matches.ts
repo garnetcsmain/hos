@@ -17,8 +17,8 @@ const upsertStmt = lazyStatement(
 /** Insert a candidate, or refresh its score/evidence if the pair already
  *  exists. A human decision (status) is intentionally preserved on conflict —
  *  recomputing the score must never resurrect a rejected match. */
-export function upsertCandidate(candidate: MatchCandidate): void {
-  upsertStmt().run(
+export async function upsertCandidate(candidate: MatchCandidate): Promise<void> {
+  await upsertStmt().run(
     candidate.id,
     candidate.createdAt,
     candidate.updatedAt,
@@ -31,38 +31,38 @@ export function upsertCandidate(candidate: MatchCandidate): void {
   );
 }
 
-export function getCandidate(id: string): MatchCandidate | null {
-  const row = db.prepare(`SELECT * FROM match_candidates WHERE id = ?`).get(id);
+export async function getCandidate(id: string): Promise<MatchCandidate | null> {
+  const row = await db.prepare(`SELECT * FROM match_candidates WHERE id = ?`).get(id);
   return row ? mapCandidate(row) : null;
 }
 
-export function listCandidates(status?: MatchStatus): MatchCandidate[] {
+export async function listCandidates(status?: MatchStatus): Promise<MatchCandidate[]> {
   const rows = status
-    ? db.prepare(`SELECT * FROM match_candidates WHERE status = ? ORDER BY score DESC`).all(status)
-    : db.prepare(`SELECT * FROM match_candidates ORDER BY score DESC`).all();
+    ? await db.prepare(`SELECT * FROM match_candidates WHERE status = ? ORDER BY score DESC`).all(status)
+    : await db.prepare(`SELECT * FROM match_candidates ORDER BY score DESC`).all();
   return rows.map(mapCandidate);
 }
 
-export function candidatesForMissing(missingId: string): MatchCandidate[] {
-  const rows = db
+export async function candidatesForMissing(missingId: string): Promise<MatchCandidate[]> {
+  const rows = await db
     .prepare(`SELECT * FROM match_candidates WHERE missing_id = ? ORDER BY score DESC`)
     .all(missingId);
   return rows.map(mapCandidate);
 }
 
-export function setCandidateStatus(id: string, status: MatchStatus): void {
-  db.prepare(`UPDATE match_candidates SET status = ?, updated_at = ? WHERE id = ?`).run(
+export async function setCandidateStatus(id: string, status: MatchStatus): Promise<void> {
+  await db.prepare(`UPDATE match_candidates SET status = ?, updated_at = ? WHERE id = ?`).run(
     status,
     nowIso(),
     id,
   );
 }
 
-export function countCandidates(status?: MatchStatus): number {
+export async function countCandidates(status?: MatchStatus): Promise<number> {
   const row = (
     status
-      ? db.prepare(`SELECT COUNT(*) AS n FROM match_candidates WHERE status = ?`).get(status)
-      : db.prepare(`SELECT COUNT(*) AS n FROM match_candidates`).get()
-  ) as { n: number };
-  return Number(row.n);
+      ? await db.prepare(`SELECT COUNT(*) AS n FROM match_candidates WHERE status = ?`).get(status)
+      : await db.prepare(`SELECT COUNT(*) AS n FROM match_candidates`).get()
+  ) as { n: number } | undefined;
+  return Number(row?.n ?? 0);
 }

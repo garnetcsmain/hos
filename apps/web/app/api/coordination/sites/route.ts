@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     await requireCoordinator(request);
     enforceRateLimit(request, "coordination-write", 120, 60_000);
     const body = await request.json().catch(() => ({}));
-    const site = createSite(siteCreateSchema.parse(body));
+    const site = await createSite(siteCreateSchema.parse(body));
     return json({ site }, 201);
   } catch (error) {
     return handleError(error);
@@ -25,7 +25,7 @@ export async function PATCH(request: NextRequest) {
     await requireCoordinator(request);
     enforceRateLimit(request, "coordination-write", 120, 60_000);
     const body = await request.json().catch(() => ({}));
-    const site = updateSiteCapacity(siteUpdateSchema.parse(body));
+    const site = await updateSiteCapacity(siteUpdateSchema.parse(body));
     return json({ site });
   } catch (error) {
     return handleError(error);

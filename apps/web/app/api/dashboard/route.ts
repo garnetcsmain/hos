@@ -11,8 +11,8 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     enforceRateLimit(request, "dashboard", 120, 60_000);
-    ensureSeeded();
-    return json({ ...dashboardStats(), aiEnabled: aiEnabled() });
+    await ensureSeeded();
+    return json({ ...(await dashboardStats()), aiEnabled: aiEnabled() });
   } catch (error) {
     return handleError(error);
   }

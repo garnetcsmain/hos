@@ -12,8 +12,8 @@ const insertStmt = lazyStatement(
    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
-export function insertMissing(report: MissingReport): void {
-  insertStmt().run(
+export async function insertMissing(report: MissingReport): Promise<void> {
+  await insertStmt().run(
     report.id,
     report.createdAt,
     report.updatedAt,
@@ -36,37 +36,39 @@ export function insertMissing(report: MissingReport): void {
   );
 }
 
-export function getMissing(id: string): MissingReport | null {
-  const row = db.prepare(`SELECT * FROM missing_reports WHERE id = ?`).get(id);
+export async function getMissing(id: string): Promise<MissingReport | null> {
+  const row = await db.prepare(`SELECT * FROM missing_reports WHERE id = ?`).get(id);
   return row ? mapMissing(row) : null;
 }
 
-export function listMissing(status?: ReportStatus): MissingReport[] {
+export async function listMissing(status?: ReportStatus): Promise<MissingReport[]> {
   const rows = status
-    ? db.prepare(`SELECT * FROM missing_reports WHERE status = ? ORDER BY created_at DESC`).all(status)
-    : db.prepare(`SELECT * FROM missing_reports ORDER BY created_at DESC`).all();
+    ? await db.prepare(`SELECT * FROM missing_reports WHERE status = ? ORDER BY created_at DESC`).all(status)
+    : await db.prepare(`SELECT * FROM missing_reports ORDER BY created_at DESC`).all();
   return rows.map(mapMissing);
 }
 
 /** Open reports still seeking a match. A "matched" case has a human-confirmed
  *  link awaiting family contact, so it is no longer actively matched (nor is a
  *  "resolved" one). */
-export function openMissing(): MissingReport[] {
-  const rows = db
+export async function openMissing(): Promise<MissingReport[]> {
+  const rows = await db
     .prepare(`SELECT * FROM missing_reports WHERE status NOT IN ('resolved', 'matched') ORDER BY created_at DESC`)
     .all();
   return rows.map(mapMissing);
 }
 
-export function setMissingStatus(id: string, status: ReportStatus): void {
-  db.prepare(`UPDATE missing_reports SET status = ?, updated_at = ? WHERE id = ?`).run(
+export async function setMissingStatus(id: string, status: ReportStatus): Promise<void> {
+  await db.prepare(`UPDATE missing_reports SET status = ?, updated_at = ? WHERE id = ?`).run(
     status,
     nowIso(),
     id,
   );
 }
 
-export function countMissing(): number {
-  const row = db.prepare(`SELECT COUNT(*) AS n FROM missing_reports`).get() as { n: number };
-  return Number(row.n);
+export async function countMissing(): Promise<number> {
+  const row = (await db.prepare(`SELECT COUNT(*) AS n FROM missing_reports`).get()) as
+    | { n: number }
+    | undefined;
+  return Number(row?.n ?? 0);
 }

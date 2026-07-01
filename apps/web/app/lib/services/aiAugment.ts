@@ -59,10 +59,10 @@ export async function augmentCandidates(candidateIds: string[]): Promise<number>
 
   let updated = 0;
   for (const id of candidateIds) {
-    const candidate = getCandidate(id);
+    const candidate = await getCandidate(id);
     if (!candidate || candidate.status !== "pending") continue;
-    const missing = getMissing(candidate.missingId);
-    const found = getFound(candidate.foundId);
+    const missing = await getMissing(candidate.missingId);
+    const found = await getFound(candidate.foundId);
     if (!missing || !found) continue;
 
     const input = toPairInput(missing, found);
@@ -72,16 +72,16 @@ export async function augmentCandidates(candidateIds: string[]): Promise<number>
     const baseline = scoreMatch(missing, found);
     const blended = blendScore(baseline.score, signals);
 
-    transaction(() => {
+    await transaction(async () => {
       if (usable.length > 0) {
-        upsertCandidate({
+        await upsertCandidate({
           ...candidate,
           score: blended.score,
           factors: [...baseline.factors, ...blended.factors],
           updatedAt: nowIso(),
         });
       }
-      appendEvent({
+      await appendEvent({
         entityType: "match",
         entityId: candidate.id,
         type: usable.length > 0 ? "match.ai_augmented" : "match.ai_failed",

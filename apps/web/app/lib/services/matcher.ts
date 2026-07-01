@@ -23,8 +23,13 @@ interface PairOutcome {
 /** Score one missing report against a set of found reports and persist the
  *  candidates at or above the floor. Returns the candidates that are new this
  *  run (so the caller can notify / surface them). Runs in one transaction. */
-function persistForMissing(missing: MissingReport, founds: FoundReport[]): MatchCandidate[] {
-  const existing = new Map(candidatesForMissing(missing.id).map((c) => [c.foundId, c]));
+async function persistForMissing(
+  missing: MissingReport,
+  founds: FoundReport[],
+): Promise<MatchCandidate[]> {
+  const existing = new Map(
+    (await candidatesForMissing(missing.id)).map((c) => [c.foundId, c]),
+  );
 
   const ranked = founds
     .map((found) => ({ found, result: scoreMatch(missing, found) }))
@@ -34,7 +39,7 @@ function persistForMissing(missing: MissingReport, founds: FoundReport[]): Match
 
   const outcomes: PairOutcome[] = [];
 
-  transaction(() => {
+  await transaction(async () => {
     for (const { found, result } of ranked) {
       const prior = existing.get(found.id);
       const now = nowIso();
@@ -49,17 +54,17 @@ function persistForMissing(missing: MissingReport, founds: FoundReport[]): Match
         status: prior?.status ?? "pending",
         model: MODEL_VERSION,
       };
-      upsertCandidate(candidate);
+      await upsertCandidate(candidate);
 
       if (!prior) {
-        appendEvent({
+        await appendEvent({
           entityType: "match",
           entityId: candidate.id,
           type: "match.suggested",
           actor: "system:matcher",
           payload: { missingId: missing.id, foundId: found.id, score: result.score, model: MODEL_VERSION },
         });
-        appendEvent({
+        await appendEvent({
           entityType: "missing_report",
           entityId: missing.id,
           type: "match.candidate_added",
@@ -71,7 +76,7 @@ function persistForMissing(missing: MissingReport, founds: FoundReport[]): Match
     }
 
     if (outcomes.length > 0 && missing.status === "open") {
-      setMissingStatus(missing.id, "candidate");
+      await setMissingStatus(missing.id, "candidate");
     }
   });
 
@@ -80,27 +85,27 @@ function persistForMissing(missing: MissingReport, founds: FoundReport[]): Match
 
 /** Recompute candidates for a single missing report against all open found
  *  reports. Returns newly suggested candidates. */
-export function recomputeForMissing(missing: MissingReport): MatchCandidate[] {
-  return persistForMissing(missing, openFound());
+export async function recomputeForMissing(missing: MissingReport): Promise<MatchCandidate[]> {
+  return persistForMissing(missing, await openFound());
 }
 
 /** Recompute candidates triggered by a new/updated found report: evaluate it
  *  against every open missing report. Returns newly suggested candidates. */
-export function recomputeForFound(found: FoundReport): MatchCandidate[] {
+export async function recomputeForFound(found: FoundReport): Promise<MatchCandidate[]> {
   const fresh: MatchCandidate[] = [];
-  for (const missing of openMissing()) {
-    fresh.push(...persistForMissing(missing, [found]));
+  for (const missing of await openMissing()) {
+    fresh.push(...(await persistForMissing(missing, [found])));
   }
   return fresh;
 }
 
 /** Full re-scan (used by seed and the manual "recompute" action). */
-export function recomputeAll(): { missing: number; newCandidates: number } {
-  const founds = openFound();
-  const missings = openMissing();
+export async function recomputeAll(): Promise<{ missing: number; newCandidates: number }> {
+  const founds = await openFound();
+  const missings = await openMissing();
   let newCandidates = 0;
   for (const missing of missings) {
-    newCandidates += persistForMissing(missing, founds).length;
+    newCandidates += (await persistForMissing(missing, founds)).length;
   }
   return { missing: missings.length, newCandidates };
 }

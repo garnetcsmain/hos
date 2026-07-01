@@ -50,9 +50,9 @@ export async function submitMissingReport(
     photoUrl: input.photoUrl,
   };
 
-  transaction(() => {
-    insertMissing(report);
-    appendEvent({
+  await transaction(async () => {
+    await insertMissing(report);
+    await appendEvent({
       entityType: "missing_report",
       entityId: report.id,
       type: "report.created",
@@ -61,7 +61,7 @@ export async function submitMissingReport(
     });
   });
 
-  const candidates = recomputeForMissing(report);
+  const candidates = await recomputeForMissing(report);
   await augmentBestEffort(candidates);
   return { report, candidates };
 }
@@ -91,9 +91,9 @@ export async function submitFoundReport(
     photoUrl: input.photoUrl,
   };
 
-  transaction(() => {
-    insertFound(report);
-    appendEvent({
+  await transaction(async () => {
+    await insertFound(report);
+    await appendEvent({
       entityType: "found_report",
       entityId: report.id,
       type: "report.created",
@@ -102,7 +102,7 @@ export async function submitFoundReport(
     });
   });
 
-  const candidates = recomputeForFound(report);
+  const candidates = await recomputeForFound(report);
   await augmentBestEffort(candidates);
   return { report, candidates };
 }

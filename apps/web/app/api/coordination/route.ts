@@ -13,8 +13,8 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     await requireCoordinator(request);
-    ensureSeeded();
-    return json(coordinationView());
+    await ensureSeeded();
+    return json(await coordinationView());
   } catch (error) {
     return handleError(error);
   }

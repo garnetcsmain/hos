@@ -59,8 +59,8 @@ export interface VerificationResult {
   notificationId: string | null;
 }
 
-export function recordVerification(input: VerificationInput): VerificationResult {
-  const candidate = getCandidate(input.candidateId);
+export async function recordVerification(input: VerificationInput): Promise<VerificationResult> {
+  const candidate = await getCandidate(input.candidateId);
   if (!candidate) throw notFound(`candidate ${input.candidateId} not found`);
 
   const verification: Verification = {
@@ -77,16 +77,16 @@ export function recordVerification(input: VerificationInput): VerificationResult
   let confirmed = false;
   let notificationId: string | null = null;
 
-  transaction(() => {
-    insertVerification(verification);
-    appendEvent({
+  await transaction(async () => {
+    await insertVerification(verification);
+    await appendEvent({
       entityType: "verification",
       entityId: verification.id,
       type: "verification.recorded",
       actor: `coordinator:${verification.verifierOrg}`,
       payload: { candidateId: candidate.id, decision: verification.decision, confidence: verification.confidence },
     });
-    appendEvent({
+    await appendEvent({
       entityType: "match",
       entityId: candidate.id,
       type: `match.${verification.decision}`,
@@ -95,37 +95,37 @@ export function recordVerification(input: VerificationInput): VerificationResult
     });
 
     if (input.decision === "confirmed") {
-      const missing = getMissing(candidate.missingId);
-      const found = getFound(candidate.foundId);
+      const missing = await getMissing(candidate.missingId);
+      const found = await getFound(candidate.foundId);
       if (!missing || !found) throw notFound("linked report missing for confirmed candidate");
 
-      setCandidateStatus(candidate.id, "confirmed");
+      await setCandidateStatus(candidate.id, "confirmed");
       // Not "resolved": the case becomes "matched" and stays out of the public
       // "Resuelto" state until a coordinator records that the family was
       // actually reached (Board HOS-2026-002-D4).
-      setMissingStatus(missing.id, "matched");
-      setFoundStatus(found.id, "matched");
+      await setMissingStatus(missing.id, "matched");
+      await setFoundStatus(found.id, "matched");
 
       const obligation = buildFamilyReachObligation(missing, found, candidate.id);
-      insertNotification(obligation);
+      await insertNotification(obligation);
       notificationId = obligation.id;
       confirmed = true;
 
-      appendEvent({
+      await appendEvent({
         entityType: "missing_report",
         entityId: missing.id,
         type: "report.matched",
         actor: `coordinator:${verification.verifierOrg}`,
         payload: { candidateId: candidate.id, foundId: found.id },
       });
-      appendEvent({
+      await appendEvent({
         entityType: "found_report",
         entityId: found.id,
         type: "report.matched",
         actor: `coordinator:${verification.verifierOrg}`,
         payload: { candidateId: candidate.id, missingId: missing.id },
       });
-      appendEvent({
+      await appendEvent({
         entityType: "notification",
         entityId: obligation.id,
         // Not "family.notified" — nothing reached the family. This is a QUEUED
@@ -136,7 +136,7 @@ export function recordVerification(input: VerificationInput): VerificationResult
         payload: { channel: obligation.channel, missingId: missing.id },
       });
     } else if (input.decision === "rejected") {
-      setCandidateStatus(candidate.id, "rejected");
+      await setCandidateStatus(candidate.id, "rejected");
     }
     // "needs_more" leaves the candidate pending for another reviewer.
   });

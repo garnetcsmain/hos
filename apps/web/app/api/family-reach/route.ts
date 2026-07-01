@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     enforceRateLimit(request, "family-reach", 60, 60_000);
     const body = await request.json().catch(() => ({}));
     const input = familyReachSchema.parse(body);
-    const result = recordFamilyReach(input);
+    const result = await recordFamilyReach(input);
     return json({ resolved: result.resolved, status: result.status }, 201);
   } catch (error) {
     return handleError(error);

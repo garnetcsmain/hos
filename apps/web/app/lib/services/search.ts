@@ -15,15 +15,17 @@ export interface PublicSearchResult {
 
 const LIMIT = 25;
 
-export function searchPublic(query: string): PublicSearchResult {
+export async function searchPublic(query: string): Promise<PublicSearchResult> {
   const q = normalizeText(query);
   if (q.length < 2) return { missing: [], found: [] };
 
-  const matchesMissing = listMissing().filter((report) => {
+  const [allMissing, allFound] = await Promise.all([listMissing(), listFound()]);
+
+  const matchesMissing = allMissing.filter((report) => {
     const haystack = normalizeText(`${report.fullName} ${report.city} ${report.id}`);
     return haystack.includes(q);
   });
-  const matchesFound = listFound().filter((report) => {
+  const matchesFound = allFound.filter((report) => {
     const haystack = normalizeText(`${report.fullName} ${report.city} ${report.id}`);
     return haystack.includes(q);
   });

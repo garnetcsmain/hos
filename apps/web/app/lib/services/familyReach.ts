@@ -73,8 +73,8 @@ export interface FamilyReachResult {
 /** Record the outcome of a family-reach obligation. Reaching the family is the
  *  only thing that resolves the case; an unreachable attempt is tracked (never
  *  silently dropped) and leaves the case awaiting another attempt. */
-export function recordFamilyReach(input: FamilyReachInput): FamilyReachResult {
-  const notification = getNotification(input.notificationId);
+export async function recordFamilyReach(input: FamilyReachInput): Promise<FamilyReachResult> {
+  const notification = await getNotification(input.notificationId);
   if (!notification) throw notFound(`notification ${input.notificationId} not found`);
   if (notification.channel !== FAMILY_REACH_CHANNEL) {
     throw badRequest("notification is not a family-reach obligation");
@@ -84,16 +84,16 @@ export function recordFamilyReach(input: FamilyReachInput): FamilyReachResult {
     return { resolved: true, status: "delivered" };
   }
 
-  const candidate = notification.candidateId ? getCandidate(notification.candidateId) : null;
+  const candidate = notification.candidateId ? await getCandidate(notification.candidateId) : null;
   const actor = `coordinator:${input.coordinatorOrg}`;
   let resolved = false;
   let status: NotificationStatus = notification.status;
 
-  transaction(() => {
+  await transaction(async () => {
     if (input.outcome === "reached") {
-      setNotificationStatus(notification.id, "delivered");
+      await setNotificationStatus(notification.id, "delivered");
       status = "delivered";
-      appendEvent({
+      await appendEvent({
         entityType: "notification",
         entityId: notification.id,
         // The real receipt: only ever written when a human actually reached the
@@ -104,8 +104,8 @@ export function recordFamilyReach(input: FamilyReachInput): FamilyReachResult {
       });
 
       // Now — and only now — the case becomes publicly "resolved".
-      setMissingStatus(notification.missingId, "resolved");
-      appendEvent({
+      await setMissingStatus(notification.missingId, "resolved");
+      await appendEvent({
         entityType: "missing_report",
         entityId: notification.missingId,
         type: "report.resolved",
@@ -113,8 +113,8 @@ export function recordFamilyReach(input: FamilyReachInput): FamilyReachResult {
         payload: { via: "family_reach", candidateId: candidate?.id ?? null },
       });
       if (candidate) {
-        setFoundStatus(candidate.foundId, "resolved");
-        appendEvent({
+        await setFoundStatus(candidate.foundId, "resolved");
+        await appendEvent({
           entityType: "found_report",
           entityId: candidate.foundId,
           type: "report.resolved",
@@ -126,7 +126,7 @@ export function recordFamilyReach(input: FamilyReachInput): FamilyReachResult {
     } else {
       // A failed attempt is a tracked fact, not a dropped one. The case stays
       // "matched" (out of matching, not yet resolved) for another attempt.
-      appendEvent({
+      await appendEvent({
         entityType: "notification",
         entityId: notification.id,
         type: "family.reach_attempted",

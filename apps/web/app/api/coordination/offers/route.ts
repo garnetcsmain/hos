@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     await requireCoordinator(request);
     enforceRateLimit(request, "coordination-write", 120, 60_000);
     const body = await request.json().catch(() => ({}));
-    const offer = createOffer(offerCreateSchema.parse(body));
+    const offer = await createOffer(offerCreateSchema.parse(body));
     return json({ offer }, 201);
   } catch (error) {
     return handleError(error);
