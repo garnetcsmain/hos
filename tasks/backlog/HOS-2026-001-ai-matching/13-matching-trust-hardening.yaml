@@ -14,7 +14,7 @@ due_date: "2026-07-08T23:59:59Z"
 estimated_hours: 10
 status: "in_progress"
 priority: "HIGH"
-progress_percent: 60
+progress_percent: 90
 epic_id: "HOS-2026-001"
 decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/judge-decision.yaml#HOS-2026-002-D1"
 depends_on: ["HOS-2026-001-01"]
@@ -22,14 +22,14 @@ requirements:
   - "DONE: AI blend clamped to the baseline ceiling (blend.ts) + test"
   - "DONE: free-text PII scrub before external calls (ai/redact.ts) + test"
   - "DONE: asymmetric-apellido robustness + surname-disagreement signal (similarity.ts) + tests"
-  - "TODO: base-rate signal — show 'N other open reports share this name' by each candidate"
-  - "TODO: relabel the bare % as a triage/sorting aid until calibrated on real outcomes"
+  - "DONE: base-rate signal — show 'N other open reports share this name' by each candidate (baseRate.ts + views.ts + MatchConsole UI) + tests"
+  - "DONE: relabel the bare % from 'Confianza' to 'Prioridad de revisión' (triage/sorting aid, not calibrated probability)"
 acceptance_criteria:
   - "AI can never raise a score above the deterministic baseline (DONE)"
   - "One-apellido-vs-two scores high; a different paternal apellido does not (DONE)"
-  - "Coordinator sees name-commonness context before trusting a high score (TODO)"
+  - "Coordinator sees name-commonness context before trusting a high score (DONE)"
 done_criteria:
-  - "Conditions implemented + tests; re-review after ~200 human verifications accrue (calibration)"
+  - "Conditions implemented + tests (DONE); re-review after ~200 human verifications accrue (calibration — data-gated, pending)"
 code_changes:
   - file: "apps/web/app/lib/ai/blend.ts"
     status: "done"
@@ -37,9 +37,24 @@ code_changes:
     status: "done"
   - file: "apps/web/app/lib/matching/similarity.ts"
     status: "done"
+  - file: "apps/web/app/lib/matching/baseRate.ts"
+    status: "done"
+  - file: "apps/web/app/lib/matching/baseRate.test.ts"
+    status: "done"
+  - file: "apps/web/app/lib/services/views.ts"
+    status: "done"
+  - file: "apps/web/app/lib/client/api.ts"
+    status: "done"
+  - file: "apps/web/app/components/MatchConsoleParts.tsx"
+    status: "done"
+standup:
+  - date: "2026-06-30"
+    progress: "90% - base-rate signal + score relabel landed. Each candidate now carries nameBaseRate (count of OTHER open reports sharing the name); the console shows 'N comparten este nombre' on the row and a caution panel in the detail (amber at >=3). The prominent score is relabelled from 'Confianza del candidato' to 'Prioridad de revisión' with a 'not a calibrated probability' disclaimer."
+    verified: "7 new unit tests on the pure counter (48 total green); typecheck + lint + build clean; end-to-end API check — adding two colliding 'Carlos Perez' reports raised the candidate's nameBaseRate from 0 to 2 (own pair correctly excluded)."
+    blockers: "None for the code. The only remaining D1 item is the calibration re-review, which is data-gated: it needs ~200 real human verifications before the score can be calibrated."
+    next: "Accrue labeled outcomes, then run the calibration re-review. Consider a small i18n migration for MatchConsole (it is Spanish-inline, pre-existing debt)."
 notes: |
-  Surname-aware name matching landed 2026-06-28: "Jose Garcia" vs "Jose Garcia
-  Perez" 66.7%->80% (asymmetric subset, lenient); "Jose Garcia" vs "Jose Martinez"
-  50%->33% (distinct apellido, union-normalized, never raised). 34 tests green;
-  verified live (candidate score 85, name 80%). Remaining D1: base-rate signal +
-  relabel the bare %; calibration needs real labeled outcomes.
+  Surname-aware name matching landed 2026-06-28. Base-rate signal + score relabel landed 2026-06-30.
+  All codeable D1 conditions are now implemented; only the data-gated calibration re-review remains
+  (needs ~200 human verifications). The base-rate intentionally does NOT change the score — it informs
+  the human, per the board's "inform, don't silently re-weight" intent.

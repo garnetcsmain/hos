@@ -3,10 +3,11 @@
 // event store.
 
 import { candidatesForMissing, getCandidate, listCandidates } from "../repositories/matches.ts";
-import { getMissing } from "../repositories/missingReports.ts";
-import { getFound } from "../repositories/foundReports.ts";
+import { getMissing, openMissing } from "../repositories/missingReports.ts";
+import { getFound, openFound } from "../repositories/foundReports.ts";
 import { verificationsForCandidate } from "../repositories/verifications.ts";
 import { eventsForEntities } from "../repositories/events.ts";
+import { countSharedName } from "../matching/baseRate.ts";
 import type {
   FoundReport,
   HosEvent,
@@ -20,6 +21,10 @@ export interface CandidateView {
   candidate: MatchCandidate;
   missing: MissingReport;
   found: FoundReport;
+  /** How many OTHER open reports share this candidate's name — base-rate /
+   *  name-commonness context so a high score on a common name is read with
+   *  appropriate caution (Board D1). */
+  nameBaseRate: number;
 }
 
 export interface CandidateDetail extends CandidateView {
@@ -27,17 +32,44 @@ export interface CandidateDetail extends CandidateView {
   timeline: HosEvent[];
 }
 
-function join(candidate: MatchCandidate): CandidateView | null {
+interface CandidatePair {
+  candidate: MatchCandidate;
+  missing: MissingReport;
+  found: FoundReport;
+}
+
+function join(candidate: MatchCandidate): CandidatePair | null {
   const missing = getMissing(candidate.missingId);
   const found = getFound(candidate.foundId);
   if (!missing || !found) return null;
   return { candidate, missing, found };
 }
 
+/** Names of all currently-open reports (both sides) — the pool a name could be
+ *  confused within. Loaded once per request, not once per candidate. */
+function openNamePool(): Array<{ id: string; fullName: string }> {
+  return [
+    ...openMissing().map((r) => ({ id: r.id, fullName: r.fullName })),
+    ...openFound().map((r) => ({ id: r.id, fullName: r.fullName })),
+  ];
+}
+
+function withBaseRate(
+  pair: CandidatePair,
+  pool: Array<{ id: string; fullName: string }>,
+): CandidateView {
+  const otherNames = pool
+    .filter((r) => r.id !== pair.missing.id && r.id !== pair.found.id)
+    .map((r) => r.fullName);
+  return { ...pair, nameBaseRate: countSharedName(pair.missing.fullName, otherNames) };
+}
+
 export function listCandidateViews(status?: MatchStatus): CandidateView[] {
-  return listCandidates(status)
+  const pairs = listCandidates(status)
     .map(join)
-    .filter((view): view is CandidateView => view !== null);
+    .filter((pair): pair is CandidatePair => pair !== null);
+  const pool = openNamePool();
+  return pairs.map((pair) => withBaseRate(pair, pool));
 }
 
 /** Full timeline for a case: the missing report, every candidate it spawned,
@@ -59,8 +91,9 @@ export function missingTimeline(missingId: string): HosEvent[] {
 export function candidateDetail(candidateId: string): CandidateDetail | null {
   const candidate = getCandidate(candidateId);
   if (!candidate) return null;
-  const view = join(candidate);
-  if (!view) return null;
+  const pair = join(candidate);
+  if (!pair) return null;
+  const view = withBaseRate(pair, openNamePool());
   return {
     ...view,
     verifications: verificationsForCandidate(candidate.id),

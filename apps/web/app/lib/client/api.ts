@@ -38,6 +38,10 @@ export interface CandidateView {
   candidate: MatchCandidate;
   missing: MissingReport;
   found: FoundReport;
+  /** How many other open reports share this candidate's name (Board D1
+   *  base-rate signal). High values mean a strong name match is less
+   *  conclusive — a common name, not necessarily the same person. */
+  nameBaseRate: number;
 }
 
 export interface CandidateDetail extends CandidateView {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ShieldAlert, ShieldCheck, Sparkles } from "lucide-react";
+import { Check, ShieldAlert, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { verifyCandidate, type CandidateView, type VerifyResult } from "@/app/lib/client/api";
 import type { MatchCandidate, MatchFactor, MatchStatus } from "@/app/lib/domain/types";
 
@@ -57,6 +57,49 @@ export function StatusChip({ status }: { status: MatchStatus }) {
   );
 }
 
+// At/above this many same-name reports, a high score is treated as a
+// common-name caution rather than neutral context (Board D1).
+const COMMON_NAME_THRESHOLD = 3;
+
+/** Base-rate / name-commonness signal: how many OTHER open reports share this
+ *  candidate's name. A high count means a strong name match is less conclusive
+ *  — a common name, not necessarily the same person (the engine's "wrong
+ *  morgue" failure mode). */
+function NameBaseRate({ count }: { count: number }) {
+  if (count <= 0) {
+    return (
+      <p className="mt-[10px] text-[11px] font-bold leading-[15px] text-[var(--hos-muted)]">
+        Ningún otro reporte abierto comparte este nombre.
+      </p>
+    );
+  }
+  const high = count >= COMMON_NAME_THRESHOLD;
+  const noun = count === 1 ? "otro reporte abierto comparte" : "otros reportes abiertos comparten";
+  return (
+    <div
+      className={[
+        "mt-[10px] flex items-start gap-[8px] rounded-[6px] border px-[10px] py-[8px]",
+        high ? "border-[#F1D8D2] bg-[#FCF1EF]" : "border-[var(--hos-border)] bg-[#F8FAF8]",
+      ].join(" ")}
+    >
+      <Users
+        className={`mt-[1px] h-[14px] w-[14px] shrink-0 ${high ? "text-[var(--hos-red)]" : "text-[var(--hos-muted)]"}`}
+        strokeWidth={2.4}
+      />
+      <div>
+        <div className={`text-[12px] font-extrabold ${high ? "text-[#8A2C20]" : "text-[var(--hos-text)]"}`}>
+          {count} {noun} este nombre
+        </div>
+        <div className="mt-[2px] text-[11px] font-bold leading-[15px] text-[var(--hos-muted)]">
+          {high
+            ? "Nombre común: un puntaje alto aquí es menos concluyente. Confirme con edad, lugar y rasgos."
+            : "Considere la coincidencia de nombre junto con las demás señales."}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function CandidateRow({
   view,
   active,
@@ -90,6 +133,17 @@ export function CandidateRow({
         {missing.fullName || "—"} <span className="text-[var(--hos-muted)]">→</span> {foundName}
       </div>
       <div className="mt-[6px] text-[12px] font-bold leading-none text-[var(--hos-muted)]">{found.city || "—"}</div>
+      {view.nameBaseRate > 0 ? (
+        <div
+          className={[
+            "mt-[8px] inline-flex items-center gap-[5px] text-[11px] font-bold leading-none",
+            view.nameBaseRate >= COMMON_NAME_THRESHOLD ? "text-[var(--hos-red)]" : "text-[var(--hos-muted)]",
+          ].join(" ")}
+        >
+          <Users className="h-[12px] w-[12px]" strokeWidth={2.2} />
+          {view.nameBaseRate} con nombre similar
+        </div>
+      ) : null}
     </button>
   );
 }
@@ -385,7 +439,7 @@ export function Detail({ view, onVerified }: { view: CandidateView; onVerified: 
       <div className="rounded-[8px] border border-[var(--hos-border)] bg-white p-[16px]">
         <div className="flex items-start justify-between gap-[14px]">
           <div>
-            <div className="text-[12px] font-bold leading-none text-[var(--hos-muted)]">Confianza del candidato</div>
+            <div className="text-[12px] font-bold leading-none text-[var(--hos-muted)]">Prioridad de revisión</div>
             <div className={`mt-[10px] font-data text-[34px] font-bold leading-none ${scoreColor(candidate.score)}`}>
               {candidate.score}%
             </div>
@@ -402,6 +456,10 @@ export function Detail({ view, onVerified }: { view: CandidateView; onVerified: 
         <div className="mt-[14px]">
           <ScoreBar score={candidate.score} bar={scoreBar(candidate.score)} />
         </div>
+        <p className="mt-[10px] text-[11px] font-bold leading-[15px] text-[var(--hos-muted)]">
+          Puntaje para ordenar y priorizar la revisión, no una probabilidad calibrada (aún sin validar con resultados reales).
+        </p>
+        <NameBaseRate count={view.nameBaseRate} />
       </div>
 
       <div className="grid grid-cols-2 gap-[16px] max-[860px]:grid-cols-1">

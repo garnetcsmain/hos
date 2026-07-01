@@ -62,7 +62,7 @@ epics:
     title: "AI-Assisted Person Matching (Phase 0 family-reunification MVP)"
     decision_link: "docs/decision-log/2026-06-28-HOS-002-mvp-architecture/"
     status: "active"
-    progress: "57%"
+    progress: "60%"
     tasks:
       - { id: "HOS-2026-001-01", title: "Deterministic, explainable matching engine", owner: "DEV", status: "done", priority: "CRITICAL" }
       - { id: "HOS-2026-001-02", title: "Persistence + append-only audit (repository layer)", owner: "DEV", status: "done", priority: "CRITICAL" }
