@@ -98,7 +98,7 @@ export default function ResetPasswordPage() {
     if (err) {
       // Don't echo the raw provider string; the common failures (too short,
       // reused password) are covered by a fixed, non-leaking message.
-      setError("No se pudo actualizar la contraseña. Elige una diferente y con al menos 8 caracteres.");
+      setError("No se pudo actualizar la contraseña. Elija una diferente y con al menos 8 caracteres.");
       setBusy(false);
       return;
     }
@@ -120,8 +120,8 @@ export default function ResetPasswordPage() {
     return (
       <Card>
         <p className="text-[13px] font-bold leading-[18px] text-[var(--hos-muted)]">
-          No pudimos validar este enlace de recuperación. Si tu conexión es lenta, vuelve a intentarlo;
-          si ya expiró, solicita uno nuevo desde la pantalla de inicio de sesión.
+          No pudimos validar este enlace de recuperación. Si su conexión es lenta, vuelva a intentarlo;
+          si ya expiró, solicite uno nuevo desde la pantalla de inicio de sesión.
         </p>
         <button
           type="button"
@@ -145,7 +145,7 @@ export default function ResetPasswordPage() {
     return (
       <Card>
         <p className="text-[13px] font-bold leading-[18px] text-[#16613F]">
-          Contraseña actualizada. Redirigiéndote para iniciar sesión…
+          Contraseña actualizada. Redirigiéndolo para iniciar sesión…
         </p>
       </Card>
     );
@@ -154,7 +154,7 @@ export default function ResetPasswordPage() {
   return (
     <Card>
       <p className="text-[13px] font-bold leading-[18px] text-[var(--hos-muted)]">
-        Elige una nueva contraseña para tu cuenta de coordinación.
+        Elija una nueva contraseña para su cuenta de coordinación.
       </p>
       <form onSubmit={submit} className="mt-[16px]">
         <label className={label}>

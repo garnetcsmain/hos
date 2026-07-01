@@ -148,7 +148,7 @@ function ReportForm({ kind, onClose }: { kind: "missing" | "found"; onClose: () 
           onClick={onClose}
           className="mt-[18px] h-[44px] rounded-[6px] bg-[var(--hos-dark)] px-[18px] text-[14px] font-extrabold text-white"
         >
-          OK
+          Entendido
         </button>
       </div>
     );
@@ -261,7 +261,7 @@ export function ActionModal({ kind, onClose }: { kind: ModalKind; onClose: () =>
             <h2 className="text-[22px] font-extrabold leading-none text-[var(--hos-text)]">{header.title}</h2>
             <p className="mt-[10px] text-[13px] font-bold leading-[18px] text-[var(--hos-muted)]">{header.description}</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-[6px] p-[6px] text-[var(--hos-muted)] transition hover:bg-[#F1F5F2] hover:text-[var(--hos-text)]">
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="rounded-[6px] p-[6px] text-[var(--hos-muted)] transition hover:bg-[#F1F5F2] hover:text-[var(--hos-text)]">
             <X className="h-5 w-5" />
           </button>
         </div>

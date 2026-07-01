@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, ShieldAlert, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { verifyCandidate, type CandidateView, type VerifyResult } from "@/app/lib/client/api";
 import type { MatchCandidate, MatchFactor, MatchStatus } from "@/app/lib/domain/types";
+import { Term } from "@/app/components/Term";
 
 export const AI_NOTE =
   "La IA nunca confirma identidad. Un coordinador compara la evidencia y decide.";
@@ -363,7 +364,7 @@ function VerifyPanel({ candidateId, onVerified }: { candidateId: string; onVerif
     <div className="rounded-[8px] border border-[var(--hos-border)] bg-white p-[16px]">
       <h3 className="text-[15px] font-extrabold leading-none text-[var(--hos-text)]">Verificación humana</h3>
       <p className="mt-[8px] text-[12px] font-bold leading-[16px] text-[var(--hos-muted)]">
-        Registre la evidencia que sustenta su decisión. Una coincidencia es un candidato a verificar.
+        Registre la evidencia que sustenta su decisión. Una <Term k="coincidencia">coincidencia</Term> es un <Term k="candidato">candidato</Term> a verificar.
       </p>
       <div className="mt-[14px] grid grid-cols-2 gap-[12px] max-[640px]:grid-cols-1">
         <label className="text-[12px] font-extrabold text-[var(--hos-muted)]">

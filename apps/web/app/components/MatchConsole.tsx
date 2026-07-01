@@ -5,6 +5,7 @@ import { AppShell } from "@/app/components/HosDashboard";
 import { type ModalKind } from "@/app/components/IntakeForms";
 import { CandidateRow, Detail } from "@/app/components/MatchConsoleParts";
 import { listMatches, type CandidateView } from "@/app/lib/client/api";
+import { Term } from "@/app/components/Term";
 
 export function MatchConsole({ onlyPending = false }: { onlyPending?: boolean }) {
   const [trustLayer, setTrustLayer] = useState(true);
@@ -42,7 +43,7 @@ export function MatchConsole({ onlyPending = false }: { onlyPending?: boolean })
     [views, selectedId],
   );
 
-  const title = onlyPending ? "Verification Queue" : "AI Matching Engine";
+  const title = onlyPending ? "Cola de verificación" : "Motor de coincidencias con IA";
   const subtitle = onlyPending
     ? "Cola de verificación · un coordinador humano revisa cada candidato pendiente"
     : "Revisión de candidatos · la IA recomienda, las personas deciden";
@@ -70,7 +71,7 @@ export function MatchConsole({ onlyPending = false }: { onlyPending?: boolean })
               {onlyPending ? "No hay candidatos pendientes" : "Aún no hay coincidencias"}
             </h3>
             <p className="mt-[10px] text-[13px] font-bold leading-[18px] text-[var(--hos-muted)]">
-              La IA seguirá comparando reportes automáticamente. Una coincidencia siempre es un candidato a verificar.
+              La IA seguirá comparando reportes automáticamente. Una <Term k="coincidencia">coincidencia</Term> siempre es un candidato a verificar.
             </p>
           </div>
         ) : (

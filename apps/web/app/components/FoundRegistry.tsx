@@ -8,6 +8,7 @@ import { listFound } from "@/app/lib/client/api";
 import type { PublicFound } from "@/app/lib/domain/projections";
 import type { Condition } from "@/app/lib/domain/types";
 import { DEFAULT_LOCALE, t } from "@/app/lib/i18n/strings";
+import { Term } from "@/app/components/Term";
 
 const L = DEFAULT_LOCALE;
 
@@ -111,7 +112,7 @@ function RegistryBody({
             Personas reportadas como encontradas
           </h2>
           <p className="mt-[10px] max-w-[560px] text-[13px] font-bold leading-[18px] text-[var(--hos-muted)]">
-            Cada reporte es un candidato para verificar. La IA recomienda, las personas deciden.
+            Cada reporte es un <Term k="candidato">candidato</Term> para verificar. La <Term k="ia">IA</Term> recomienda, las personas deciden.
           </p>
         </div>
         <button
@@ -182,7 +183,7 @@ export function FoundRegistry() {
 
   return (
     <AppShell
-      title="Found Persons Registry"
+      title="Registro de personas encontradas"
       subtitle={t("action.reportFound.desc", L) + " · " + t("result.matchNote", L)}
       trustLayer={trustLayer}
       onToggleTrustLayer={() => setTrustLayer((v) => !v)}

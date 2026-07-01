@@ -10,7 +10,7 @@ export const DEFAULT_LOCALE: Locale = "es";
 type Dict = Record<string, string>;
 
 const es: Dict = {
-  "app.name": "HOS Response Kit",
+  "app.name": "Kit de Respuesta HOS",
   "app.tagline": "Reunificación familiar",
   "nav.map": "Mapa",
   "nav.missing": "Desaparecidos",

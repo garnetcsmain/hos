@@ -166,7 +166,7 @@ export function MissingRegistry() {
 
   return (
     <AppShell
-      title="Missing Persons Registry"
+      title="Registro de personas desaparecidas"
       subtitle="Reportes de desaparecidos enviados por familias · la IA recomienda, las personas deciden"
       trustLayer={trustLayer}
       onToggleTrustLayer={() => setTrustLayer((v) => !v)}

@@ -73,13 +73,13 @@ function SupabaseLogin() {
       <form onSubmit={submitReset}>
         {resetSent ? (
           <div className="rounded-[8px] border border-[#CBE6D8] bg-[#F1FAF5] px-[12px] py-[12px] text-[13px] font-bold leading-[18px] text-[#16613F]">
-            Si tu correo está registrado, te enviamos un enlace para restablecer la contraseña. Revisa
-            tu bandeja de entrada.
+            Si su correo está registrado, le enviamos un enlace para restablecer la contraseña. Revise
+            su bandeja de entrada.
           </div>
         ) : (
           <>
             <p className="text-[13px] font-bold leading-[18px] text-[var(--hos-muted)]">
-              Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.
+              Ingrese su correo y le enviaremos un enlace para restablecer su contraseña.
             </p>
             <label className={`${label} mt-[14px]`}>
               Correo
@@ -142,7 +142,7 @@ function SupabaseLogin() {
         }}
         className="mt-[14px] text-[12px] font-extrabold text-[var(--hos-muted)] underline underline-offset-2 hover:text-[var(--hos-text)]"
       >
-        ¿Olvidaste tu contraseña?
+        ¿Olvidó su contraseña?
       </button>
       <p className="mt-[12px] text-[11px] font-bold leading-[15px] text-[var(--hos-muted)]">
         El acceso es por invitación: su correo debe estar autorizado por un administrador.
