@@ -1,0 +1,158 @@
+decision_id: "HOS-2026-010-R2"
+phase: "judge_synthesis_addendum"
+date: "2026-07-01"
+judge: "Judge Agent (synthesized by Executive Orchestrator from 4 focused board reviews)"
+parent_decision: "HOS-2026-010"
+board_inputs_considered: [contrarian, principals, researcher, user]
+note: >
+  This addendum defines the scope of "sensitive operations" left open by R1.
+  It does not reopen D1 (KILL, server-side/persistent face), D2 (GREEN_LIGHT,
+  device-key+PIN login), D3/R1-D2 (advisory, action-scoped geofencing), or
+  R1-D1 (on-device dedup with conditions) — all remain settled.
+
+decisions:
+  - id: "HOS-2026-010-R2-D1"
+    title: "Content-conditional step-up on found-reports where condition=deceased"
+    verdict: "KILL"
+    confidence: 0.85
+    rationale: >
+      Unanimous across all four reviewers, converging from four independent
+      angles. Contrarian: content-conditional step-up protects almost nothing
+      (coordinator human verification already catches erroneous condition
+      values before any family-facing action) and is a duress footgun — it
+      creates a scripted, predictable moment where a volunteer is compelled to
+      produce their PIN, precisely when a coerced/pressured actor is most
+      likely to be present. User (in-persona): a PIN prompt at the exact
+      instant of recording a death reads as an accusation, not protection,
+      and a re-entered PIN verifies nothing the volunteer wasn't already sure
+      of. Principals found the single most decisive fact: HOS ALREADY handles
+      this correctly at a different, better-placed layer —
+      `familyReach.ts`'s `isSensitiveOutcome` (from the original board's D4
+      finding) already routes a deceased outcome to human-gated, compassionate
+      family-contact handling — so reporter-side step-up would be redundant
+      with an existing control, not merely low-value. Principals additionally
+      identified a distinct harm: visible extra friction on the `deceased`
+      value creates an incentive for a tired volunteer to mis-mark the field
+      as `unknown`/`injured` to avoid it, actively degrading the honesty of
+      the single most consequential field in the system. Researcher confirmed
+      with live research across banking/fintech (OWASP ASVS 2.26, the OWASP
+      Authentication Cheat Sheet, OWASP MASWE-0029, NIST SP 800-63B) that
+      step-up authentication is never triggered by the CONTENT of a first-time
+      submission in any studied system — it is triggered by mutation of
+      existing security/recovery state or high-value transactions. Separately,
+      Researcher found that humanitarian and military casualty-recording
+      practice (OHCHR guidance, US Army AR 638-8, ICRC Restoring Family Links)
+      universally treats death-data accuracy as a VERIFICATION / data-quality
+      discipline (corroboration, second-party review, labelled-unverified
+      handling), never as an authentication problem — and that field-data
+      tools in HOS's own reference class (ODK, KoboToolbox) use in-form
+      confirmation fields for consequential entries, not re-authentication.
+    conditions:
+      - "Do not gate any single found/missing-report submission with device-PIN step-up, regardless of the `condition` value. All submissions remain the frictionless, content-blind create call the identity decisions already established."
+      - "If a safety net is wanted for the deceased case specifically, use a content-blind, always-visible, plain-language confirmation dialog ('You're reporting this person as deceased — confirm') that is explicitly NOT authentication: it is not wired to the PIN, requires no server-side security decision, and exists purely to catch a volunteer's own fat-finger/haste error before submission — the same role ODK/Kobo confirmation fields play in comparable field-data tools."
+      - "The genuine risk this candidate was trying to address (a wrong or malicious deceased entry reaching a family) is already handled by the existing, human-gated `familyReach.ts`/D4 path — do not build a second, overlapping 'deceased is special' mechanism at the reporter layer; if that existing control needs strengthening, that is a separate, already-settled decision to revisit, not this one."
+      - "Explicitly flag, as an unsolved and out-of-scope gap for this decision: a coerced or compromised volunteer submitting false deceased reports at VOLUME using their own legitimate credentials is not addressed by any authentication mechanism (step-up or otherwise) — that is a rate-limiting/corroboration/anomaly-detection problem for a future decision, not this one. Do not let this KILL be read as having solved that risk."
+    next_gate: "None — this is a clean kill with strong, convergent, multi-source evidence. Revisit only if a materially new threat model or comparable-system precedent emerges."
+
+  - id: "HOS-2026-010-R2-D2"
+    title: "Edit/retract of an already-submitted report"
+    verdict: "RESHAPE"
+    confidence: 0.8
+    rationale: >
+      All four reviewers agree this is the one candidate that structurally
+      matches a real step-up pattern (mutating existing state that others
+      already rely on) — but all four also independently confirm no such
+      endpoint exists in HOS today (verified directly: only GET/POST on
+      /api/found and /api/missing, no PUT/PATCH/DELETE anywhere). Contrarian
+      and Principals converge on a sharper reframe than the original
+      proposal: the primary control should not be a step-up gate on a mutation
+      endpoint, but an IMMUTABILITY CONSTRAINT on the endpoint's design — an
+      edit/retract, if ever built, should append a correction or tombstone
+      event over the preserved original record, never overwrite it in place.
+      This structurally prevents quiet tampering regardless of who is
+      authenticated, which a PIN re-entry alone cannot do (a PIN only proves
+      the authenticated person is present; it does not stop that person from
+      altering the record dishonestly). Researcher independently confirms
+      this is the direct analog of the "modify an existing payee / change a
+      saved record" pattern that banking and OWASP guidance do gate with
+      step-up, and agrees it should be written as a standing rule now, not
+      built ahead of the endpoint.
+    conditions:
+      - "No edit/retract/update endpoint is authorized or should be built under this decision. This is a forward-looking rule that activates only if and when a future, separate decision authorizes such an endpoint."
+      - "IF such an endpoint is ever built, its PRIMARY integrity control must be append-only design: a correction or withdrawal is a new event referencing and preserving the original, never an in-place mutation of the original record. This makes tampering structurally visible regardless of authentication."
+      - "Device-PIN step-up may be added as a SECONDARY confirmation on that future endpoint, consistent with the general criterion in the Overall section below — but it is not a substitute for the append-only design, and should not be treated as sufficient on its own."
+      - "Naming 'edit/retract' in this decision log must not be read as authorization to build the endpoint — that remains a separate product decision, upstream of this one."
+    next_gate: "Revisit only when/if a future decision proposes building an edit/retract endpoint — at that point, design the append-only mechanism and step-up together, from the start."
+
+  - id: "HOS-2026-010-R2-D3"
+    title: "Switching active volunteer identity on a shared device"
+    verdict: "RESHAPE"
+    confidence: 0.78
+    rationale: >
+      All four reviewers agree the underlying problem is real and matters:
+      on a shared shelter device passed between volunteers across a shift,
+      an honest volunteer B taking over from volunteer A without an explicit
+      handoff results in B's genuine reports being permanently and
+      uncorrectably misattributed to A in the append-only audit log —
+      corrupting the provenance layer at the exact seam (shared devices) the
+      whole identity decision exists to protect. Contrarian names this
+      precisely as silent misattribution, not malicious abuse — the
+      realistic case has no attacker, just an honest volunteer in a hurry.
+      User, in-persona, independently identifies this as the single item on
+      the list that actually matters to a real volunteer, and connects it to
+      an unresolved duress/hygiene gap from R1: the same handoff screen is
+      the natural place to also offer a 'log out and clear my local
+      footprint' option, addressing R1-D1's still-open shared-device cache
+      question. Principals, while agreeing the misattribution risk is real,
+      makes the sharper architectural point that this is not best understood
+      as a 'sensitive operation requiring step-up' at all: re-entering ONE'S
+      OWN PIN doesn't prove the PREVIOUS user logged out or intended a
+      handoff, so calling it step-up authentication overstates what the
+      mechanism proves. Researcher resolves this apparent tension: the
+      correct action is not re-authenticating the outgoing user, but the
+      INCOMING volunteer entering THEIR OWN PIN to activate their own
+      session at handoff — which is properly understood as identity
+      confirmation / attribution, not step-up in the security sense, and is
+      directly precedented by NIST 800-63B's own stated rationale for
+      reauthentication timeouts (explicitly written for the unattended/shared
+      terminal case), retail POS guidance ('shared logins destroy
+      accountability... you can never be certain who performed a specific
+      action'), and shared clinical-device practice (sessions must not
+      persist beyond the intended task; explicit handoff required).
+    conditions:
+      - "Do NOT file this as a step-up gate on top of an existing action. It is a missing piece of D2's identity/session design: HOS's device-key+PIN system must support an explicit 'who is currently active on this device' concept from the start, not assume one person per device."
+      - "The mechanism is: the INCOMING volunteer selects their identity and enters THEIR OWN PIN once to activate their session; this is ordinary authentication for a new session, not re-authentication of the outgoing person. It fires once per handoff, never per submission — a per-report prompt would recreate exactly the daily-friction problem the whole identity decision was designed to eliminate."
+      - "This requirement must be carried forward explicitly into HOS-2026-001-08's / D2's session design as a named requirement, so it is not silently dropped by being ruled out of this specific decision's scope."
+      - "Strongly recommended (not mandatory, but well-supported by the User review): co-locate a 'log out and clear my local device footprint' option at the same handoff screen, directly addressing R1-D1's still-open shared-device cache-lifecycle question — the same screen naturally serves both attribution (claiming the shift) and hygiene (leaving no residue behind for the next person or a seized device)."
+    next_gate: "Carry forward as a named requirement into D2/HOS-2026-001-08's session design work; no independent gate needed for this decision beyond that handoff."
+
+overall: >
+  The single most useful output of this round is not the per-action list itself
+  but the CRITERION all four reviews converge on once their individual findings
+  are laid side by side, most cleanly stated by Principals: step-up
+  confirmation belongs only on actions that are IRREVERSIBLE OR DESTRUCTIVE TO
+  AN EXISTING RECORD — never on the creation of new content, which is the
+  routine, frictionless act the entire identity decision exists to protect.
+  Applied to HOS's actual, verified action surface today (two create-only
+  endpoints, no edit/retract, no identity-switch mechanism), the list of
+  sensitive operations requiring step-up is EMPTY right now. That is not a
+  gap in this round's work — it is the correct, evidence-backed answer.
+  What this round produces instead is durable: (1) a firm rejection of
+  content-conditional step-up on submissions, with a well-precedented
+  non-authentication alternative (a plain confirm dialog) if any UX safety
+  net is still wanted; (2) a standing rule that binds step-up (secondary) and
+  append-only design (primary) to any future edit/retract endpoint, without
+  authorizing that endpoint to be built; (3) a named requirement, carried
+  into D2's session design rather than filed here, that shared-device
+  handoff needs an explicit per-volunteer identity activation, which was a
+  real gap this conversation surfaced but which is not itself a "sensitive
+  operation" in the step-up sense. Also worth restating plainly, per
+  Contrarian's finding: none of this can be implemented today, because no
+  device-key/PIN/session/identity layer exists yet anywhere in HOS's
+  codebase — D2 remains unbuilt and sequenced behind HOS-2026-001-08. This
+  entire addendum is correctly understood as forward-looking policy that
+  activates when that substrate is built, not a build ticket for today.
+escalate_to_human:
+  - "Whether HOS will ever build an edit/retract capability for submitted reports is a separate, upstream product decision this addendum does not make — it only pre-commits the rule (append-only + optional step-up) for if and when that decision is made."
+  - "The shared-device identity-activation requirement should be explicitly incorporated into whoever scopes HOS-2026-001-08 / D2's session design, so it isn't lost between decisions — a human should confirm this hand-off happens."
+  - "The coerced/compromised-volunteer-at-volume risk (someone submitting false reports, including false deceased reports, using their own legitimate credentials under duress) is explicitly NOT solved by anything in this decision family (D1 through R2) and needs its own treatment (rate-limiting, corroboration, anomaly detection) in a future decision."

@@ -1,0 +1,132 @@
+decision_id: "HOS-2026-010-R1"
+phase: "judge_synthesis_addendum"
+date: "2026-07-01"
+judge: "Judge Agent (synthesized by Executive Orchestrator from 3 focused board reviews)"
+parent_decision: "HOS-2026-010"
+board_inputs_considered: [contrarian, principals, researcher]
+note: >
+  This addendum does not reopen D1 (KILL, server-side/persistent face registry),
+  D2 (GREEN_LIGHT, device-key+PIN login), or D3's core advisory-only rule —
+  those remain settled per the parent judge-decision.yaml. This addendum covers
+  ONLY the principal's refinement: on-device-only face-uniqueness dedup at
+  registration, and role-vs-action scoping of the (still strictly advisory)
+  geolocation check.
+
+decisions:
+  - id: "HOS-2026-010-R1-D1"
+    title: "On-device-only face-uniqueness dedup at registration"
+    verdict: "RESHAPE"
+    confidence: 0.78
+    rationale: >
+      All three reviewers independently agree this is a genuine, structural
+      improvement over the killed server-side design — an attacker who fully
+      compromises HOS's backend obtains zero biometric data, because none is
+      ever transmitted. This is not cosmetic; it removes the specific object
+      of the original KILL (a centralized, breach/subpoena-able registry).
+      However, three independently-sourced findings mean the design as
+      originally stated cannot proceed unmodified: (1) Researcher confirmed
+      with converging 2023-2025 literature (DiffUMI, IdDecoder, Deep Face
+      Decoder) that raw face embeddings are 75-95% reconstructable into a
+      recognizable, re-identifiable face, and that regulators (GDPR/EDPS)
+      treat face templates as biometric special-category data regardless of
+      pseudonymization — "we only store the embedding, not the photo" is a
+      materially weaker privacy claim than assumed, confirmed independently by
+      Contrarian citing the same literature. Any persisted embedding must be
+      treated as a persisted face. (2) Contrarian and Researcher both
+      identified that on-device dedup is structurally limited to catching
+      same-device re-registration — Researcher's comparison to World ID
+      (Worldcoin), the flagship real-world uniqueness/proof-of-personhood
+      system, is decisive: it went server-side specifically because catching
+      "same person, different device" requires a shared comparison surface a
+      local-only cache cannot provide by definition. Researcher additionally
+      found IndexedDB is best-effort, evictable, and user-clearable, so even
+      the same-device guarantee is soft against a motivated actor (clear
+      storage, re-register). (3) Contrarian and Principals both flagged
+      unresolved shared-device accumulation (multiple volunteers' embeddings
+      on one shelter phone) and an overclaimed "never transmitted" guarantee
+      that a CI test can prove only for HOS's own code paths, not for OS-level
+      backup sync outside HOS's control — Principals ties this directly to
+      the project's own HOS-2026-002-D4 precedent (don't claim something
+      happened/holds that wasn't verified).
+    conditions:
+      - "Do not persist the raw embedding. Compare-then-discard is preferred; if any persistence is required for the comparison to function, apply a cancelable/salted transform (ISO/IEC 24745-style) so a leaked value is non-invertible and revocable — never store a raw, invertible embedding."
+      - "Reframe this feature internally and to volunteers as accidental-duplicate hygiene (catches someone who forgot they already registered on this device), NOT as anti-Sybil or anti-fraud protection. It cannot and must not be described as preventing a determined bad actor from creating multiple identities — that claim is false per the World ID comparison and the storage-clearing finding, and overclaiming it would repeat the project's own D4 honesty failure."
+      - "Rewrite the 'never transmitted' claim to what is actually provable: 'no HOS application code transmits or stores this data,' backed by a CI network-request audit test — not an absolute claim about the data's fate on-device (OS-level cloud backup behavior is outside HOS's control and was not confirmed either way)."
+      - "Define the shared-device cache lifecycle before shipping: either wipe/rotate the local cache per shift on shared shelter devices, or explicitly accept and document that multiple volunteers' embeddings may coexist on one seizable device."
+      - "Log only a boolean (registered via dedup vs. via the non-biometric fallback lane) as the auditable, append-only state change — never log the embedding or any biometric-derived value server-side, which would silently recreate the killed registry."
+      - "Prototype before committing to a build timeline: (a) whether a cancelable/salted transform still supports usable same-device comparison accuracy, and (b) the real false-match AND false-reject rate of an in-browser (WASM/TF.js-class) model on the actual low-end Android/camera fleet this population uses — a false MATCH would wrongly block a legitimate new volunteer from registering at all, a failure mode distinct from and in addition to the false-reject/lockout risk already flagged for the (separately killed) login-time face path."
+      - "A non-biometric fallback lane must exist for registration itself (not only for login), consistent with the parent decision's 'never fully lock someone out' condition — extend it explicitly to this new registration-time check."
+    next_gate: "Re-review once the cancelable-transform and false-match/false-reject prototypes return real numbers, and once the shared-device lifecycle decision is made — before this is scheduled as committed work."
+
+  - id: "HOS-2026-010-R1-D2"
+    title: "Geolocation check scoping: role-based vs. action-based exemption"
+    verdict: "RESHAPE"
+    confidence: 0.85
+    rationale: >
+      The underlying generalization the principal identified is correct and
+      is itself a principled improvement over the parent decision's ad hoc
+      "coordinators are exempt" special case: geolocation proximity checking
+      should attach to submissions/actions that assert physical presence, not
+      to the fact of being a volunteer. All three reviewers agree on this
+      generalization. But all three independently and decisively prefer
+      ACTION-scoping ("does this specific submission carry a location
+      claim?") over ROLE-scoping ("is this account's declared role exempt?"),
+      for convergent reasons: Contrarian and Principals both verified directly
+      in the codebase that HOS has no role primitive today, and — more
+      sharply — that HOS-2026-001-08's own PLANNED role taxonomy
+      (coordinator/agency-admin/responder) does not even include a
+      "remote/translator" category, meaning role-scoping would not just wait
+      on unfinished work but would require expanding that work's planned
+      scope to serve a soft advisory signal. Principals additionally found
+      that a self-declared, unverified role used to grant a security-relevant
+      exemption is a trust-and-honesty and auditability problem the action
+      form doesn't have: a coordinator cannot distinguish a genuinely remote
+      contributor from a field volunteer who falsely declared 'remote' to
+      dodge the check, and the role-assignment itself would need its own
+      audit trail to be meaningful. Contrarian confirmed action-scoping closes
+      this gaming vector by construction, not by policy, PROVIDED the
+      location-claim determination is made server-side from the submission's
+      type/payload, not from a client-supplied flag (which would simply
+      rename the same bypass). Researcher independently grounded the entire
+      distinction in strong, convergent real-world precedent: the Digital
+      Humanitarian Network / Standby Task Force / MicroMappers ecosystem is
+      built entirely around remote digital volunteers verified by
+      content-consensus rather than presence or identity, and Translators
+      Without Borders runs 100,000+ self-registering remote volunteers with
+      no local vouching and is explicitly moving away from verification
+      gating for that population — confirming the principal's instinct
+      matches the dominant real-world pattern for this exact contributor
+      type, not a hypothetical edge case.
+    conditions:
+      - "Scope the geolocation check to the submission/action, not to a persistent account-level role: infer whether a given submission asserts a physical location from the report/endpoint type itself (server-side), and only compute the advisory proximity signal when it does."
+      - "The location-claim determination must never be a client-supplied flag or toggle — that would simply rename the role-based bypass Contrarian and Principals both identified. It must be inherent to what kind of submission is being made (e.g. a found-person-at-a-shelter report structurally has a location field; a translation edit structurally does not)."
+      - "When porting qclock's geolocation code (haversine.ts, useGeolocation.ts) as prior art, reuse the acquisition layer (Android cold-GPS handling, progressive high-to-low-accuracy fallback, error taxonomy) but explicitly strip every enforcement/rejection branch — qclock is server-authoritative by design (its own comments confirm the server decides the punch outcome), which is the opposite of HOS's mandatory strictly-advisory-only posture. Add a test asserting HOS never returns a location-based hard rejection."
+      - "This does not require or depend on HOS-2026-001-08's roles/org-isolation work landing first — action-scoping needs only the intake payload's existing shape, which is a meaningful schedule advantage over the role-scoping alternative that all three reviewers converged on independently."
+    next_gate: "None required beyond normal implementation review — this is a lower-uncertainty finding than R1-D1, with strong convergent evidence and no real dissent across the three reviewers."
+
+overall: >
+  The principal's refinement succeeds on its central goal: on-device-only face
+  processing genuinely eliminates the specific risk (a centralized, breach or
+  subpoena-able biometric registry of the volunteer corps) that drove the
+  original board's unanimous KILL. That verdict is not reversed or weakened by
+  this addendum — it is vindicated by it, since the fix that works is precisely
+  "don't let any HOS server ever hold this data," not a softer version of the
+  killed design. But "eliminates the central-registry risk" is not the same as
+  "solved for free" — the refinement trades that risk for a different, smaller
+  set of engineering obligations (non-invertible storage, honest claim-scoping,
+  shared-device lifecycle, realistic false-match testing) that the original
+  proposal had not yet worked through, and this addendum's conditions exist to
+  make sure those obligations are actually met rather than assumed. The
+  role-scoping half of the refinement, while well-motivated by a real and
+  correctly-identified gap (excluding remote contributors would bottleneck a
+  major, legitimate class of volunteer), is better solved by scoping the check
+  to the submission than to the account: it is simpler, needs no new trust
+  primitive, cannot be gamed by a false role declaration, and is strongly
+  supported by how real humanitarian crowdsourcing platforms already separate
+  remote and field contribution. Both R1-D1 and R1-D2 are RESHAPE, not KILL —
+  the direction is sound; the specifics need the conditions above before this
+  becomes committed work.
+escalate_to_human:
+  - "Same bar as the parent decision: strategic, touches biometric data (even if processed only client-side), requires human + legal review before build — the on-device architecture likely supports a materially lighter legal analysis than a server-side store would, but that is a legal conclusion to confirm, not assume, especially given face templates are treated as biometric special-category data by regulators regardless of where they're processed."
+  - "A product decision, not just a technical one: confirm the actual duplicate-account threat this is meant to address (accidental double-registration vs. a determined, resourced bad actor) — the on-device design is adequate for the former and admittedly inadequate for the latter, and the feature should be scoped, described, and (if ever discussed publicly) marketed accordingly."
+  - "Prototype results (cancelable-transform compatibility, real false-match/false-reject rates on representative low-end devices) should come back to a human before this is scheduled as committed engineering work, not just before it ships."

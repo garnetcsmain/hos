@@ -1,0 +1,184 @@
+decision_id: "HOS-2026-011"
+phase: "judge_synthesis"
+date: "2026-07-01"
+judge: "Judge Agent (synthesized by Executive Orchestrator from 3 focused board reviews)"
+board_inputs_considered: [contrarian, principals, researcher]
+
+decisions:
+  - id: "HOS-2026-011-D1"
+    title: "Role model shape: capabilities-on-scoped-resources, not a flat role enum"
+    verdict: "RESHAPE"
+    confidence: 0.85
+    rationale: >
+      All three reviewers independently reject the proposal's implicit framing
+      ("which named roles do we add") and converge on the same underlying
+      primitive from different directions. Contrarian: model authorization as
+      capabilities (action, scope) with scope in {global, org:<id>, site:<id>,
+      self}, resolved server-side, never from a client-supplied role field —
+      directly consistent with HOS-2026-010-R1-D2's settled principle (decide
+      from the action, never a self-declared claim). Principals: the verified
+      action surface is satisfied by 2 roles + 2 boolean flags, not 4-5 named
+      roles — Occam's razor prefers the smaller structure. Researcher grounds
+      both in a near-ideal real-world comparable: Primero (UNICEF's deployed,
+      multi-agency child-protection case-management system) expresses exactly
+      this as two orthogonal axes — a capability axis (read/write/export per
+      resource) and a data-breadth axis (my-records / my-group / all-records /
+      admin-only) — which is the same shape Contrarian and Principals arrived
+      at independently. Named roles (coordinator, agency-admin, field-
+      volunteer, remote contributor) are bundles of capabilities at a given
+      scope, not first-class authorization primitives in themselves.
+    conditions:
+      - "Implement authorization as capability checks resolved server-side against (action, target resource's org_id/site_id), never against a client-supplied role or org field."
+      - "Treat coordinator = global-scope bundle, agency-admin = org-scoped bundle, field-volunteer = self-scoped bundle (org-optional), remote contributor = task-scoped bundle (org-optional) — four bundles, one mechanism, not four independent implementations."
+      - "Rename the person-facing field-volunteer role away from 'responder' — verified collision: apps/web/app/lib/domain/coordination.ts already uses 'responder' as an OrgKind enum value (an organization type), and intake.ts uses it as a provenance string. Reusing the token for a person-role is a real ambiguity risk in future queries/RLS policies. Recommended: 'field-volunteer' (pairs cleanly with 'remote/digital contributor'); 'member' is an acceptable alternative."
+
+  - id: "HOS-2026-011-D2"
+    title: "Remote/digital contributor placement"
+    verdict: "RESHAPE"
+    confidence: 0.8
+    rationale: >
+      Converges on a middle position between the two reviewer framings.
+      Principals initially framed remote-contributor as a boolean flag on
+      field-volunteer carrying zero authorization weight (correct that it must
+      carry NO special standing in the authority hierarchy, and correct that
+      HOS-2026-010-R1-D2 already settled geofencing must never read this
+      attribute — that part needs no new mechanism at all). But Researcher and
+      Contrarian both push further, grounded in real precedent: SBTF/
+      MicroMappers/the Digital Humanitarian Network permission remote
+      contributors by TASK FUNCTION (translate, moderate, verify) not by a
+      field/remote boolean, and GitHub's "outside collaborator" is the
+      closest structural analog — a first-class but distinctly-permissioned
+      membership type, not a modifier on the primary member role. A flag alone
+      can't express that remote contributors have a genuinely different task
+      permission set (they can't submit field/found-person reports; they
+      can do translation/moderation actions field-volunteers don't need). The
+      synthesis: remote contributor is its own capability bundle (per D1),
+      structurally a peer of field-volunteer under the same mechanism — not a
+      modifier flag, and not a new tier in the authority hierarchy either.
+    conditions:
+      - "Do not reuse field-volunteer's default capability set for remote contributors and then subtract geofencing — grant them their own bundle (translate/moderate/whatever task permissions are actually needed) that never included field-report submission or location-bearing actions in the first place."
+      - "No new geofencing mechanism needed — HOS-2026-010-R1-D2's action-scoping already ensures a remote contributor's actions (which structurally carry no location claim) never trigger a geo check. This is a consequence of D1, not a separate feature to build."
+      - "Remote contributors must be able to register org-optional (self-registering, no local voucher, per the original requirement from HOS-2026-010-R1) — the capability/membership model must support a null org_id for this bundle."
+
+  - id: "HOS-2026-011-D3"
+    title: "Org isolation enforcement mechanism"
+    verdict: "RESHAPE"
+    confidence: 0.88
+    rationale: >
+      Unanimous, and over-determined by multiple independent lines of
+      evidence. All three reviewers require Postgres RLS (fail-closed,
+      DB-enforced), not application-layer filtering — consistent with this
+      project's own Board-D3 precedent (fail-closed auth was the single most
+      urgent fix in the very first board decision this project ever ran).
+      Contrarian additionally found the CRITICAL, code-verified reason this
+      isn't optional: no coordination write path today enforces that a caller
+      owns the row they're modifying — `requireCoordinator` is the only gate
+      on all 12 privileged routes, with zero org-ownership check anywhere.
+      Concretely, an org-scoped agency-admin could today mark another org's
+      supply need as "received" when it wasn't (recreating the exact
+      claimed-something-that-didn't-happen violation from HOS-2026-002-D4),
+      or read another org's shelter notes — not through malice, just because
+      the code as written doesn't check. Researcher independently confirms
+      via general multi-tenant RBAC consensus (WorkOS, Auth0, LoginRadius:
+      "a buggy application query must not be able to leak data across
+      tenants") and flags a concrete, stack-specific trap: if HOS's chosen
+      auth provider (Supabase) carries the org claim in user-editable
+      `user_metadata` rather than server-controlled `raw_app_meta_data`, a
+      user can rewrite their own claimed org and read another tenant's data —
+      a fail-open hole hiding inside an otherwise-correct-looking design.
+    conditions:
+      - "Enforce org isolation via Postgres Row-Level Security, keyed on an org claim resolved server-side — never a UI-level filter alone. UI filtering may exist for convenience but is not the security boundary."
+      - "The org/tenant claim must live in Supabase's raw_app_meta_data (server-set), never user_metadata (user-editable) — verify this explicitly before shipping, it is an easy, silent way to fail open on this exact stack."
+      - "Add the membership primitive that does not exist anywhere in the codebase today: a real user <-> org <-> capability-bundle join table (many-to-many — see D5 on multi-org humans), not a single org_id column on the account."
+      - "Acceptance tests must include an explicit cross-org access attempt asserted to FAIL, not only a positive-path 'can see my own org' test — mirroring this project's own D4 lesson: prove the boundary holds, don't assume it."
+      - "This work is hard-blocked on HOS-2026-001-07 (Postgres) landing — state this as an explicit dependency in the task record, not something to be discovered later."
+
+  - id: "HOS-2026-011-D4"
+    title: "Whether case/PII data (missing/found reports, verifications) is org-partitioned at all"
+    verdict: "ESCALATE — not a board decision, a human policy decision"
+    confidence: 0.9
+    rationale: >
+      The single most important finding of this round, surfaced independently
+      by Researcher through direct schema verification: `org_id` exists as a
+      real foreign key on the COORDINATION tables (sites, needs, offers) but
+      NOT on the CASE/PII tables (missing_reports, found_reports,
+      verifications) — those carry only a free-text reporter_org/verifier_org
+      provenance string, which cannot back an RLS policy. This means the
+      proposal's own stated goal — "an agency-admin can only see their own
+      org's PII" — is currently UNIMPLEMENTABLE on the most sensitive data in
+      the system without a schema change that HOS-2026-001-08 has never
+      scoped. This is not an implementation detail to sort out later; it is a
+      genuine fork in what HOS IS: either (a) reunification case data is
+      deliberately a SHARED cross-org humanitarian pool (any coordinator or
+      agency-admin across any participating org can see any case, because
+      reuniting families benefits from maximum visibility and org-partitioning
+      would actively slow reunification), or (b) case data needs the same
+      org-partitioning as coordination data (requiring a real, currently
+      unscoped schema change: adding org_id to the case tables, and deciding
+      how a case that legitimately spans multiple orgs' involvement is
+      handled). The board cannot make this call — it is a values/mission
+      question for the human principal, not an engineering one.
+    conditions:
+      - "A human must explicitly decide and document whether case/PII data is a shared cross-org pool or org-partitioned, before any agency-admin role is built with case-visibility claims attached to it."
+      - "Whichever way this is decided, state it explicitly in HOS-2026-001-08's scope — do not let the current schema's silence continue to imply an unexamined default."
+    next_gate: "Human decision required before HOS-2026-011-D3's RLS work can be scoped for the case tables specifically (coordination-table RLS can proceed independently in the meantime)."
+
+  - id: "HOS-2026-011-D5"
+    title: "Mid-tier site-lead role (between agency-admin and a single field-volunteer)"
+    verdict: "RESHAPE"
+    confidence: 0.75
+    rationale: >
+      Genuine disagreement between reviewers, resolved by looking at what
+      each was actually claiming. Principals: not demonstrated, don't add a
+      speculative role, defer as an attribute addable later. Contrarian: this
+      is not optional — the domain model's OWN ownership rule, verified in
+      code, states a supply need's "received" status may only be recorded by
+      "the requesting site" (coordination.ts comment), which is a SITE-level
+      fact; an org-only permission boundary cannot express it, so a multi-site
+      org's agency-admin could incorrectly mark a different site's need as
+      received without violating anything the org-scoped model checks.
+      Researcher supplies precedent both ways (Primero ships a "Manager" /
+      my-group tier, GitHub ships "team maintainer" / "Maintain" — both found
+      it worth a distinct role — but HOS functions today with site management
+      folded entirely into coordinator, so it is not currently blocking
+      anything) and recommends treating it as real but sequenced after the
+      core org-isolation work, not a blocker to it. That reconciles the
+      disagreement: the underlying SCOPE mechanism (D1's capability model)
+      must support a site:<id> scope value from day one — this is nearly free,
+      since it's the same mechanism as org:<id> scope — so the "received"
+      honesty rule CAN be enforced correctly whenever it's wired up. But
+      standing up a fully-onboarded, named "site-lead" role with its own
+      registration/invite UX can wait until after coordinator/agency-admin/RLS
+      lands, since nothing today depends on it existing yet.
+    conditions:
+      - "Include site:<id> as a valid scope value in the capability model from day one (low cost, same mechanism as org-scope) so the site-level 'received' honesty rule is enforceable whenever needed, not permanently decorative."
+      - "Defer building and onboarding a distinctly-named, UI-visible 'site-lead' role until after HOS-2026-011-D3's core org-isolation work lands — this is sequencing, not cancellation."
+    next_gate: "Revisit once agency-admin + RLS are live and a real multi-site org actually needs delegated site management."
+
+overall: >
+  This decision replaces "which named roles do we add" with a smaller, more
+  durable answer: authorization is capabilities on scoped resources (global /
+  org / site / self), and every named role the project has talked about
+  (coordinator, agency-admin, field-volunteer, remote contributor, and a
+  deferred site-lead) is a bundle of those capabilities at one scope level —
+  not an independent thing to design from scratch. Primero (UNICEF's real,
+  deployed, multi-agency case-management system) turned out to be an almost
+  exact precedent for HOS's actual problem and independently validated the
+  shape all three reviewers converged on from different angles. The most
+  consequential finding is not about roles at all: HOS's case/PII tables have
+  no org_id column today, meaning the stated goal of "an agency-admin only
+  sees their own org's PII" cannot be built as described until a human decides
+  whether reunification case data is meant to be a shared cross-org pool or
+  needs the same org-partitioning as coordination data — that decision drives
+  a real, currently-unscoped schema change either way, and no board review can
+  make it. Separately, the Contrarian's finding that NO coordination write
+  path today checks row ownership at all means agency-admin must not ship as
+  a standing writer before RLS is real — the gap between "the role is named
+  in a yaml" and "the boundary is enforced" is exactly where HOS-2026-002-D4's
+  original harm (claiming something happened that didn't) would recur, one
+  organization's data at a time instead of one family's notification.
+escalate_to_human:
+  - "D4: whether case/reunification PII is a shared cross-org pool or needs org-partitioning — a mission/values decision, not an engineering one, and it blocks scoping the case-table half of HOS-2026-001-08's RLS work."
+  - "Confirm the org claim will be carried in Supabase raw_app_meta_data, not user_metadata, before any RLS policy is written against it (Researcher's finding) — this is a concrete implementation checkpoint, not a design question, but it's easy to get wrong silently."
+  - "This entire decision is blocked on HOS-2026-001-07 (Postgres) landing, same as HOS-2026-001-08 already noted — no capability/RLS work can ship against node:sqlite."
+  - "Same governance bar as the rest of this decision family: security-model change, human sign-off expected before implementation."
