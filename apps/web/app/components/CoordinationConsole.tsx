@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Boxes, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Boxes, Plus, RefreshCw } from "lucide-react";
 import { AppShell } from "@/app/components/HosDashboard";
 import { type ModalKind } from "@/app/components/IntakeForms";
 import {
@@ -14,8 +15,49 @@ import {
   SiteCard,
 } from "@/app/components/CoordinationParts";
 import { getCoordinationBoard } from "@/app/lib/client/coordination";
+import { ApiError, COORDINATOR_TOKEN_KEY } from "@/app/lib/client/api";
+import {
+  getBrowserSupabase,
+  isSupabaseConfiguredClient,
+  SUPABASE_TOKEN_KEY,
+} from "@/app/lib/client/supabase";
 import type { CoordinationView } from "@/app/lib/domain/coordinationViews";
 import type { Urgency } from "@/app/lib/domain/coordination";
+
+/** Refresh the mirrored Supabase access token before a request so a coordinator
+ *  isn't 401'd after ~1h just because a tab stayed open (supabase-js refreshes
+ *  the session under the hood; we mirror the fresh token for the Bearer header). */
+async function refreshCoordinatorSession(): Promise<void> {
+  if (!isSupabaseConfiguredClient() || typeof window === "undefined") return;
+  const supabase = getBrowserSupabase();
+  const token = (await supabase?.auth.getSession())?.data.session?.access_token;
+  if (token) window.localStorage.setItem(SUPABASE_TOKEN_KEY, token);
+}
+
+function hasAnyCredential(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    !!window.localStorage.getItem(SUPABASE_TOKEN_KEY) ||
+    !!window.localStorage.getItem(COORDINATOR_TOKEN_KEY)
+  );
+}
+
+/** Compact "updated N ago" label so a coordinator can trust how live the board
+ *  is — stale needs/capacity in an active incident are a real operational risk. */
+function formatAgo(from: number, now: number): string {
+  const s = Math.max(0, Math.round((now - from) / 1000));
+  if (s < 5) return "ahora mismo";
+  if (s < 60) return `hace ${s} s`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.round(m / 60);
+  return `hace ${h} h`;
+}
+
+// Live board: refetch on this cadence so an open console tracks the incident
+// without a manual reload. Paused while a create form is open or the tab is
+// hidden, so it never yanks the board out from under someone mid-entry.
+const AUTO_REFRESH_MS = 45_000;
 
 const URGENCY_RANK: Record<Urgency, number> = { critical: 0, high: 1, normal: 2, low: 3 };
 
@@ -38,30 +80,71 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 export function CoordinationConsole() {
+  const router = useRouter();
   const [trustLayer, setTrustLayer] = useState(true);
   const [modalKind, setModalKind] = useState<ModalKind>(null);
   const [board, setBoard] = useState<CoordinationView | null>(null);
   const [error, setError] = useState("");
+  const [denied, setDenied] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [creating, setCreating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [nowTick, setNowTick] = useState(() => Date.now());
 
   useEffect(() => {
     let active = true;
-    getCoordinationBoard()
-      .then((res) => {
+    (async () => {
+      if (reloadKey > 0) setRefreshing(true);
+      await refreshCoordinatorSession();
+      try {
+        const res = await getCoordinationBoard();
         if (!active) return;
         setBoard(res);
         setError("");
-      })
-      .catch((e: unknown) => {
-        if (active) setError(e instanceof Error ? e.message : "No se pudo cargar la coordinación.");
-      });
+        setDenied(false);
+        setLastUpdated(Date.now());
+      } catch (e: unknown) {
+        if (!active) return;
+        const status = e instanceof ApiError ? e.status : 0;
+        if (status === 401 || status === 403) {
+          // No credential at all -> truly logged out, send to sign-in. A present
+          // but rejected session (expired / not on the allowlist) must NOT bounce
+          // to /login (that loops); show an actionable message instead.
+          if (!hasAnyCredential()) {
+            router.replace("/login");
+            return;
+          }
+          setDenied(true);
+          setError("");
+          return;
+        }
+        setError(e instanceof Error ? e.message : "No se pudo cargar la coordinación.");
+      } finally {
+        if (active) setRefreshing(false);
+      }
+    })();
     return () => {
       active = false;
     };
-  }, [reloadKey]);
+  }, [reloadKey, router]);
 
   const reload = () => setReloadKey((k) => k + 1);
+
+  // Keep the board live without a manual reload, and keep the "updated N ago"
+  // label ticking. Auto-refresh pauses while a form is open or the tab is hidden.
+  useEffect(() => {
+    const refresh = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      if (creating) return;
+      setReloadKey((k) => k + 1);
+    }, AUTO_REFRESH_MS);
+    const tick = setInterval(() => setNowTick(Date.now()), 1_000);
+    return () => {
+      clearInterval(refresh);
+      clearInterval(tick);
+    };
+  }, [creating]);
 
   const sortedNeeds = useMemo(() => {
     if (!board) return [];
@@ -97,8 +180,29 @@ export function CoordinationConsole() {
       onCloseModal={() => setModalKind(null)}
     >
       <div className="flex flex-1 flex-col gap-[18px] px-[28px] py-[28px] max-[900px]:px-[18px] max-[900px]:py-[18px]">
-        {board === null && !error ? (
+        {board === null && !error && !denied ? (
           <p className="text-[14px] font-bold text-[var(--hos-muted)]">Cargando coordinación…</p>
+        ) : denied ? (
+          <div className="rounded-[8px] border border-[#F1D8D2] bg-[#FCF1EF] px-[18px] py-[16px]">
+            <div className="text-[14px] font-extrabold text-[#8A2C20]">Acceso no autorizado</div>
+            <p className="mt-[6px] text-[13px] font-bold leading-[18px] text-[#8A2C20]">
+              Tu sesión expiró o tu cuenta no está autorizada para coordinación. Inicia sesión con una
+              cuenta invitada por un administrador.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.localStorage.removeItem(SUPABASE_TOKEN_KEY);
+                  window.localStorage.removeItem(COORDINATOR_TOKEN_KEY);
+                }
+                router.replace("/login");
+              }}
+              className="mt-[14px] inline-flex h-[38px] items-center rounded-[6px] bg-[var(--hos-dark)] px-[16px] text-[13px] font-extrabold text-white transition hover:opacity-90"
+            >
+              Iniciar sesión
+            </button>
+          </div>
         ) : error ? (
           <div className="rounded-[8px] border border-[#F1D8D2] bg-[#FCF1EF] px-[16px] py-[14px] text-[14px] font-bold text-[#8A2C20]">
             {error}
@@ -124,15 +228,34 @@ export function CoordinationConsole() {
               <Metric value={metrics.sites} label="sitios" color="text-[var(--hos-blue)]" />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-[12px]">
               <h2 className="text-[16px] font-extrabold text-[var(--hos-text)]">Panel de coordinación</h2>
-              <button
-                type="button"
-                onClick={() => setCreating((v) => !v)}
-                className="inline-flex h-[38px] items-center gap-[6px] rounded-[6px] bg-[var(--hos-dark)] px-[14px] text-[13px] font-extrabold text-white"
-              >
-                <Plus className="h-[15px] w-[15px]" strokeWidth={2.6} /> {creating ? "Cerrar" : "Nuevo registro"}
-              </button>
+              <div className="flex items-center gap-[10px]">
+                <button
+                  type="button"
+                  onClick={reload}
+                  disabled={refreshing}
+                  aria-label="Actualizar el panel"
+                  className="inline-flex h-[38px] items-center gap-[6px] rounded-[6px] border border-[var(--hos-border)] bg-white px-[12px] text-[12px] font-extrabold text-[var(--hos-muted)] transition hover:text-[var(--hos-text)] disabled:opacity-60"
+                >
+                  <RefreshCw
+                    className={`h-[14px] w-[14px] ${refreshing ? "animate-spin" : ""}`}
+                    strokeWidth={2.4}
+                  />
+                  {lastUpdated ? (
+                    <span className="max-[520px]:hidden">{formatAgo(lastUpdated, nowTick)}</span>
+                  ) : (
+                    <span className="max-[520px]:hidden">Actualizar</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreating((v) => !v)}
+                  className="inline-flex h-[38px] items-center gap-[6px] rounded-[6px] bg-[var(--hos-dark)] px-[14px] text-[13px] font-extrabold text-white"
+                >
+                  <Plus className="h-[15px] w-[15px]" strokeWidth={2.6} /> {creating ? "Cerrar" : "Nuevo registro"}
+                </button>
+              </div>
             </div>
 
             {creating ? (

@@ -11,14 +11,38 @@
 //
 // "Open" must always be something a human typed: an explicit HOS_DEV_OPEN=1 is
 // honored (matching auth.ts), a forgotten token is not.
+//
+// A coordinator gate is also "configured" when invite-only Supabase auth is set
+// up (HOS-2026-001-08): the per-request gate (auth.ts) accepts a signed-in user
+// whose email is on the allowlist, so a deploy using that path — and NOT the
+// legacy shared token — is correctly configured and must be allowed to start.
+// This guard must stay in lockstep with auth.ts; a deploy the per-request gate
+// can admit through must never be refused at boot (that was the /coordination
+// 500: Supabase auth was live but this guard only knew the legacy token).
+
+import { parseAllowlist } from "../auth/allowlist.ts";
 
 type BootEnv = {
   NODE_ENV?: string;
   HOS_COORDINATOR_TOKEN?: string;
   HOS_DEV_OPEN?: string;
+  NEXT_PUBLIC_SUPABASE_URL?: string;
+  NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
+  HOS_COORDINATOR_EMAILS?: string;
 };
 
 export type BootCheck = { ok: boolean; reason: string };
+
+// Invite-only Supabase auth is a valid, non-open coordinator gate — but only
+// when the allowlist actually names someone. An empty allowlist admits NOBODY
+// (auth.ts / isAllowedCoordinator), which is the very misconfiguration this
+// guard exists to catch loudly, so URL + anon key alone are NOT enough.
+function supabaseInviteAuthConfigured(env: BootEnv): boolean {
+  const url = env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const anonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+  const hasCoordinators = parseAllowlist(env.HOS_COORDINATOR_EMAILS).length > 0;
+  return url.length > 0 && anonKey.length > 0 && hasCoordinators;
+}
 
 // Local, non-deployed environments where an unconfigured gate is acceptable
 // (there the per-request gate still fails closed). Anything that is NOT
@@ -35,6 +59,9 @@ export function checkCoordinatorBootConfig(env: BootEnv): BootCheck {
   if (env.HOS_DEV_OPEN === "1") {
     return { ok: true, reason: "HOS_DEV_OPEN=1 (explicit open)" };
   }
+  if (supabaseInviteAuthConfigured(env)) {
+    return { ok: true, reason: "invite-only Supabase auth configured (allowlist set)" };
+  }
   if (isLocalEnv(env.NODE_ENV)) {
     return {
       ok: true,
@@ -45,8 +72,9 @@ export function checkCoordinatorBootConfig(env: BootEnv): BootCheck {
     ok: false,
     reason:
       `coordinator access is unconfigured in a non-local environment (NODE_ENV=${env.NODE_ENV}). ` +
-      "Set HOS_COORDINATOR_TOKEN to a strong secret, or set HOS_DEV_OPEN=1 to run intentionally open " +
-      "(never in production).",
+      "Configure one of: HOS_COORDINATOR_TOKEN (shared token); invite-only Supabase auth " +
+      "(NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY + HOS_COORDINATOR_EMAILS with at " +
+      "least one address); or HOS_DEV_OPEN=1 to run intentionally open (never in production).",
   };
 }
 

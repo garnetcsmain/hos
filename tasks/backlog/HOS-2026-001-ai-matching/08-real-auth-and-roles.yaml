@@ -37,7 +37,10 @@ code_changes:
   - { file: "apps/web/app/lib/auth/supabaseConfig.ts", status: "done" }
   - { file: "apps/web/app/lib/auth/session.ts", status: "done" }
   - { file: "apps/web/app/lib/http/auth.ts", status: "done" }
+  - { file: "apps/web/app/lib/http/bootGuard.ts", status: "done", note: "2026-07-01 fix: recognize invite-only Supabase auth (url+key+non-empty allowlist) as a configured gate, not just the legacy token" }
   - { file: "apps/web/app/lib/client/supabase.ts", status: "done" }
+  - { file: "apps/web/app/lib/client/api.ts", status: "done", note: "ApiError carries HTTP status so the UI can react to 401/403" }
+  - { file: "apps/web/app/components/CoordinationConsole.tsx", status: "done", note: "session refresh on load + graceful auth-failure UX (no redirect loop)" }
   - { file: "apps/web/app/login/page.tsx", status: "done" }
 standup:
   - date: "2026-07-01"
@@ -45,6 +48,11 @@ standup:
     verified: "85 tests (10 new: allowlist + gate matrix); typecheck + lint + build clean; runtime smoke — unconfigured path still 200 via dev-open, /login renders."
     blockers: "To ACTIVATE: set NEXT_PUBLIC_SUPABASE_URL/ANON_KEY + HOS_COORDINATOR_EMAILS in Vercel + local, and obtain human security sign-off (Board D3). Turn OFF Supabase 'Allow new users to sign up' (invite-only)."
     next: "Wire the signed-in identity into event actors; then a follow-on proposal for the full role model + org-scoped RLS once Postgres (HOS-2026-001-07) lands."
+  - date: "2026-07-01"
+    progress: "BUGFIX (prod /coordination 500): the Board-D3 boot guard (bootGuard.ts, run from instrumentation.register) still required the LEGACY HOS_COORDINATOR_TOKEN and did not recognize invite-only Supabase auth — so a Supabase-only prod deploy crashed every serverless function on cold start (process.exit(1) → Next global-error 500 on all /api/* routes). Guard now also passes when NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY + a non-empty HOS_COORDINATOR_EMAILS are set (empty allowlist still refuses — keeps the D3 guarantee). Also hardened the coordinator console: refresh the Supabase token on load (no ~1h expiry dead-end) and show an actionable 'sign in' card on 401/403 instead of a raw error / redirect loop."
+    verified: "88 tests (3 new bootGuard cases: supabase-configured passes, empty-allowlist refuses, url-without-key refuses); typecheck + build clean. next start smoke: with allowlist -> BOOTS + /api/coordination 401 (not 500); without allowlist -> refuses to boot (reproduces prod)."
+    blockers: "To fix prod: deploy this to main AND set HOS_COORDINATOR_EMAILS in Vercel Production+Preview (env changes need a redeploy). HOS_COORDINATOR_EMAILS is currently UNSET in Vercel — that is why prod 500s and why login would 401 even after boot."
+    next: "Human: set HOS_COORDINATOR_EMAILS + approve deploy. Then verify signed-in coordinator loads the board on hos-alpha."
 notes: |
   This delivers the AUTHN layer only (sign-in + invite-only gate), which is safe and non-breaking.
   The role model + org/tenant isolation (authz) is deliberately deferred: it needs Postgres + RLS
