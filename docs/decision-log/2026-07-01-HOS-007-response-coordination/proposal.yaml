@@ -1,0 +1,92 @@
+decision_id: "HOS-2026-007"
+title: "Whole-response coordination (shelters, needs, supplies, volunteers)"
+category: "strategic"
+proposer: "Executive Orchestrator"
+date: "2026-07-01"
+status: "DRAFT — Board review + Judge verdict attached"
+board_status: "run"
+
+summary: >
+  Extend HOS beyond family reunification into the second urgent need the landing
+  page already promises: coordination. A shared operational picture where
+  shelters publish capacity, field actors post needs, orgs offer supplies, and
+  needs get matched to supplies — "one big shared whiteboard for a disaster."
+  This is a strategic expansion (a new epic), requested by the human principal to
+  start now, in parallel with the Phase 0 matcher, which is ~64% and not yet
+  shipped. Per governance it must clear the Board + Judge before any code; this
+  proposal exists to be judged, not to authorize a build by itself.
+
+context:
+  problem: >
+    Once families can find each other, the next bottleneck is operational
+    coordination: which shelter has beds tonight, who needs water in La Guaira,
+    which org can deliver it, and who is already handling it. Today that lives in
+    WhatsApp groups and spreadsheets — no shared, auditable, offline-tolerant
+    picture, so effort is duplicated and needs fall through the cracks.
+  user_impact: >
+    A shelter coordinator could publish "40 beds, need infant formula"; a
+    responder org could see the open needs across districts and claim the ones it
+    can serve. Done wrong, a public needs board becomes a targeting map for bad
+    actors, records supplies/claims that never arrive (the same false-delivery
+    harm D4 just fixed, one layer up), or pulls scarce build focus off finishing
+    the reunification MVP that is the actual mission.
+  mission_fit: >
+    AGENTS.md is explicit that every line should serve the Phase 0 reunification
+    mission or be deferred. Coordination is real and promised, but it is Phase 1.
+    The tension between "start now" and "finish the mission first" is the central
+    question for the Board.
+
+scope:
+  in:
+    - "Shelter/site directory with human-entered capacity (beds free / total, updated_at)"
+    - "A needs board: typed requests (category, quantity, district, urgency, status)"
+    - "A supplies/offers board and a needs<->supplies match as an advisory candidate (human-claimed, never auto-fulfilled)"
+    - "Reuse the existing spine: repository layer, append-only event store, coordinator auth gate, offline-first SQLite, i18n"
+  out:
+    - "Volunteer dispatch / task assignment to individuals (safety + accountability heavy; later gate)"
+    - "Any auto-fulfillment or auto-routing of supplies without a human claim"
+    - "A new external dependency, new datastore, or a map/geo dependency (stays on HOS-2026-001-10)"
+    - "Public, unauthenticated exposure of precise site locations or live needs"
+    - "Anything that blocks or reprioritizes the Phase 0 reunification finish line"
+
+options:
+  - id: "A-full-platform-now"
+    label: "Build the full coordination platform now (shelters + needs + supplies + volunteer dispatch + routing)"
+    pros: ["Delivers the whole vision fast", "One coherent build"]
+    cons:
+      - "Enormous scope; directly competes with finishing Phase 0 (mission risk)"
+      - "Volunteer dispatch adds real-world safety/liability and identity needs we do not have yet"
+      - "Big new surface before real auth (HOS-2026-001-08) lands"
+  - id: "B-thin-slice-reuse-spine"
+    label: "Thin coordination slice: shelter capacity + needs/supplies board, human-entered, reusing the existing spine; defer dispatch & routing"
+    pros:
+      - "Starts coordination now with a small, auditable, offline-first surface"
+      - "Reuses event store + repository + human-in-the-loop; no new dependency"
+      - "Does not gate on Phase 0; can be paused without breaking the matcher"
+    cons: ["Not the whole vision yet", "Still adds scope while Phase 0 is unfinished"]
+  - id: "C-defer-until-phase0-ships"
+    label: "Defer all coordination until the Phase 0 MVP ships"
+    pros: ["Maximum focus on the mission", "Zero new risk surface"]
+    cons: ["Ignores the human principal's explicit request to start now", "Coordination need is real today"]
+  recommended: "B-thin-slice-reuse-spine"
+
+assumptions:
+  - "Coordination data (shelter capacity, needs) is less directly re-identifying than a missing-person's PII — but site locations + live needs are still sensitive and abusable."
+  - "The existing spine (event store, repository, coordinator gate, offline SQLite) can carry coordination entities with little new machinery."
+  - "A thin slice can be built without slowing the Phase 0 finish — to be tested, not assumed."
+
+risks:
+  - "Scope/focus risk: pulling effort off the unfinished reunification mission (AGENTS.md §7)."
+  - "Targeting risk: a public needs/site board can direct bad actors to vulnerable concentrations of people or aid."
+  - "False-state risk: recording supplies/claims/fulfillment that never happened (the D4 harm, one layer up)."
+  - "Auth risk: a larger write surface before real auth (HOS-2026-001-08) increases the blast radius of the shared-token model."
+
+success_criteria:
+  - "A coordinator can publish a shelter's live capacity and see it change, with every change in the audit log."
+  - "An open need can be posted, claimed by an org, and marked fulfilled ONLY on a recorded human confirmation."
+  - "No precise site location or live need is exposed to unauthenticated callers."
+  - "Phase 0 reunification progress does not regress while this is built."
+
+escalate_to_human:
+  - "Confirm the mission tradeoff: is it acceptable to spend build capacity on Phase 1 coordination before the Phase 0 reunification MVP ships? (The human principal has said yes; recorded here for the log.)"
+  - "Volunteer dispatch to named individuals — defer until real auth + a safety/consent model exist; do not start under the shared token."

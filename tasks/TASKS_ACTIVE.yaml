@@ -6,8 +6,8 @@
 ---
 
 # Task Summary
-total_tasks: 13
-in_backlog: 4
+total_tasks: 14
+in_backlog: 5
 in_sprint: 9
 in_progress: 3
 in_review: 0
@@ -85,6 +85,18 @@ epics:
     progress: "0%"
     board_status: "DRAFT — awaiting board + human/legal sign-off"
     tasks: []  # no tasks until the board clears it
+
+  - epic_id: "HOS-2026-007"
+    title: "Whole-response coordination (shelters, needs, supplies)"
+    decision_link: "docs/decision-log/2026-07-01-HOS-007-response-coordination/judge_decision.yaml"
+    status: "planning"
+    progress: "0%"
+    board_status: "RESHAPE — Judge approved the thin slice (Option B); dispatch/routing/public feed KILLED this cycle"
+    tasks:
+      # Judge conditions (HOS-2026-007): coordinator-only, coarse district, honest
+      # state (site confirms receipt), freshness signal, model org/actor now, reuse
+      # the spine, and stay structurally pausable so Phase 0 is never reprioritized.
+      - { id: "HOS-2026-007-01", title: "Coordination slice: sites (capacity) + needs board + advisory supply match", owner: "DEV", status: "todo", priority: "MEDIUM" }
 
 ---
 
