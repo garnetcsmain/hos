@@ -1,0 +1,135 @@
+decision_id: "HOS-2026-009"
+title: "Unaccompanied-minor check-in and missing-child soft alert (non-biometric, non-tracking by default)"
+category: "strategic"
+proposer: "Executive Orchestrator (drafted at human principal's request, 2026-07-01)"
+date: "2026-07-01"
+status: "DRAFT — awaiting Board review"
+board_status: "pending"
+
+summary: >
+  Propose a way to catch a missing unaccompanied minor quickly — a real,
+  documented risk in displacement settings, including trafficking — using a
+  non-biometric ID, a human-recorded check-in by a named responsible adult, and
+  an absence-based soft alert to the assigned area coordinator. This is
+  explicitly NOT the biometric-face-ID-plus-continuous-GPS mechanism raised in
+  the originating conversation: that variant is recorded here as a considered
+  and declined option, because a photo-plus-real-time-location database of
+  specifically vulnerable children is the single highest-value asset a
+  trafficker or a hostile state could want, and would invert the safety goal
+  if ever breached, compelled from the host, or leaked. This proposal exists so
+  the good idea (fast detection) is not lost to the risky mechanism (biometric
+  surveillance), and so the risky mechanism gets its own, separately-gated
+  review rather than approval as a side effect of solving the real problem.
+
+context:
+  problem: >
+    Unaccompanied minors can go missing from a shelter or camp without anyone
+    noticing quickly; this is a known vector for trafficking in crisis
+    response. Today's HOS has no answer to this at all — HOS-2026-007's `Site`
+    model tracks only aggregate bed counts (bedsTotal/bedsFree), never named
+    occupants, and HOS-2026-001 tracks missing/found reports for reunification
+    across locations, not presence within a location over time. There is
+    currently no mechanism to notice a missing child sooner than someone
+    happening to realize it.
+  user_impact: >
+    Done as proposed (Option A below), a caseworker or volunteer records a
+    simple check-in at defined moments, and if a child misses an expected
+    check-in the assigned area coordinator gets a soft, internal "needs a
+    look" alert — meaningfully faster than incidental discovery, with a data
+    footprint small enough that a breach is a name and an assigned site, not a
+    location history. Done as originally proposed (Option B, biometric +
+    continuous GPS), the same feature becomes exactly the artifact a
+    trafficker or a hostile government would most want: a searchable,
+    real-time-located roster of specifically the most vulnerable children in
+    the response, directly repeating the harm the Board already flagged for
+    facial recognition generally in HOS-2026-006 (citing the Rohingya
+    biometric-data-sharing precedent) and the state-adversary risk framed in
+    HOS-2026-008.
+  constraints: >
+    No child-protection specialist or legal counsel on retainer in this build
+    context. The org/actor model (HOS-2026-002-D2/D3 condition) already
+    assumes self-declared actor identity under a shared/interim auth layer —
+    this proposal inherits that same trust limitation and does not solve it.
+
+scope:
+  in:
+    - "A minimal unaccompanied-minor record: a system-generated non-biometric ID, a display name/nickname, an age band, an optional reference photo for HUMAN visual confirmation only (no algorithmic face matching against it), and the assigned responsible org/site — mirroring the existing missing/found report shape, not inventing a new PII category."
+    - "A check-in event: recorded by a named responsible adult (a present guardian if any, otherwise an assigned caseworker or volunteer) at defined moments (e.g. roll call, meals, curfew) — the same event-sourced, attributed, append-only pattern already used for coordination need transitions."
+    - "Absence-based soft alert: if no check-in event lands within a configurable window, an internal, coordinator-facing alert surfaces for the assigned area — never a public alert, never an automatic escalation beyond the coordinator layer."
+    - "Optional, minimal self-check-in: a one-time, self-initiated 'I am here' confirmation for a phone-capable minor or guardian, checked ONCE against a coordinator-defined district boundary at the instant of confirmation, then discarded — not stored as a location trail, not polled, not continuous."
+    - "Coordinator-only visibility, reusing the existing coordinator gate. No public surface for this data under any circumstance — it is the single most sensitive dataset this system would hold."
+  out:
+    - "Any biometric identifier (face embedding template, fingerprint, or similar) used for check-in, matching, or verification."
+    - "Continuous, periodic, or geofence-triggered GPS tracking, or any stored location history, for any individual — minor or adult."
+    - "Any automated law-enforcement or government notification/integration. Escalation beyond the coordinator layer is always a human decision, never a system action."
+    - "Any export, aggregate query, or cross-reference that would let this record set function as a general population registry."
+
+options:
+  - id: "A-non-biometric-checkin"
+    note: >
+      Described above; the proposer's recommendation. Reuses the existing
+      repository layer, append-only event store, and coordinator gate — no new
+      external dependency, no biometric or continuous-tracking data collected.
+      Weakest link: it depends on a human actually performing the check-in,
+      the same trust assumption the rest of HOS already makes for org/actor
+      attribution under the interim shared-auth layer.
+  - id: "B-biometric-plus-continuous-gps"
+    note: >
+      Face-ID check-in plus continuous geofenced GPS tracking, matching the
+      mechanism originally proposed. Rejected as a default: creates the single
+      highest-value target dataset in the system — photographs plus real-time
+      location of specifically the most vulnerable children — which, if
+      breached, subpoenaed from the host, or leaked, is a ready-made
+      trafficking or targeting tool rather than a protection. Recorded here so
+      the Board can see it was considered and explicitly declined this cycle,
+      not silently dropped; it would need its own separate review with a
+      child-protection specialist and legal counsel before any reconsideration.
+  - id: "C-do-nothing"
+    note: >
+      Ship no feature; rely on existing manual shelter processes. Rejected:
+      the underlying risk is real and documented, and a bad Option B should
+      not be allowed to foreclose a good, low-risk Option A by inaction.
+
+resources:
+  prerequisites:
+    - "None blocking for Option A — it reuses the existing repository layer, event store, and coordinator gate; no new external dependency."
+    - "A human decision to proceed on Option A as the default, and to explicitly decline Option B pending a separate, stricter specialist review."
+  time_estimate: >
+    Roughly one week: minor record + check-in event model + absence-alert
+    logic, similar in shape and size to the HOS-2026-007 coordination slice.
+
+success_criteria:
+  - "A missed check-in surfaces a soft alert to the correct area coordinator within one missed-window cycle."
+  - "No biometric or continuous-location data is collected anywhere in this proposal's approved scope."
+  - "Visibility is coordinator-only; there is no public or aggregated surface for this data, ever."
+  - "The record is minimal enough that a worst-case breach exposes a name, an ID, an assigned site, and a photo for human viewing — never a location history or a biometric template."
+
+risks:
+  - "False reassurance: 'no check-in' can mean the responsible adult forgot, not that the child is missing. The alert must read as 'needs a look,' not as a confirmed incident — mirroring the honesty principle already applied to HOS-2026-007's freshness signal (stale must read as stale, not as truth)."
+  - "Even the non-biometric version is a sensitive list of named vulnerable children; this record should inherit whatever field-level-protection posture HOS-2026-008 produces, and should not be built ahead of that decision without at least matching its minimum bar."
+  - "This does not solve the case where the trafficker IS the responsible adult of record — it is a detection aid for an absent check-in, not a guarantee of safety, and should not be presented to coordinators as more than that."
+  - "Scope creep: this proposal must not quietly grow into Option B later without a fresh, separately-gated review — the Board should treat any future 'let's just add face matching too' request as a new decision, not an extension of this one."
+
+board_questions_to_answer:
+  - "Contrarian: what is the worst-case misuse of even the non-biometric dataset (a named list of unaccompanied minors and their assigned sites), and is that risk acceptable given the safeguarding upside?"
+  - "Principals: 'a named responsible adult checks the child in' introduces an accountability question the current org/actor model doesn't yet answer — who vets or trusts that adult? Does this proposal need a minimum answer to that before shipping, or can it be layered on later?"
+  - "Researcher: what do UNICEF / ICRC / Sphere standards recommend for unaccompanied-minor tracking in crisis response, and is there a real-world precedent close to Option A that worked, or a cautionary one close to Option B that didn't?"
+  - "User: would a caseworker or volunteer reliably perform manual check-ins during a chaotic shift, or does this need to be closer to zero-friction to survive real conditions — echoing the WhatsApp-fallback failure mode already named in the HOS-2026-007 User review?"
+  - "Expansionist: is there a middle technical step worth naming for a later gate — e.g. a scanned QR wristband as the check-in mechanism, still non-biometric — between Option A's fully manual check-in and Option B's biometric one?"
+
+notes:
+  - >
+    This proposal inherits the boundary already stated in HOS-2026-006 and
+    HOS-2026-008: no centralized biometric database of vulnerable people, and
+    no continuous location tracking, without a much stricter, separately
+    reviewed sign-off. Option B is recorded here specifically so it is seen and
+    explicitly declined, not silently dropped from consideration.
+  - "If HOS-2026-008 (threat-model posture) is decided first, this proposal's minor-record fields should be re-checked against whatever field-level-encryption requirement list that decision produces before implementation."
+
+escalation: >
+  Strategic and sensitive: this concerns the most vulnerable population the
+  system would touch and a well-documented real-world harm. The Board should
+  treat "is Option A's non-biometric design sufficient, or does the human
+  principal want to press toward Option B despite the risk it creates" as a
+  question requiring an explicit human answer — not an agent default — the
+  same escalation pattern already required for HOS-2026-006 and HOS-2026-008.
