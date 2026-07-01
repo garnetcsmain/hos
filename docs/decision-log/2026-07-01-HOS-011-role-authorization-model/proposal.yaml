@@ -1,0 +1,83 @@
+decision_id: "HOS-2026-011"
+title: "Platform role and authorization model: define agency-admin and remote/digital-contributor roles, and org-isolation boundaries"
+category: "strategic"
+proposer: "Product Agent (requested by principal, scoped by Executive Orchestrator, 2026-07-01)"
+date: "2026-07-01"
+status: "DRAFT — Board review in progress (focused: Contrarian, Principals, Researcher)"
+board_status: "pending"
+related_decisions: ["HOS-2026-010 (volunteer identity + geofencing, settled + R1/R2 addenda)", "HOS-2026-001-08 (real auth, roles, org isolation — in progress, authn layer done, role model + org isolation TODO)"]
+
+summary: >
+  HOS-2026-001-08's own task notes name a planned role taxonomy —
+  coordinator / agency-admin / responder — but explicitly defer the role
+  model and org isolation as needing "its own board proposal" once Postgres
+  lands. Separately, the HOS-2026-010 identity/geofencing decision (and its
+  R1 addendum) established that HOS must also support a REMOTE/digital
+  contributor category (e.g. a translator who never sets foot in Venezuela,
+  self-registers, is never geofenced) — a category that does NOT appear
+  anywhere in the planned coordinator/agency-admin/responder taxonomy. This
+  proposal asks the board to define BOTH gaps together, since they are two
+  parts of the same underlying question ("what are HOS's roles and what does
+  each one actually do"): (1) what agency-admin's actual scope and
+  permissions are, relative to coordinator and to org isolation, and (2)
+  whether remote/digital contributors are a new top-level role, a variant of
+  responder, or something else structurally.
+
+context:
+  problem: >
+    HOS today has exactly ONE implemented role (coordinator — Supabase Auth,
+    invite-only allowlist, verified in apps/web/app/lib/http/auth.ts). Every
+    volunteer-facing intake route is fully anonymous. An `orgs` table already
+    exists in the schema (added by HOS-2026-007, the coordination hub) but is
+    not yet used for actual data isolation — no row-level security, no
+    per-org PII scoping. The stated end goal (EXTERNAL_DEPENDENCIES.md #4,
+    HOS-2026-001-08) is "multiple responding agencies can share an instance
+    without seeing each other's PII," naming coordinator/agency-admin/
+    responder as the intended roles — but agency-admin has never been
+    defined beyond its name, and remote/digital contributors (settled as a
+    real, necessary category in HOS-2026-010/R1) aren't in that taxonomy at
+    all.
+  user_impact: >
+    Done well: multiple aid organizations can run their own volunteer corps
+    and case data on one shared HOS instance, each managed by their own
+    agency-admin, without any cross-organization data leakage, while HOS's
+    overall coordinators retain whatever cross-org visibility the response
+    effort actually needs — and a remote translator can join and contribute
+    without confusion about what role they hold or what they can/can't do.
+    Done wrong: an ill-defined agency-admin role either duplicates
+    "coordinator" with no real distinction (wasted complexity), or is scoped
+    loosely enough that one agency's admin can see another's volunteers or
+    cases (the exact PII leak org isolation exists to prevent) — and a
+    remote contributor either gets awkwardly forced into the "responder"
+    role (inheriting geofencing/field assumptions that don't apply to them)
+    or has no defined role at all (falls through the cracks of whatever
+    permission system gets built).
+
+verified_current_state_2026_07_01:
+  - "Only role in code: coordinator (Supabase Auth + invite-only HOS_COORDINATOR_EMAILS allowlist). Verified: apps/web/app/lib/http/auth.ts, apps/web/app/lib/auth/{allowlist,session,supabaseConfig}.ts."
+  - "An orgs table exists (added by HOS-2026-007's coordination work) but is not yet used to isolate data — no RLS, no per-org filtering anywhere. Confirmed: HOS-2026-001-08's own acceptance criteria list 'a user can only see their org's PII' as TODO, blocked on Postgres (HOS-2026-001-07)."
+  - "Site/needs/offers management under /coordination is 100% coordinator-gated today (requireCoordinator on every route, verified in apps/web/app/api/coordination/sites/route.ts and siblings) — there is no separate 'manage my own org's sites' capability distinct from full coordinator access."
+  - "Planned taxonomy per tasks/backlog/HOS-2026-001-ai-matching/08-real-auth-and-roles.yaml: 'roles (coordinator / agency-admin / responder) beyond the flat allowlist' — listed as TODO, no further detail anywhere in the repo."
+  - "Remote/digital contributors (translators, moderators — self-registering, never geofenced) are a settled requirement from HOS-2026-010's R1 addendum, but are NOT named in the HOS-2026-001-08 planned taxonomy at all."
+  - "Public intake/search (family search, missing-report, found-report) stays account-free by explicit design — out of scope for this role model."
+
+open_questions_for_the_board:
+  - "Is agency-admin a genuinely distinct role from coordinator, or does 'coordinator' already mean 'the person who administers an org's response' and agency-admin is a redundant name for the same thing? If distinct: does agency-admin see only their own org's data (volunteers, cases, sites) while coordinator sees across all orgs in a shared deployment, or is the split some other axis (e.g. agency-admin manages people/settings, coordinator manages case verification)?"
+  - "Where do remote/digital contributors fit structurally: (a) a new top-level role alongside coordinator/agency-admin/responder, (b) an attribute/flag on the responder role ('field' vs 'remote' responder), or (c) something else? Does the answer change what HOS-2026-001-08's schema needs to support?"
+  - "What is the actual permission surface for each role — concretely, for the real HOS actions that exist today (submit found/missing report, view the coordination console, create/update a site, verify a match, contact a family) and the ones settled-but-unbuilt (edit/retract a report, per HOS-2026-010-R2)?"
+  - "Does org isolation mean a hard boundary (an agency-admin literally cannot query another org's data, enforced at the DB/RLS layer) or a UI-level filter that a determined actor could bypass? Given this project's own principle of fail-closed defaults (Board D3 precedent), which is required?"
+  - "Is there a need for a role between 'agency-admin' (manages an org) and 'responder' (a single field volunteer) — e.g. a shelter/site-level lead who manages just their own site's volunteers/capacity without full org-wide admin rights? (Today, site management is folded entirely into 'coordinator' — verified above — with nothing in between.)"
+
+board_questions_to_answer:
+  - "Contrarian: what's the worst realistic outcome if agency-admin's scope is defined too broadly (can see/touch another org's data) or too narrowly (can't do their actual job and everything routes back to a scarce 'coordinator')? Same question for remote/digital contributors — what happens if that role is under- or over-permissioned relative to a field responder?"
+  - "Principals: apply data-minimization and auditability specifically to the org-isolation boundary — what is the simplest permission model that actually satisfies 'an agency-admin can only see their own org's PII,' and does relying on anything less than DB-enforced isolation (e.g. app-layer filtering alone) violate this project's own fail-closed precedent (Board D3)? Is folding remote contributors into 'responder' with a flag simpler than adding a fourth top-level role, or does that create its own inconsistency (e.g. accidentally inheriting geofencing logic meant for field responders)?"
+  - "Researcher: how do comparable multi-tenant SaaS or multi-agency humanitarian coordination platforms (e.g. Primero, RapidFTR, or general multi-tenant RBAC practice) structure an 'org admin' role relative to a platform-wide coordinator/superuser role, and how do they enforce tenant isolation technically (RLS, separate schemas, application-layer scoping)? Is there real precedent for a 'remote/non-physical' contributor role sitting alongside field-based roles in a similar system?"
+
+escalation: >
+  Strategic per this project's own governance rule (security-model change,
+  touches PII access boundaries across organizations). Human sign-off
+  expected before implementation, consistent with the rest of this decision
+  family. This proposal does not authorize building anything — it defines
+  the role model so HOS-2026-001-08's still-pending org isolation work has a
+  real specification to build against, per that task's own note that this
+  needs its own board pass first.
