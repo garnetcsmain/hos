@@ -64,13 +64,13 @@ export interface FamilyReachResult {
 
 const COORDINATOR_TOKEN_KEY = "hos_coordinator_token";
 
-function coordinatorHeaders(): Record<string, string> {
+export function coordinatorHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const token = window.localStorage.getItem(COORDINATOR_TOKEN_KEY);
   return token ? { "x-hos-coordinator-token": token } : {};
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
     headers: { "content-type": "application/json", ...(init?.headers ?? {}) },

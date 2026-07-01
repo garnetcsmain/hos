@@ -1,4 +1,5 @@
 import {
+  Boxes,
   Building2,
   Check,
   Hospital,
@@ -21,6 +22,7 @@ export const navItems = [
   { label: "Matches", href: "/matches", icon: ScanSearch },
   { label: "Verify", href: "/verify", icon: ShieldCheck },
   { label: "Messages", href: "/messages", icon: MessageCircle },
+  { label: "Coordination", href: "/coordination", icon: Boxes },
   { label: "Sources", href: "/sources", icon: Radio },
 ] as const;
 

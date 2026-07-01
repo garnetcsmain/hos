@@ -125,7 +125,12 @@ export type EntityType =
   | "found_report"
   | "match"
   | "verification"
-  | "notification";
+  | "notification"
+  // Coordination epic (HOS-2026-007) — kept in the same append-only event store.
+  | "org"
+  | "site"
+  | "need"
+  | "offer";
 
 /** Append-only event store record. Once written, never rewritten. */
 export interface HosEvent {

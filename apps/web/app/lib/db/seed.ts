@@ -12,6 +12,7 @@ import { transaction } from "../db/client.ts";
 import { newFoundId, newMissingId, deriveGivenName } from "../domain/ids.ts";
 import { nowIso } from "../domain/time.ts";
 import { recomputeAll } from "../services/matcher.ts";
+import { seedCoordinationIfEmpty } from "./coordinationSeed.ts";
 import type { Condition, FoundReport, MissingReport, Sex } from "@/app/lib/domain/types";
 
 interface MissingSeed {
@@ -271,6 +272,7 @@ export function ensureSeeded(): void {
   ensured = true;
   try {
     seedIfEmpty();
+    seedCoordinationIfEmpty();
   } catch (error) {
     console.error("[hos] seed failed:", error);
   }
