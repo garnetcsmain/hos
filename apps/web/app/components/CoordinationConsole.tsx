@@ -13,10 +13,12 @@ import {
 import {
   AddOrgForm,
   AddSiteForm,
+  CATEGORY_LABEL,
   NeedCard,
   OfferCard,
   PostNeedForm,
   PostOfferForm,
+  SITE_CATEGORY_LABEL,
   SiteCard,
 } from "@/app/components/CoordinationParts";
 import { getCoordinationBoard } from "@/app/lib/client/coordination";
@@ -27,7 +29,7 @@ import {
   SUPABASE_TOKEN_KEY,
 } from "@/app/lib/client/supabase";
 import type { CoordinationView } from "@/app/lib/domain/coordinationViews";
-import type { Urgency } from "@/app/lib/domain/coordination";
+import type { NeedCategory, SiteCategory, Urgency } from "@/app/lib/domain/coordination";
 
 /** Refresh the mirrored Supabase access token before a request so a coordinator
  *  isn't 401'd after ~1h just because a tab stayed open (supabase-js refreshes
@@ -64,7 +66,40 @@ function formatAgo(from: number, now: number): string {
 // hidden, so it never yanks the board out from under someone mid-entry.
 const AUTO_REFRESH_MS = 45_000;
 
+// How many need cards to render per "Mostrar más" page.
+const NEEDS_PAGE = 60;
+
 const URGENCY_RANK: Record<Urgency, number> = { critical: 0, high: 1, normal: 2, low: 3 };
+
+// Filter chips (caracasayuda-style presets, plus urgency). Need categories in
+// triage order; site categories skip the "otro" catch-all (nothing uses it).
+const NEED_FILTERS = Object.keys(CATEGORY_LABEL) as NeedCategory[];
+const SITE_FILTERS: SiteCategory[] = ["acopio", "refugio", "medico", "internet", "mascotas"];
+
+function FilterChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`h-[28px] rounded-full border px-[10px] text-[12px] font-extrabold transition ${
+        active
+          ? "border-[var(--hos-dark)] bg-[var(--hos-dark)] text-white"
+          : "border-[var(--hos-border)] bg-white text-[var(--hos-muted)] hover:text-[var(--hos-text)]"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
 
 function Metric({ value, label, color }: { value: number; label: string; color: string }) {
   return (
@@ -96,6 +131,20 @@ export function CoordinationConsole() {
   const [nowTick, setNowTick] = useState(() => Date.now());
   const [view, setView] = useState<"list" | "map">("list");
   const [district, setDistrict] = useState<string | null>(null);
+  // The imported board carries ~1000 real need reports; render them in pages so
+  // the list stays responsive. Resets when any filter changes.
+  const [needsShown, setNeedsShown] = useState(NEEDS_PAGE);
+  // Preset filters (apply to list AND map): one need category, one site
+  // category, and a critical-only toggle. null = todos. Every setter goes
+  // through pickFilter so the pagination window resets with the filter.
+  const [needCat, setNeedCat] = useState<NeedCategory | null>(null);
+  const [siteCat, setSiteCat] = useState<SiteCategory | null>(null);
+  const [criticalOnly, setCriticalOnly] = useState(false);
+
+  const pickFilter = (apply: () => void) => {
+    apply();
+    setNeedsShown(NEEDS_PAGE);
+  };
 
   useEffect(() => {
     let active = true;
@@ -159,15 +208,30 @@ export function CoordinationConsole() {
     startCoordinationTour();
   };
 
+  // Category/urgency presets applied BEFORE the district filter, and fed to the
+  // map too, so the badges/pins show exactly what the list shows.
+  const filteredBoard = useMemo(() => {
+    if (!board) return null;
+    return {
+      ...board,
+      needs: board.needs.filter(
+        (v) =>
+          (!needCat || v.need.category === needCat) &&
+          (!criticalOnly || v.need.urgency === "critical"),
+      ),
+      sites: board.sites.filter((v) => !siteCat || v.site.category === siteCat),
+    };
+  }, [board, needCat, siteCat, criticalOnly]);
+
   const sortedNeeds = useMemo(() => {
-    if (!board) return [];
+    if (!filteredBoard) return [];
     const openFirst = (s: string) => (s === "open" ? 0 : s === "claimed" ? 1 : 2);
-    return [...board.needs].sort((a, b) => {
+    return [...filteredBoard.needs].sort((a, b) => {
       const byStatus = openFirst(a.need.status) - openFirst(b.need.status);
       if (byStatus !== 0) return byStatus;
       return URGENCY_RANK[a.need.urgency] - URGENCY_RANK[b.need.urgency];
     });
-  }, [board]);
+  }, [filteredBoard]);
 
   const metrics = useMemo(() => {
     if (!board) return { open: 0, critical: 0, beds: 0, sites: 0 };
@@ -181,9 +245,10 @@ export function CoordinationConsole() {
   }, [board]);
 
   const orgs = board?.orgs ?? [];
-  const allSites = board?.sites ?? [];
+  const allSites = filteredBoard?.sites ?? [];
   const allOffers = board?.offers ?? [];
   const visibleNeeds = district ? sortedNeeds.filter((v) => v.need.district === district) : sortedNeeds;
+  const pagedNeeds = visibleNeeds.slice(0, needsShown);
   const visibleSites = district ? allSites.filter((v) => v.site.district === district) : allSites;
   const visibleOffers = district ? allOffers.filter((v) => v.offer.district === district) : allOffers;
 
@@ -304,12 +369,62 @@ export function CoordinationConsole() {
               </div>
             </div>
 
-            {view === "map" ? (
+            <div className="flex flex-col gap-[8px]">
+              <div className="flex flex-wrap items-center gap-[6px]">
+                <span className="w-[110px] shrink-0 text-[11px] font-extrabold uppercase tracking-wide text-[var(--hos-muted)]">
+                  Necesidades
+                </span>
+                <FilterChip
+                  label="Todas"
+                  active={needCat === null && !criticalOnly}
+                  onClick={() =>
+                    pickFilter(() => {
+                      setNeedCat(null);
+                      setCriticalOnly(false);
+                    })
+                  }
+                />
+                {NEED_FILTERS.map((c) => (
+                  <FilterChip
+                    key={c}
+                    label={CATEGORY_LABEL[c]}
+                    active={needCat === c}
+                    onClick={() => pickFilter(() => setNeedCat(needCat === c ? null : c))}
+                  />
+                ))}
+                <FilterChip
+                  label="Solo críticas"
+                  active={criticalOnly}
+                  onClick={() => pickFilter(() => setCriticalOnly((v) => !v))}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-[6px]">
+                <span className="w-[110px] shrink-0 text-[11px] font-extrabold uppercase tracking-wide text-[var(--hos-muted)]">
+                  Puntos de ayuda
+                </span>
+                <FilterChip
+                  label="Todos"
+                  active={siteCat === null}
+                  onClick={() => pickFilter(() => setSiteCat(null))}
+                />
+                {SITE_FILTERS.map((c) => (
+                  <FilterChip
+                    key={c}
+                    label={SITE_CATEGORY_LABEL[c]}
+                    active={siteCat === c}
+                    onClick={() => pickFilter(() => setSiteCat(siteCat === c ? null : c))}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {view === "map" && filteredBoard ? (
               <CoordinationMap
-                board={board}
+                board={filteredBoard}
                 activeDistrict={district}
                 onSelect={(d) => {
                   setDistrict(d);
+                  setNeedsShown(NEEDS_PAGE);
                   if (d) setView("list");
                 }}
               />
@@ -328,7 +443,14 @@ export function CoordinationConsole() {
                   <div>
                     <span className="inline-flex items-center gap-[8px] rounded-full bg-[#EEF2EF] px-[12px] py-[6px] text-[12px] font-extrabold text-[var(--hos-text)]">
                       Distrito: {district}
-                      <button type="button" onClick={() => setDistrict(null)} aria-label="Quitar filtro de distrito">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDistrict(null);
+                          setNeedsShown(NEEDS_PAGE);
+                        }}
+                        aria-label="Quitar filtro de distrito"
+                      >
                         <X className="h-[13px] w-[13px]" strokeWidth={2.6} />
                       </button>
                     </span>
@@ -345,8 +467,17 @@ export function CoordinationConsole() {
                       {visibleNeeds.length === 0 ? (
                         <p className="text-[13px] font-bold text-[var(--hos-muted)]">No hay necesidades registradas.</p>
                       ) : (
-                        visibleNeeds.map((v) => <NeedCard key={v.need.id} view={v} orgs={orgs} onChanged={reload} />)
+                        pagedNeeds.map((v) => <NeedCard key={v.need.id} view={v} orgs={orgs} onChanged={reload} />)
                       )}
+                      {visibleNeeds.length > pagedNeeds.length ? (
+                        <button
+                          type="button"
+                          onClick={() => setNeedsShown((n) => n + NEEDS_PAGE)}
+                          className="h-[38px] rounded-[6px] border border-[var(--hos-border)] bg-white text-[13px] font-extrabold text-[var(--hos-blue)] transition hover:bg-[#F4F8F5]"
+                        >
+                          Mostrar más ({visibleNeeds.length - pagedNeeds.length} restantes)
+                        </button>
+                      ) : null}
                     </div>
                   </section>
 

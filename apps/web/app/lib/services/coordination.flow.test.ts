@@ -18,7 +18,8 @@ function seedOrg(name = "Cruz Roja") {
 test("create org -> site -> need; a need starts open", async () => {
   const org = await seedOrg("Refugio A");
   const site = await svc.createSite({
-    name: "Refugio A", orgId: org.id, district: "Maiquetía", bedsTotal: 50, bedsFree: 10, notes: "",
+    name: "Refugio A", orgId: org.id, district: "Maiquetía", category: "refugio", lat: null, lng: null,
+    bedsTotal: 50, bedsFree: 10, notes: "",
   });
   assert.equal(site.bedsFree, 10);
   const need = await svc.createNeed({
@@ -31,7 +32,8 @@ test("create org -> site -> need; a need starts open", async () => {
 test("bedsFree can never exceed bedsTotal", async () => {
   const org = await seedOrg("Refugio B");
   const site = await svc.createSite({
-    name: "Refugio B", orgId: org.id, district: "La Guaira", bedsTotal: 20, bedsFree: 999, notes: "",
+    name: "Refugio B", orgId: org.id, district: "La Guaira", category: "refugio", lat: null, lng: null,
+    bedsTotal: 20, bedsFree: 999, notes: "",
   });
   assert.equal(site.bedsFree, 20);
 });

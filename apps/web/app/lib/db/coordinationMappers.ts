@@ -10,6 +10,7 @@ import type {
   Org,
   OrgKind,
   Site,
+  SiteCategory,
   SiteStatus,
   Urgency,
 } from "@/app/lib/domain/coordination";
@@ -19,6 +20,8 @@ const str = (v: unknown): string => (v === null || v === undefined ? "" : String
 const strOrNull = (v: unknown): string | null =>
   v === null || v === undefined ? null : String(v);
 const num = (v: unknown): number => Number(v ?? 0);
+const numOrNull = (v: unknown): number | null =>
+  v === null || v === undefined ? null : Number(v);
 
 export function mapOrg(row: Row): Org {
   return {
@@ -37,6 +40,9 @@ export function mapSite(row: Row): Site {
     name: str(row.name),
     orgId: str(row.org_id),
     district: str(row.district),
+    category: (str(row.category) || "otro") as SiteCategory,
+    lat: numOrNull(row.lat),
+    lng: numOrNull(row.lng),
     bedsTotal: num(row.beds_total),
     bedsFree: num(row.beds_free),
     status: str(row.status) as SiteStatus,

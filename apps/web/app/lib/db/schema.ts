@@ -106,7 +106,10 @@ CREATE TABLE IF NOT EXISTS sites (
   updated_at    TEXT NOT NULL,
   name          TEXT NOT NULL,
   org_id        TEXT NOT NULL REFERENCES orgs(id),
-  district      TEXT NOT NULL DEFAULT '',   -- coarse only; never precise address
+  district      TEXT NOT NULL DEFAULT '',   -- coarse rollup key
+  category      TEXT NOT NULL DEFAULT 'otro', -- acopio|refugio|medico|internet|mascotas|otro
+  lat           REAL,                       -- only for publicly-listed aid points
+  lng           REAL,                       -- (else NULL — needs never get coords)
   beds_total    INTEGER NOT NULL DEFAULT 0,
   beds_free     INTEGER NOT NULL DEFAULT 0,
   status        TEXT NOT NULL DEFAULT 'active',
@@ -165,3 +168,12 @@ CREATE INDEX IF NOT EXISTS idx_needs_status ON needs(status);
 CREATE INDEX IF NOT EXISTS idx_needs_district ON needs(district);
 CREATE INDEX IF NOT EXISTS idx_offers_category ON offers(category);
 `;
+
+// Additive column migrations for databases created before the column existed.
+// SQLite has no ADD COLUMN IF NOT EXISTS, so the backend runs each statement
+// individually and ignores the "duplicate column name" error.
+export const SQLITE_MIGRATIONS: readonly string[] = [
+  `ALTER TABLE sites ADD COLUMN category TEXT NOT NULL DEFAULT 'otro'`,
+  `ALTER TABLE sites ADD COLUMN lat REAL`,
+  `ALTER TABLE sites ADD COLUMN lng REAL`,
+];

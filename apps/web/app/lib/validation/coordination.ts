@@ -7,6 +7,7 @@ const optionalText = (max: number) =>
   z.string().trim().max(max).optional().transform((v) => v ?? "");
 
 const category = z.enum([
+  "rescue",
   "water",
   "food",
   "formula",
@@ -16,6 +17,15 @@ const category = z.enum([
   "clothing",
   "other",
 ]);
+
+const siteCategory = z
+  .enum(["acopio", "refugio", "medico", "internet", "mascotas", "otro"])
+  .default("otro");
+
+// Only for publicly-listed aid points (already on a public map); needs never
+// carry coordinates.
+const coordinate = (min: number, max: number) =>
+  z.number().min(min).max(max).nullish().transform((v) => v ?? null);
 
 const urgency = z.enum(["low", "normal", "high", "critical"]).default("normal");
 
@@ -32,6 +42,9 @@ export const siteCreateSchema = z.object({
   name: z.string().trim().min(1, "site name is required").max(160),
   orgId: z.string().trim().min(1, "org is required").max(40),
   district: z.string().trim().min(1, "district is required").max(120),
+  category: siteCategory,
+  lat: coordinate(-90, 90),
+  lng: coordinate(-180, 180),
   bedsTotal: z.number().int().min(0).max(1_000_000).optional().transform((v) => v ?? 0),
   bedsFree: z.number().int().min(0).max(1_000_000).optional().transform((v) => v ?? 0),
   notes: optionalText(2000),

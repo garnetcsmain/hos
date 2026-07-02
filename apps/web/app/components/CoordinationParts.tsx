@@ -12,10 +12,11 @@ import {
   updateSiteCapacity,
 } from "@/app/lib/client/coordination";
 import type { Freshness } from "@/app/lib/coordination/freshness";
-import type { NeedCategory, Org, OrgKind, Urgency } from "@/app/lib/domain/coordination";
+import type { NeedCategory, Org, OrgKind, SiteCategory, Urgency } from "@/app/lib/domain/coordination";
 import type { NeedView, OfferView, SiteView } from "@/app/lib/domain/coordinationViews";
 
 export const CATEGORY_LABEL: Record<NeedCategory, string> = {
+  rescue: "Rescate",
   water: "Agua",
   food: "Comida",
   formula: "Fórmula",
@@ -24,6 +25,36 @@ export const CATEGORY_LABEL: Record<NeedCategory, string> = {
   hygiene: "Higiene",
   clothing: "Ropa",
   other: "Otro",
+};
+
+export const SITE_CATEGORY_LABEL: Record<SiteCategory, string> = {
+  acopio: "Acopio",
+  refugio: "Refugio",
+  medico: "Atención médica",
+  internet: "Internet / carga",
+  mascotas: "Mascotas",
+  otro: "Otro",
+};
+
+// Pin color + glyph per site category on the map. Lives here (not in the
+// Leaflet component) so the SSR-rendered legend can import it without pulling
+// Leaflet into SSR.
+export const SITE_PIN: Record<SiteCategory, { color: string; glyph: string }> = {
+  acopio: { color: "#2E7D5B", glyph: "A" },
+  refugio: { color: "#1D6FA8", glyph: "R" },
+  medico: { color: "#B4392E", glyph: "+" },
+  internet: { color: "#6C4BC8", glyph: "i" },
+  mascotas: { color: "#C77E1E", glyph: "M" },
+  otro: { color: "#6B7280", glyph: "·" },
+};
+
+const SITE_CATEGORY_STYLE: Record<SiteCategory, string> = {
+  acopio: "bg-[#DDEFE8] text-[#16613F]",
+  refugio: "bg-[#DCEEF8] text-[#0B4F76]",
+  medico: "bg-[#F6DAD5] text-[#8A2A1E]",
+  internet: "bg-[#E8E4F4] text-[#4B3D8F]",
+  mascotas: "bg-[#FFF1D6] text-[#7A3D00]",
+  otro: "bg-[#EEF2EF] text-[var(--hos-muted)]",
 };
 
 const URGENCY: Record<Urgency, { label: string; className: string }> = {
@@ -114,18 +145,48 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
     }
   }
 
+  // Liveness loop: "confirmar" re-saves the site as-is, which bumps updated_at
+  // (and appends an audit event) so the freshness badge reads honest again;
+  // "cerrado" retires the point without deleting it. Both matter for imported
+  // sites nobody on our side has walked past yet.
+  async function setStatus(status: "active" | "closed") {
+    setBusy(true);
+    setError("");
+    try {
+      await updateSiteCapacity({
+        siteId: site.id,
+        bedsTotal: site.bedsTotal,
+        bedsFree: site.bedsFree,
+        status,
+        notes: site.notes,
+      });
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo actualizar.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const full = site.bedsFree === 0;
   return (
     <div className="rounded-[8px] border border-[var(--hos-border)] bg-white p-[14px]">
       <div className="flex items-start justify-between gap-[10px]">
         <div>
           <div className="text-[14px] font-extrabold text-[var(--hos-text)]">{site.name}</div>
-          <div className="mt-[2px] text-[12px] font-bold text-[var(--hos-muted)]">
-            {org?.name ?? "—"} · {site.district}
+          <div className="mt-[2px] flex flex-wrap items-center gap-[6px] text-[12px] font-bold text-[var(--hos-muted)]">
+            <span>{org?.name ?? "—"} · {site.district}</span>
+            <Chip label={SITE_CATEGORY_LABEL[site.category]} className={SITE_CATEGORY_STYLE[site.category]} />
+            {site.status === "closed" ? (
+              <Chip label="Cerrado" className="bg-[#F6DAD5] text-[#8A2A1E]" />
+            ) : null}
           </div>
         </div>
         <FreshnessBadge freshness={freshness} />
       </div>
+      {/* Bed capacity only means something for shelters; an acopio with "0/0
+          camas" would just read as noise. */}
+      {site.category === "refugio" || site.bedsTotal > 0 ? (
       <div className="mt-[12px] flex items-center gap-[8px]">
         <BedDouble className={`h-[18px] w-[18px] ${full ? "text-[var(--hos-red)]" : "text-[var(--hos-green)]"}`} strokeWidth={2.2} />
         <span className={`font-data text-[20px] font-bold leading-none ${full ? "text-[var(--hos-red)]" : "text-[var(--hos-text)]"}`}>
@@ -140,7 +201,40 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
           {editing ? "Cerrar" : "Actualizar"}
         </button>
       </div>
+      ) : null}
       {site.notes ? <p className="mt-[8px] text-[12px] font-bold leading-[16px] text-[var(--hos-muted)]">{site.notes}</p> : null}
+      <div className="mt-[10px] flex flex-wrap items-center gap-[12px] border-t border-[#E2E8E4] pt-[8px]">
+        {site.status === "active" ? (
+          <>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void setStatus("active")}
+              className="text-[12px] font-extrabold text-[var(--hos-green)] hover:underline disabled:opacity-60"
+            >
+              Confirmar operativo
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void setStatus("closed")}
+              className="text-[12px] font-extrabold text-[var(--hos-muted)] hover:underline disabled:opacity-60"
+            >
+              Marcar cerrado
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void setStatus("active")}
+            className="text-[12px] font-extrabold text-[var(--hos-blue)] hover:underline disabled:opacity-60"
+          >
+            Reabrir
+          </button>
+        )}
+        {error ? <span className="text-[12px] font-bold text-[var(--hos-red)]">{error}</span> : null}
+      </div>
       {editing ? (
         <div className="mt-[10px] flex flex-wrap items-end gap-[8px] border-t border-[#E2E8E4] pt-[10px]">
           <label className="text-[11px] font-extrabold text-[var(--hos-muted)]">

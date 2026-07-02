@@ -130,7 +130,9 @@ export type EntityType =
   | "org"
   | "site"
   | "need"
-  | "offer";
+  | "offer"
+  // Whole-slice operations (bulk import/clear of coordination data).
+  | "coordination";
 
 /** Append-only event store record. Once written, never rewritten. */
 export interface HosEvent {
