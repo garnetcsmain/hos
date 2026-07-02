@@ -3,8 +3,8 @@ title: "Operating threat model: adversarial-state posture, data minimization, ti
 category: "strategic"
 proposer: "Executive Orchestrator (drafted at human principal's request, 2026-07-01)"
 date: "2026-07-01"
-status: "DRAFT — awaiting Board review"
-board_status: "pending"
+status: "Board review complete 2026-07-02 — RESHAPE (Option B); core adversary classification ESCALATED to human"
+board_status: "reviewed — see board/ (contrarian, expansionist, principals, researcher, user) + judge_decision.yaml"
 
 summary: >
   Formally answer a question that has been open and unaddressed since the very

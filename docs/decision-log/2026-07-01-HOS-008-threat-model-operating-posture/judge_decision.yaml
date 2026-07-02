@@ -1,0 +1,207 @@
+decision_id: "HOS-2026-008"
+phase: "judge_synthesis"
+date: "2026-07-02"
+judge: "Judge Agent (synthesized by Executive Orchestrator from 5 full board reviews)"
+board_inputs_considered: [contrarian, expansionist, principals, researcher, user]
+
+verdict: "RESHAPE"
+approved_option: "B-assume-adversarial-state-minimize-now"
+confidence: 0.80
+
+rationale: >
+  The board is unanimous on direction and unanimous that this decision has one
+  part it cannot make. On direction: Option A (assume benign state) is rejected
+  by every reviewer because it leaves in place the exact exposure the human
+  principal personally named, and Researcher grounds "assume adversarial state"
+  as the documented base rate, not paranoia (the Rohingya biometric case:
+  beneficiary data collected for aid was shared toward the persecuting state the
+  moment it could be compelled). Option C (full lockdown now) is rejected as
+  firmly: it repeats the mission-displacement risk the board already ring-fenced
+  in HOS-2026-007 (a second major initiative pulled ahead of unfinished Phase 0),
+  and Principals/User both find Tor-first/heavy-infra reachability is
+  anti-crisis-grade for the patchy-data users HOS exists to serve. Option B is
+  the right frame. But the board reshapes it on two mechanisms and one scoping
+  error, and refuses to let the core political question be answered by a board of
+  AI agents. The single most important cross-reviewer finding is that the
+  controls this proposal leans on hardest are weaker against the NAMED adversary
+  than the proposal implies, while the controls it treats as secondary are the
+  ones that actually hold. Field-level encryption (Contrarian F1, Researcher,
+  Principals logic #3) defeats a stolen database dump but NOT legal compulsion of
+  the host unless key custody is separated from ciphertext custody — and the
+  documented production backend is a foreign-hosted Supabase Postgres, with zero
+  application encryption today (auth.ts:15 and ids.ts:5 are the only crypto uses
+  in the codebase). Encrypting a field while keeping its key in the same Vercel
+  env or Supabase project the app already reads is a leak control mislabeled as a
+  state-adversary control — and per the Trust-and-honesty principle, a protection
+  we claim but do not deliver is the same failure as a delivery we claim but do
+  not make, applied to safety. Meanwhile the two controls that DO hold against
+  compulsion — collect less, and do not retain a permanent free-text who-helped-
+  whom log — need no keys, no infrastructure, and no political answer, and can
+  ship now. The reshape therefore splits this decision into what ships now
+  (Pile 1) and what is genuinely blocked or must be escalated (Pile 2), so the
+  recurring "still open" gate finally produces concrete movement instead of a
+  fourth restatement.
+
+decisions:
+  - id: "HOS-2026-008-D1"
+    title: "The core question: is a targeted state actor in scope as an adversary against this data?"
+    verdict: "ESCALATE (RESHAPE-conditional on the human answer)"
+    confidence: 0.90
+    rationale: >
+      This is the one item the proposal exists to force and the one a board of AI
+      agents must not decide unilaterally — it is a political and safety judgment
+      about a real government and real people. The board's job is not to answer it
+      but to make the answer cheap to give and expensive to keep deferring. Every
+      reviewer treats "yes, in scope" as the well-supported default (Researcher's
+      Rohingya precedent; the proposal's own VenApp/Operacion Tun Tun context,
+      which HOS-2026-012 tied to a named fatality in this population; ICRC doctrine
+      treating state authorities as baseline threat actors). The human principal
+      has already, in plain terms, described wanting "zero-trust knowledge to the
+      current government." The board's recommendation to the human is therefore:
+      answer YES explicitly, in writing, so it stops recurring as a non-answer
+      that stalls downstream gates (this is the fourth review to name it). But the
+      binding input is the human's, not the board's.
+    what_the_human_must_answer:
+      - "Is the current or a successor Venezuelan government (via legal compulsion of the host, via network-level surveillance/blocking, or via a compromised/compelled insider) in scope as an adversary whose access to HOS data would endanger the people in it? YES / NO."
+      - "If YES: this answer becomes the binding constraint the controls below are measured against, and Option A is off the table."
+
+  - id: "HOS-2026-008-D2"
+    title: "Data minimization and field protection posture"
+    verdict: "RESHAPE"
+    confidence: 0.82
+    rationale: >
+      The board inverts the proposal's implicit priority. The proposal leads with
+      field-level encryption; the board (Researcher citing ICRC doctrine that
+      ranks minimization/purpose-limitation ABOVE encryption; Principals on
+      least-PII; Contrarian F1 on co-located keys) makes NON-COLLECTION and
+      RETENTION the primary controls and encryption a secondary, honestly-scoped
+      one. Today sensitive_notes, reporter_contact, and precise found_location/
+      last_seen_location are stored plaintext (schema.ts:26,29,44,51) — the
+      data-minimization principle is currently VIOLATED in practice, and this is
+      the decision that remedies it. Because there is no encryption at all yet,
+      this is a from-scratch design choice and the right moment to get key custody
+      right rather than retrofit it.
+    conditions:
+      - "PRIMARY control is minimization: produce a written field-by-field list classifying every PII field as (a) do not collect, (b) collect but never persist beyond an operational need, (c) coordinator-only, or (d) public-safe-projection. Start from the fields the code already marks sensitive (sensitive_notes, reporter_contact, precise locations, photoUrl) and justify each retained field against a concrete reunification need."
+      - "Encryption is SECONDARY and must be labeled honestly. Field-level encryption may be adopted for the highest-sensitivity retained fields, but it may only be described as protecting against the named state adversary IF the key custody is separated from the ciphertext custody (client-held key, or a KMS in a different control/jurisdiction domain than the DB host). If custody cannot be separated in this build context, say so plainly — encryption then defends against a stolen dump/leak, not against host compulsion — and rely on minimization as the compulsion-resistant control. Do NOT record a protection the design does not deliver."
+      - "Bake the minimization boundary into the schema now, while the data is still small (Expansionist bottleneck; same 'model it while cheap' logic HOS-2026-007 used for Org). Every plaintext sensitive field written from here forward is remediation debt."
+
+  - id: "HOS-2026-008-D3"
+    title: "Audit-log exposure and retention policy"
+    verdict: "RESHAPE (elevate to a primary, ship-now deliverable)"
+    confidence: 0.83
+    rationale: >
+      The board's sharpest structural finding: the highest-value correlation asset
+      is not the report tables but the append-only events table (schema.ts:145-154,
+      events.ts). It stores actor + entity_id + occurred_at + free-text payload,
+      and family-reach/verification events already tie coordinator:<org> to a
+      specific family's case and timestamp, with human-entered contact notes
+      (familyReach.ts:96-104, verification.ts:85-135); eventsForEntities exists to
+      join a whole family timeline. Encrypting report columns does nothing for this
+      separate, by-design-permanent table. Principals names the genuine tension:
+      Auditability MANDATES this log while Data-minimization condemns its
+      unbounded retention — the two stated principles conflict here, and the
+      resolution is to keep attribution while minimizing the payload and bounding
+      retention, not to abandon either principle. Researcher's TraceTogether
+      precedent shows a coarse, purpose-limited log is still compellable and
+      repurposable — retention, not promises, is the durable control. User adds
+      that this is not abstract: a permanent "which volunteer helped which family"
+      ledger is exactly what makes a Wilmer unwilling to log honestly.
+    conditions:
+      - "Stop writing free-text contact detail (phone/email/notes) into events.payload. Events must carry attribution (who did what, when, to which case) without embedding re-contact PII in the durable log."
+      - "Set a retention TTL and a redaction plan for the highest-signal event types (family.reached, family.reach_attempted, verification contact notes), and decide explicitly who may query the event store. Attribution may persist; the sensitive payload should not persist indefinitely."
+      - "This condition needs NO external dependency and NO political answer — ship it regardless of the D1 outcome. It is the single cheapest, highest-leverage protection for the volunteers and coordinators the system depends on."
+
+  - id: "HOS-2026-008-D4"
+    title: "Tiered visibility (refugee / volunteer / coordinator) and the live public-search oracle"
+    verdict: "RESHAPE (split: spec now + close the oracle now; enforce tiers later)"
+    confidence: 0.80
+    rationale: >
+      Two things the proposal bundles must be separated by how blocked they are.
+      (1) ENFORCED tiered visibility is correct as a direction and correct to write
+      as HOS-2026-001-08 acceptance criteria — but it is blocked two deep: 001-08's
+      org-isolation half is hard-blocked on Postgres (BLK-001), and there is NO
+      role primitive today at all (the gate is binary coordinator-vs-public,
+      auth.ts:66-79). Writing the tiers as a spec is free and should happen now;
+      claiming the enforcement is in-flight overstates reachability and is how the
+      gate silently stays open (Contrarian F4, Principals logic #2). (2) The LIVE
+      public search oracle needs nothing and must be pulled into scope: today
+      api/search/route.ts is unauthenticated and returns givenName + city + status
+      by name (search.ts:18-37) — a working existence/status oracle that is the
+      most direct current contradiction of any "state in scope" answer, and the
+      single most user-visible trust lever (User: it is the one control María can
+      actually feel). This is the D3 re-identification CRITICAL, now flagged for a
+      fourth time; it should not wait for the identity/role stack.
+    conditions:
+      - "SPEC NOW (free): write the refugee / volunteer / coordinator visibility tiers as acceptance criteria on HOS-2026-001-08 — refugee sees own-status + nearby services + how to reach a center; volunteer sees scope of current assignment; coordinator sees full case. State plainly that ENFORCEMENT is blocked on Postgres (BLK-001) and on a role primitive that does not exist yet, so the dependency is visible and the gate cannot silently re-open."
+      - "CLOSE/COARSEN THE ORACLE NOW (free): narrow the public search so a bare name+city cannot confirm a person's presence/status to an unauthenticated caller — e.g. require a case-number match rather than open name browsing, or move existence-confirmation behind the coordinator gate. Pair it with the plain-language promise the User review asked for ('only someone who already has your case number can confirm this person is here') so the protection is legible to a frightened family, not just present in the backend."
+      - "The refugee-facing minimal view must be MY view of MY case (identity-scoped), never a public lookup that also lets a stranger confirm my son exists — the same feature pointed at two people must not collapse into one public surface (User missing-piece)."
+
+  - id: "HOS-2026-008-D5"
+    title: "Censorship-resilient reachability: go/no-go"
+    verdict: "RESHAPE (plan now, build later; reject Option C)"
+    confidence: 0.78
+    rationale: >
+      All reviewers who addressed it converge: commit to a reachability PLAN now,
+      do not build the heavy infrastructure ahead of Phase 0. Researcher finds the
+      lighter, better-precedented pattern for contested-connectivity humanitarian
+      contexts is offline-first PWA caching + multiple domains + an out-of-band
+      "we moved" channel, and that Tor-first/heavy infra can reduce reach for
+      low-bandwidth users. Principals flags Tor-first as anti-crisis-grade; User
+      states it plainly — a posture that protects her by making the app
+      unreachable on her rationed data has protected her out of using it.
+      Expansionist agrees the upside is captured by the plan + minimization, not by
+      building the bunker now (that is the Option C mission-displacement trap).
+    conditions:
+      - "Adopt a reachability PLAN, not a build: offline-first caching of the beneficiary-facing surface, readiness to serve from more than one domain, and a defined out-of-band fallback (e.g. a WhatsApp/SMS number that can announce a new address if the site is blocked). Do NOT build Tor onion hosting or a second CDN this cycle."
+      - "The fallback must be human-usable by the person who needs it: 'if the app stops working, contact THIS number and we will tell you the new address.' A resilience plan that lives only in infrastructure protects the server, not the family (User missing-piece)."
+      - "Any decision to actually build heavier reachability infrastructure is a separate, later-gated epic, taken only if site-blocking is judged live AND only without regressing the Phase 0 finish line (HOS-2026-007 mission gate)."
+
+ships_now_no_external_dependency:
+  - "D3: audit-log payload minimization + retention TTL + query-access policy."
+  - "D4: close/coarsen the public search existence oracle + the plain-language promise."
+  - "D2: the written data-minimization field-classification list."
+  - "D4/D5: write the tiered-visibility spec and the reachability plan as documents (specs, not builds)."
+
+blocked_or_escalated:
+  - "D1: the core adversary classification — human political/safety judgment (escalated)."
+  - "D2: field-level encryption WITH a real key-custody design — needs a human design decision on key custody/jurisdiction; legal input ideally."
+  - "D4: ENFORCED tiered visibility — blocked on Postgres (BLK-001) and on a role primitive that does not exist (relatedly HOS-2026-011's capability model)."
+  - "D5: heavier censorship-resilience infrastructure — separate later gate, only if blocking is judged live."
+
+next_gate: >
+  Re-review after the ship-now Pile lands (search-oracle narrowing, event-log
+  retention/minimization, the written field-classification list): confirm the
+  oracle no longer confirms presence by bare name, confirm the event payload no
+  longer carries durable re-contact PII, and confirm Phase 0 did not regress.
+  The encryption/key-custody design, enforced tiered visibility, and any
+  reachability build remain gated on the human D1 answer and on Postgres/role
+  prerequisites, and are re-decided as their own gates once those unblock. Do not
+  label any field-encryption a state-adversary control until the key-custody
+  design is reviewed.
+
+escalate_to_human:
+  - "THE CORE QUESTION (D1), the reason this proposal exists: is the current or a successor Venezuelan government in scope as an adversary whose access to this data would endanger the people in it? This is a political and safety judgment the Board cannot and must not make. The Board's recommendation is to answer YES explicitly and in writing so it stops recurring across reviews; the human answer is the binding input. Four separate reviews (HOS-2026-002-D3, HOS-2026-007 Judge, the HOS-2026-007 next-gate re-review, and now this) have named it unanswered."
+  - "KEY CUSTODY / JURISDICTION (D2): if field-level encryption is to count as a control against the named adversary, a human must decide where the decryption key lives and whether host legal-compulsion reaches it. This has a legal dimension (which jurisdiction can compel the Supabase-hosted data) that is outside an AI board's competence and ideally needs counsel; without a custody answer, encryption is a leak control only and must be described as such."
+  - "GOVERNANCE / SEQUENCING: enforced tiered visibility and org-scoped PII protection are hard-blocked on HOS-2026-001-07 (Postgres, awaiting a human DATABASE_URL) and on a role/capability primitive that does not exist yet (HOS-2026-011). The ship-now Pile does not touch these and does not need the human answer; it should proceed immediately. The human should also confirm they want the ship-now oracle-narrowing done as an interim hardening even before the full posture is ratified."
+
+overall: >
+  RESHAPE toward Option B (assume adversarial state, minimize now), with the core
+  adversary classification ESCALATED to the human as the one binding input the
+  Board cannot supply. Reject Option A (leaves the exposure the human principal
+  personally named) and Option C (rebuilds the bunker ahead of the unfinished
+  reunification mission, for a risk best answered by minimization anyway). The
+  decisive reshape is to stop treating field-level encryption as the headline
+  protection — against a state that can compel the host, an encryption key stored
+  beside the ciphertext protects nothing, and claiming otherwise would violate the
+  honesty principle at the level of the safety story — and to elevate the two
+  controls that actually hold against that adversary and need nothing external:
+  collect less, and stop keeping a permanent free-text ledger of who helped which
+  family. Those, plus closing the live public search oracle that lets anyone
+  confirm a hidden person exists by name, ship now. Encryption-with-real-key-
+  custody, enforced refugee/volunteer/coordinator tiers, and any censorship-
+  resilience build are real and correct but are genuinely blocked on the human
+  answer and on the Postgres/role substrate; they are specified now and built when
+  those unblock. This finally converts a question that has stalled four reviews
+  into concrete, shippable movement without pretending the political decision has
+  been made.
