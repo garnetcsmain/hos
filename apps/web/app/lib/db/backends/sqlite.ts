@@ -13,7 +13,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { SCHEMA_SQL } from "../schema.ts";
+import { SCHEMA_SQL, SQLITE_MIGRATIONS } from "../schema.ts";
 import type { Backend, Row, Tx } from "./types.ts";
 import { coerceParams, isWrite } from "./sql.ts";
 
@@ -52,6 +52,15 @@ export class SqliteBackend implements Backend {
     conn.exec("PRAGMA journal_mode = WAL;");
     conn.exec("PRAGMA foreign_keys = ON;");
     conn.exec(SCHEMA_SQL);
+    // Additive column migrations for pre-existing database files. SQLite has no
+    // ADD COLUMN IF NOT EXISTS, so "already there" is the expected no-op case.
+    for (const sql of SQLITE_MIGRATIONS) {
+      try {
+        conn.exec(sql);
+      } catch (err) {
+        if (!/duplicate column name/i.test(String(err))) throw err;
+      }
+    }
     this.#conn = conn;
   }
 

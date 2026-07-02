@@ -113,12 +113,20 @@ CREATE TABLE IF NOT EXISTS sites (
   updated_at    TEXT NOT NULL,
   name          TEXT NOT NULL,
   org_id        TEXT NOT NULL REFERENCES orgs(id),
-  district      TEXT NOT NULL DEFAULT '',   -- coarse only; never precise address
+  district      TEXT NOT NULL DEFAULT '',   -- coarse rollup key
+  category      TEXT NOT NULL DEFAULT 'otro', -- acopio|refugio|medico|internet|mascotas|otro
+  lat           DOUBLE PRECISION,           -- only for publicly-listed aid points
+  lng           DOUBLE PRECISION,           -- (else NULL — needs never get coords)
   beds_total    INTEGER NOT NULL DEFAULT 0,
   beds_free     INTEGER NOT NULL DEFAULT 0,
   status        TEXT NOT NULL DEFAULT 'active',
   notes         TEXT NOT NULL DEFAULT ''
 );
+
+-- Additive migrations for databases created before these columns existed.
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'otro';
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
 
 CREATE TABLE IF NOT EXISTS needs (
   id            TEXT PRIMARY KEY,

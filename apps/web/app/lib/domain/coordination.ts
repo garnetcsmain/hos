@@ -29,9 +29,22 @@ export interface Org {
 
 export type SiteStatus = "active" | "closed";
 
-/** A shelter / coordination site and its live capacity. `district` is coarse on
- *  purpose — a precise map of where displaced people concentrate is a targeting
- *  risk (Board condition), and there is no public endpoint for this data. */
+/** What kind of public aid point a site is. Spanish values on purpose — they are
+ *  shown verbatim in the UI and match the vocabulary of the field data
+ *  (caracasayuda.com import, HOS-2026-007). */
+export type SiteCategory =
+  | "acopio"
+  | "refugio"
+  | "medico"
+  | "internet"
+  | "mascotas"
+  | "otro";
+
+/** A public aid point (collection center, shelter, medical point…) and its live
+ *  capacity. `district` stays coarse for rollups; `lat`/`lng` are only set for
+ *  points that are ALREADY published on a public map (e.g. caracasayuda.com), so
+ *  showing them precisely adds no targeting risk beyond the public source
+ *  (Board condition HOS-2026-007 refined). Needs never carry coordinates. */
 export interface Site {
   id: string;
   createdAt: string;
@@ -39,6 +52,10 @@ export interface Site {
   name: string;
   orgId: string;
   district: string;
+  category: SiteCategory;
+  /** Precise position, only for publicly-listed aid points; null otherwise. */
+  lat: number | null;
+  lng: number | null;
   bedsTotal: number;
   bedsFree: number;
   status: SiteStatus;
@@ -46,6 +63,7 @@ export interface Site {
 }
 
 export type NeedCategory =
+  | "rescue"
   | "water"
   | "food"
   | "formula"

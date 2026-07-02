@@ -45,8 +45,8 @@ export async function countOrgs(): Promise<number> {
 
 const insertSiteStmt = lazyStatement(
   `INSERT INTO sites
-     (id, created_at, updated_at, name, org_id, district, beds_total, beds_free, status, notes)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 export async function insertSite(site: Site): Promise<void> {
@@ -57,6 +57,9 @@ export async function insertSite(site: Site): Promise<void> {
     site.name,
     site.orgId,
     site.district,
+    site.category,
+    site.lat,
+    site.lng,
     site.bedsTotal,
     site.bedsFree,
     site.status,
