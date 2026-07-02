@@ -88,6 +88,22 @@ epics:
     board_status: "DRAFT — awaiting board + human/legal sign-off"
     tasks: []  # no tasks until the board clears it
 
+  - epic_id: "HOS-2026-008"
+    title: "Operating threat model: adversarial-state posture, data minimization, tiered visibility, censorship resilience"
+    decision_link: "docs/decision-log/2026-07-01-HOS-008-threat-model-operating-posture/judge_decision.yaml"
+    status: "planning"
+    progress: "0%"
+    board_status: "Full 5-persona board run 2026-07-02 — RESHAPE toward Option B (assume adversarial state, minimize now); reject A (leaves the named exposure) and C (rebuilds the bunker ahead of Phase 0). Core adversary classification (D1) ESCALATED to human — a board of AI agents must not decide whether the Venezuelan state is in scope; this is the 4th review to name it unanswered. Decisive reshape: field-level encryption is NOT a state-adversary control when the key is co-located with the ciphertext on a foreign-hosted Supabase DB (only crypto in the tree today is randomUUID + timingSafeEqual) — labeling it one would violate the honesty principle; minimization (collect less) + audit-log retention (stop keeping a permanent free-text who-helped-which-family ledger in events.payload) are the controls that actually hold, and both ship now with no external dependency. SHIP-NOW pile (no creds, no political answer): (D3) event-log payload minimization + retention TTL + query-access policy; (D4) close/coarsen the LIVE unauthenticated public search oracle (api/search returns givenName+city+status by bare name — the D3 re-identification CRITICAL, still live in main); (D2) write the field-by-field data-minimization classification; (D4/D5) write the tiered-visibility spec + reachability plan as docs. BLOCKED/ESCALATED pile: (D1) human adversary answer; (D2) field encryption WITH a real key-custody/jurisdiction design (needs human + ideally legal); (D4) ENFORCED refugee/volunteer/coordinator tiers — hard-blocked on Postgres (BLK-001) + a role primitive that does not exist (HOS-2026-011); (D5) heavier censorship-resilience infra — separate later gate only if blocking judged live and only without regressing Phase 0."
+    tasks: []  # no implementation tasks yet. Ship-now pile (oracle-narrowing, event-log retention/minimization, field-classification doc) can be scheduled as tactical hardening once the human confirms the interim; enforced tiers/encryption await the D1 answer + Postgres/role substrate.
+
+  - epic_id: "HOS-2026-009"
+    title: "Unaccompanied-minor check-in and missing-child soft alert (non-biometric, non-tracking by default)"
+    decision_link: "docs/decision-log/2026-07-01-HOS-009-unaccompanied-minor-checkin/proposal.yaml"
+    status: "planning"
+    progress: "0%"
+    board_status: "DRAFT — proposal drafted 2026-07-01, awaiting board review. Recommends non-biometric Option A (human-recorded check-in + absence soft alert, coordinator-only), explicitly declines Option B (biometric face-ID + continuous GPS) as the single highest-value target dataset a trafficker/hostile state could want. Per its own notes, its minor-record fields should inherit HOS-2026-008's field-level-protection posture and be re-checked against the data-minimization field list before any implementation, so it is sequenced behind the HOS-2026-008 posture landing."
+    tasks: []  # no tasks until board review + human/child-protection sign-off
+
   - epic_id: "HOS-2026-010"
     title: "Volunteer/reporter identity verification (face enrollment + login) and submission geofencing"
     decision_link: "docs/decision-log/2026-07-01-HOS-010-volunteer-identity-geofencing/judge-decision.yaml"
@@ -160,6 +176,11 @@ epics:
 - [x] Run the first board review (HOS-2026-002 — Phase 0 MVP architecture)
 - [x] Remediate the board's CRITICAL findings in code (see decision-log/.../remediation.md)
 - [x] Backfill the epic + tasks from the autonomous build
+- [x] Run the board on HOS-2026-008 (operating threat model / adversarial-state posture) — 2026-07-02, see judge_decision.yaml
+- [ ] Get the human's binding answer to HOS-2026-008-D1: is the Venezuelan state in scope as an adversary against this data? (4th review to name it; Board recommends answering YES in writing). Unblocks the D3 public-search/auth escalation below and HOS-2026-007's deferred public feed.
+- [ ] Decide HOS-2026-008-D2 key custody/jurisdiction (needs human + ideally legal) before any field encryption can count as a state-adversary control
+- [ ] Schedule the HOS-2026-008 SHIP-NOW pile (needs no creds/political answer): (1) close/coarsen the live public search existence oracle, (2) event-log payload minimization + retention TTL, (3) write the data-minimization field-classification doc — pending a quick human OK to do interim hardening
+- [ ] Run the board on HOS-2026-009 (unaccompanied-minor check-in) — sequence behind the HOS-2026-008 posture landing per its own notes
 - [ ] Get human sign-off on the D3 (auth/public-search) and D1 (cloud-AI DPA) escalations
 - [ ] Provision Tier-1 dependencies (coordinator token, DB, one AI key) — EXTERNAL_DEPENDENCIES.md
 - [ ] Run the board on HOS-2026-006 (facial recognition) before any implementation
