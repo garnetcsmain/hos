@@ -10,7 +10,6 @@ import {
   startCoordinationTour,
   useCoordinationTourFirstRun,
 } from "@/app/components/CoordinationTour";
-import { type ModalKind } from "@/app/components/IntakeForms";
 import {
   AddOrgForm,
   AddSiteForm,
@@ -87,8 +86,6 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 
 export function CoordinationConsole() {
   const router = useRouter();
-  const [trustLayer, setTrustLayer] = useState(true);
-  const [modalKind, setModalKind] = useState<ModalKind>(null);
   const [board, setBoard] = useState<CoordinationView | null>(null);
   const [error, setError] = useState("");
   const [denied, setDenied] = useState(false);
@@ -199,11 +196,6 @@ export function CoordinationConsole() {
     <AppShell
       title="Coordinación de respuesta"
       subtitle="Sitios, necesidades y suministros · solo coordinadores"
-      trustLayer={trustLayer}
-      onToggleTrustLayer={() => setTrustLayer((v) => !v)}
-      onOpenFamily={() => setModalKind("family")}
-      modalKind={modalKind}
-      onCloseModal={() => setModalKind(null)}
     >
       <div className="flex flex-1 flex-col gap-[18px] px-[28px] py-[28px] max-[900px]:px-[18px] max-[900px]:py-[18px]">
         {board === null && !error && !denied ? (

@@ -92,9 +92,13 @@ export function Header({
 }: {
   title?: string;
   subtitle?: string;
-  trustLayer: boolean;
-  onToggleTrustLayer: () => void;
-  onOpenFamily: () => void;
+  // The trust-layer toggle and the family-intake action belong to the public
+  // reunification dashboard, not every screen. They render only when a handler
+  // is supplied, so the coordinator console can omit both (they are irrelevant /
+  // non-functional there) without a separate header component.
+  trustLayer?: boolean;
+  onToggleTrustLayer?: () => void;
+  onOpenFamily?: () => void;
 }) {
   return (
     <header className="flex min-h-[96px] shrink-0 items-center justify-between border-b border-[var(--hos-border)] bg-white px-[28px] max-[900px]:h-auto max-[900px]:flex-col max-[900px]:items-start max-[900px]:gap-[18px] max-[900px]:px-[18px] max-[900px]:py-[18px]">
@@ -108,25 +112,29 @@ export function Header({
         <button type="button" className="flex h-[29px] items-center rounded-full bg-[#FFEBD5] px-[12px] text-[12px] font-extrabold text-[#7A3D00]">
           INCIDENTE EN VIVO
         </button>
-        <button
-          type="button"
-          onClick={onToggleTrustLayer}
-          aria-pressed={trustLayer}
-          className={[
-            "flex h-[29px] items-center rounded-full px-[12px] text-[12px] font-extrabold transition",
-            trustLayer ? "bg-[#DDEFE8] text-[#16613F]" : "bg-[#EEF2EF] text-[var(--hos-muted)]",
-          ].join(" ")}
-        >
-          <Term k="capa-confianza">Capa de confianza</Term> {trustLayer ? "activada" : "desactivada"}
-        </button>
-        <button
-          type="button"
-          onClick={onOpenFamily}
-          className="flex h-[52px] items-center gap-[11px] rounded-[6px] bg-[var(--hos-red)] px-[15px] text-[13px] font-extrabold text-white shadow-sm transition hover:bg-[#B63F33] focus:outline-none focus:ring-2 focus:ring-[#F9B4A9]"
-        >
-          <UserRoundSearch className="h-5 w-5" strokeWidth={2.5} />
-          No puedo contactar a mi familia
-        </button>
+        {onToggleTrustLayer ? (
+          <button
+            type="button"
+            onClick={onToggleTrustLayer}
+            aria-pressed={trustLayer}
+            className={[
+              "flex h-[29px] items-center rounded-full px-[12px] text-[12px] font-extrabold transition",
+              trustLayer ? "bg-[#DDEFE8] text-[#16613F]" : "bg-[#EEF2EF] text-[var(--hos-muted)]",
+            ].join(" ")}
+          >
+            <Term k="capa-confianza">Capa de confianza</Term> {trustLayer ? "activada" : "desactivada"}
+          </button>
+        ) : null}
+        {onOpenFamily ? (
+          <button
+            type="button"
+            onClick={onOpenFamily}
+            className="flex h-[52px] items-center gap-[11px] rounded-[6px] bg-[var(--hos-red)] px-[15px] text-[13px] font-extrabold text-white shadow-sm transition hover:bg-[#B63F33] focus:outline-none focus:ring-2 focus:ring-[#F9B4A9]"
+          >
+            <UserRoundSearch className="h-5 w-5" strokeWidth={2.5} />
+            No puedo contactar a mi familia
+          </button>
+        ) : null}
       </div>
     </header>
   );
@@ -316,17 +324,20 @@ export function AppShell({
   trustLayer,
   onToggleTrustLayer,
   onOpenFamily,
-  modalKind,
+  modalKind = null,
   onCloseModal,
   children,
 }: {
   title: string;
   subtitle?: string;
-  trustLayer: boolean;
-  onToggleTrustLayer: () => void;
-  onOpenFamily: () => void;
-  modalKind: ModalKind;
-  onCloseModal: () => void;
+  // Optional so coordinator-only screens can omit the reunification-dashboard
+  // header actions (trust-layer toggle, family intake) and its modal, none of
+  // which apply there.
+  trustLayer?: boolean;
+  onToggleTrustLayer?: () => void;
+  onOpenFamily?: () => void;
+  modalKind?: ModalKind;
+  onCloseModal?: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -341,7 +352,7 @@ export function AppShell({
           </div>
         </div>
       </div>
-      <ActionModal kind={modalKind} onClose={onCloseModal} />
+      <ActionModal kind={modalKind} onClose={onCloseModal ?? (() => {})} />
     </main>
   );
 }
