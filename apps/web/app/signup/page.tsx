@@ -1,4 +1,4 @@
-import { LoginClient } from "./LoginClient";
+import { SignupClient } from "./SignupClient";
 
 function publicSupabaseConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -6,6 +6,6 @@ function publicSupabaseConfig() {
   return url && anonKey ? { url, anonKey } : null;
 }
 
-export default function LoginPage() {
-  return <LoginClient supabaseConfig={publicSupabaseConfig()} />;
+export default function SignupPage() {
+  return <SignupClient supabaseConfig={publicSupabaseConfig()} />;
 }

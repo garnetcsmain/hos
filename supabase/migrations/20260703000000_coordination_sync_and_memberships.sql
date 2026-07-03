@@ -34,6 +34,12 @@ ALTER TABLE sites ADD COLUMN IF NOT EXISTS announcement_until TEXT;
 --    or district by covering different zones. NULL = a point, not an area.
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS radius_m INTEGER;
 
+-- 7. Site ownership (human direction 2026-07-03: "if someone creates a site,
+--    that person becomes the responsable"). Self-signup is open; whoever
+--    creates a site owns it and may manage it and delegate it.
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS created_by_user_id TEXT;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS created_by_email TEXT;
+
 ALTER TABLE needs ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
 ALTER TABLE needs ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
 ALTER TABLE needs ADD COLUMN IF NOT EXISTS source_id TEXT;
@@ -55,3 +61,16 @@ CREATE TABLE IF NOT EXISTS org_memberships (
   PRIMARY KEY (user_id, org_id)
 );
 ALTER TABLE org_memberships ADD COLUMN IF NOT EXISTS expires_at TEXT;
+
+-- 8. Peer-delegated site coordination (HOS-2026-011 site:<id> scope): a site's
+--    responsable grants another signed-up user the right to modify THAT site,
+--    after vetting them onsite. Revocable, optionally time-boxed. The only
+--    approval in the system, and it is peer-to-peer (no central approval).
+CREATE TABLE IF NOT EXISTS site_grants (
+  site_id       TEXT NOT NULL REFERENCES sites(id),
+  email         TEXT NOT NULL,
+  granted_by    TEXT NOT NULL DEFAULT '',
+  created_at    TEXT NOT NULL,
+  expires_at    TEXT,
+  PRIMARY KEY (site_id, email)
+);

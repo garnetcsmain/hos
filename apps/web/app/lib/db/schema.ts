@@ -118,7 +118,9 @@ CREATE TABLE IF NOT EXISTS sites (
   synced_at     TEXT,                       -- last reconciled with source; local edits after this win
   announcement  TEXT NOT NULL DEFAULT '',   -- site broadcast ("hoy entregan comida 2-5pm")
   announcement_until TEXT,                  -- ISO expiry; announcement hides after this
-  radius_m      INTEGER                     -- coverage radius in meters (NULL = a point, not an area)
+  radius_m      INTEGER,                    -- coverage radius in meters (NULL = a point, not an area)
+  created_by_user_id TEXT,                  -- the responsable: whoever created the site owns it (Supabase user id)
+  created_by_email   TEXT                   -- their email, for display/audit
 );
 
 CREATE TABLE IF NOT EXISTS needs (
@@ -153,6 +155,21 @@ CREATE TABLE IF NOT EXISTS org_memberships (
   created_at    TEXT NOT NULL,
   expires_at    TEXT,                       -- NULL = indefinite; a responsible party may grant time-boxed delegated access
   PRIMARY KEY (user_id, org_id)
+);
+
+-- Peer-delegated site coordination (HOS-2026-011 site:<id> scope). A site's
+-- responsable (its creator) grants another user the right to modify THAT site
+-- after vetting them onsite — the only approval in the system, peer-to-peer,
+-- revocable, optionally time-boxed. Keyed on EMAIL (what the responsable
+-- enters); the grantee's signed-in verified email is matched at access time,
+-- so no admin user-id lookup is needed.
+CREATE TABLE IF NOT EXISTS site_grants (
+  site_id       TEXT NOT NULL REFERENCES sites(id),
+  email         TEXT NOT NULL,              -- the granted volunteer's account email (normalized)
+  granted_by    TEXT NOT NULL DEFAULT '',   -- the responsable's email
+  created_at    TEXT NOT NULL,
+  expires_at    TEXT,                       -- NULL = indefinite
+  PRIMARY KEY (site_id, email)
 );
 
 CREATE TABLE IF NOT EXISTS offers (
@@ -206,6 +223,8 @@ export const SQLITE_MIGRATIONS: readonly string[] = [
   `ALTER TABLE sites ADD COLUMN announcement TEXT NOT NULL DEFAULT ''`,
   `ALTER TABLE sites ADD COLUMN announcement_until TEXT`,
   `ALTER TABLE sites ADD COLUMN radius_m INTEGER`,
+  `ALTER TABLE sites ADD COLUMN created_by_user_id TEXT`,
+  `ALTER TABLE sites ADD COLUMN created_by_email TEXT`,
   `ALTER TABLE needs ADD COLUMN lat REAL`,
   `ALTER TABLE needs ADD COLUMN lng REAL`,
   `ALTER TABLE needs ADD COLUMN source_id TEXT`,

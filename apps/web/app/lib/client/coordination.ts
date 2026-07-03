@@ -3,7 +3,7 @@
 // coordinator-gated server-side.
 
 import { coordinatorHeaders, request } from "./api.ts";
-import type { CoordinationView } from "@/app/lib/domain/coordinationViews";
+import type { CoordinationView, SiteView } from "@/app/lib/domain/coordinationViews";
 import type { NeedCategory, Org, OrgKind, SiteCategory, Urgency } from "@/app/lib/domain/coordination";
 
 const write = <T>(path: string, body: unknown, method = "POST") =>
@@ -15,6 +15,41 @@ const write = <T>(path: string, body: unknown, method = "POST") =>
 
 export const getCoordinationBoard = () =>
   request<CoordinationView>("/api/coordination", { headers: coordinatorHeaders() });
+
+// Who am I? Branches the console between coordinator and contributor.
+export interface Me {
+  authenticated: boolean;
+  isCoordinator: boolean;
+  email: string | null;
+  userId: string | null;
+}
+export const getMe = () => request<Me>("/api/me", { headers: coordinatorHeaders() });
+
+// Contributor read: public aid points + which ones I may manage. No needs board.
+export interface ContributorBoard {
+  orgs: Org[];
+  sites: SiteView[];
+  managedSiteIds: string[];
+}
+export const getMyBoard = () =>
+  request<ContributorBoard>("/api/coordination/mine", { headers: coordinatorHeaders() });
+
+// Peer site-coordinator delegation (responsable-only, enforced server-side).
+export interface SiteGrant {
+  siteId: string;
+  email: string;
+  grantedBy: string;
+  createdAt: string;
+  expiresAt: string | null;
+}
+export const listSiteAccess = (siteId: string) =>
+  request<{ grants: SiteGrant[] }>(`/api/coordination/sites/access?siteId=${encodeURIComponent(siteId)}`, {
+    headers: coordinatorHeaders(),
+  });
+export const grantSiteAccess = (payload: { siteId: string; email: string; hoursValid?: number | null }) =>
+  write("/api/coordination/sites/access", payload);
+export const revokeSiteAccess = (payload: { siteId: string; email: string }) =>
+  write("/api/coordination/sites/access", payload, "DELETE");
 
 export const createOrg = (payload: { name: string; kind: OrgKind }) =>
   write<{ org: Org }>("/api/coordination/orgs", payload);

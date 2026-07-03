@@ -89,6 +89,11 @@ export interface Site {
    *  covers — several groups may legitimately share one address/district by
    *  covering different zones (human direction 2026-07-03). */
   radiusM: number | null;
+  /** The responsable: whoever created the site owns it and may manage or
+   *  delegate it (human direction 2026-07-03). Null for imported/legacy rows
+   *  (those are coordinator-managed). */
+  createdByUserId: string | null;
+  createdByEmail: string | null;
 }
 
 /** The announcement to display right now, or null if none/expired. Expiry is

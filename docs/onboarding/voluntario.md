@@ -3,10 +3,26 @@
 Gracias por sumarse. Esta guía es honesta sobre lo que HOS le ofrece HOY y lo
 que viene después — no le vamos a prometer botones que no existen.
 
-## Qué puede hacer hoy
+## Cree su cuenta (sin aprobación)
 
-Hoy HOS es una herramienta de coordinadores. Como voluntario/a usted trabaja
-A TRAVÉS de un coordinador o de su organización:
+Cualquiera puede registrarse en **/signup** con su correo. Verifique el correo
+(solo comprueba que es suyo — nadie tiene que aprobarlo) e inicie sesión. Con su
+cuenta de **colaborador** puede:
+
+- reportar necesidades y ofrecer suministros;
+- registrar su organización;
+- **agregar un punto de ayuda (sitio)** — y usted queda como su *responsable*:
+  puede actualizar su capacidad, publicar avisos, y **dar acceso a otro
+  voluntario** (por su correo) que usted haya verificado en el sitio. Ese
+  acceso se puede quitar o poner con vencimiento.
+
+Lo que un colaborador NO ve: el panel completo de coordinación (ubicaciones
+exactas y contactos de personas en peligro) es solo para coordinadores por
+invitación. Eso protege a las personas más vulnerables.
+
+## Trabajando con coordinadores
+
+Además de lo anterior, usted coordina con el equipo:
 
 1. **Repórtese con su organización** (o con el punto de coordinación de su
    zona). Ellos registran en HOS lo que usted puede aportar como un

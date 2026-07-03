@@ -154,7 +154,7 @@ test("sync: refuses a DB seeded before provenance existed", async () => {
       bedsFree: 0,
       notes: "",
     },
-    "coordinator:test@hos",
+    { by: "coordinator:test@hos", userId: null, email: "test@hos", isCoordinator: true },
   );
   await assert.rejects(
     () => runCoordinationSync(async () => [punto()]),

@@ -16,6 +16,7 @@ import {
   getNeed,
   getOrg,
   getSite,
+  hasActiveSiteGrant,
   insertNeed,
   insertOffer,
   insertOrg,
@@ -23,21 +24,26 @@ import {
   listNeeds,
   listOffers,
   listOrgs,
+  listSiteGrants,
   listSites,
+  listSitesManagedBy,
+  revokeSiteGrant,
   setNeedStatus,
   updateSiteAnnouncement as repoUpdateSiteAnnouncement,
   updateSiteCapacity as repoUpdateSiteCapacity,
+  upsertSiteGrant,
+  type SiteGrant,
 } from "../repositories/coordination.ts";
 import { appendEvent } from "../repositories/events.ts";
 import { transaction } from "../db/client.ts";
 import { newNeedId, newOfferId, newOrgId, newSiteId } from "../domain/ids.ts";
 import { nowIso } from "../domain/time.ts";
-import { badRequest, notFound } from "../errors.ts";
+import { badRequest, forbidden, notFound } from "../errors.ts";
 import { approxKm } from "../coordination/classify.ts";
 import { freshnessOf } from "../coordination/freshness.ts";
 import { rankOffersForNeed } from "../coordination/match.ts";
 import type { Need, Offer, Org, OrgKind, Site } from "@/app/lib/domain/coordination";
-import type { CoordinationView } from "@/app/lib/domain/coordinationViews";
+import type { CoordinationView, SiteView } from "@/app/lib/domain/coordinationViews";
 import type {
   NeedCreateInput,
   NeedTransitionInput,
@@ -51,6 +57,37 @@ async function requireOrg(orgId: string): Promise<Org> {
   const org = await getOrg(orgId);
   if (!org) throw badRequest(`unknown org ${orgId}`);
   return org;
+}
+
+/** Who is acting on a site. `by` is the audit label; `userId`/`email` identify
+ *  a signed-up person (the responsable when they create a site); `isCoordinator`
+ *  is the invite-only trusted tier. */
+export interface SiteActor {
+  by: string;
+  userId: string | null;
+  email: string | null;
+  isCoordinator: boolean;
+}
+
+// Default for system/seed/legacy callers and tests that don't exercise
+// per-user authorization: coordinator-equivalent. Routes ALWAYS pass a real
+// actor, so contributor authorization is enforced on the live path.
+const SYSTEM_ACTOR: SiteActor = { by: "unattributed", userId: null, email: null, isCoordinator: true };
+
+/** May this actor modify this site? A coordinator always; otherwise the
+ *  responsable (creator) or someone holding an active delegated grant on their
+ *  verified email. */
+export async function canManageSite(site: Site, actor: SiteActor): Promise<boolean> {
+  if (actor.isCoordinator) return true;
+  if (!actor.userId) return false;
+  if (site.createdByUserId && site.createdByUserId === actor.userId) return true;
+  return actor.email ? hasActiveSiteGrant(site.id, actor.email.toLowerCase()) : false;
+}
+
+async function assertCanManageSite(site: Site, actor: SiteActor): Promise<void> {
+  if (!(await canManageSite(site, actor))) {
+    throw forbidden("No tiene permiso para modificar este sitio. Pídale acceso al responsable del sitio.");
+  }
 }
 
 // --- Orgs -----------------------------------------------------------------
@@ -102,7 +139,7 @@ async function assertNotDuplicateLocation(input: SiteCreateInput): Promise<void>
   }
 }
 
-export async function createSite(input: SiteCreateInput, by = "unattributed"): Promise<Site> {
+export async function createSite(input: SiteCreateInput, actor: SiteActor = SYSTEM_ACTOR): Promise<Site> {
   const org = await requireOrg(input.orgId);
   await assertNotDuplicateLocation(input);
   const now = nowIso();
@@ -125,6 +162,9 @@ export async function createSite(input: SiteCreateInput, by = "unattributed"): P
     announcement: "",
     announcementUntil: null,
     radiusM: input.radiusM ?? null,
+    // Whoever creates the site is its responsable (human direction 2026-07-03).
+    createdByUserId: actor.userId,
+    createdByEmail: actor.email,
   };
   await transaction(async () => {
     await insertSite(site);
@@ -141,7 +181,7 @@ export async function createSite(input: SiteCreateInput, by = "unattributed"): P
         radiusM: site.radiusM,
         bedsFree: site.bedsFree,
         bedsTotal: site.bedsTotal,
-        by,
+        by: actor.by,
         ...(site.category === "otro" && input.otherLabel ? { otherLabel: input.otherLabel } : {}),
       },
     });
@@ -149,9 +189,10 @@ export async function createSite(input: SiteCreateInput, by = "unattributed"): P
   return site;
 }
 
-export async function updateSiteCapacity(input: SiteUpdateInput, by = "unattributed"): Promise<Site> {
+export async function updateSiteCapacity(input: SiteUpdateInput, actor: SiteActor = SYSTEM_ACTOR): Promise<Site> {
   const site = await getSite(input.siteId);
   if (!site) throw notFound(`site ${input.siteId} not found`);
+  await assertCanManageSite(site, actor);
   const org = await getOrg(site.orgId);
   const bedsFree = Math.min(input.bedsFree, input.bedsTotal);
   await transaction(async () => {
@@ -166,21 +207,22 @@ export async function updateSiteCapacity(input: SiteUpdateInput, by = "unattribu
       entityId: site.id,
       type: "site.capacity_updated",
       actor: `org:${org?.name ?? site.orgId}`,
-      payload: { bedsFree, bedsTotal: input.bedsTotal, status: input.status, by },
+      payload: { bedsFree, bedsTotal: input.bedsTotal, status: input.status, by: actor.by },
     });
   });
   return { ...site, ...input, bedsFree, updatedAt: nowIso() };
 }
 
-/** Set or clear a site's broadcast ("hoy entregan comida 2-5pm"). Coordinator
- *  capability today; becomes the site:<id> scope's job when HOS-2026-011
- *  lands. An empty message clears. Audited like every other write. */
+/** Set or clear a site's broadcast ("hoy entregan comida 2-5pm"). Allowed for
+ *  the site's responsable, a delegated site-coordinator, or a coordinator. An
+ *  empty message clears. Audited like every other write. */
 export async function setSiteAnnouncement(
   input: SiteAnnouncementInput,
-  by = "unattributed",
+  actor: SiteActor = SYSTEM_ACTOR,
 ): Promise<Site> {
   const site = await getSite(input.siteId);
   if (!site) throw notFound(`site ${input.siteId} not found`);
+  await assertCanManageSite(site, actor);
   const org = await getOrg(site.orgId);
   const message = input.message;
   const until = message
@@ -193,7 +235,7 @@ export async function setSiteAnnouncement(
       entityId: site.id,
       type: message ? "site.announcement_set" : "site.announcement_cleared",
       actor: `org:${org?.name ?? site.orgId}`,
-      payload: { message, until, by },
+      payload: { message, until, by: actor.by },
     });
   });
   return { ...site, announcement: message, announcementUntil: until, updatedAt: nowIso() };
@@ -357,4 +399,103 @@ export async function coordinationView(): Promise<CoordinationView> {
       matches: need.status === "open" ? rankOffersForNeed(need, offers) : [],
     })),
   };
+}
+
+// --- Contributor read (self-signup tier) ----------------------------------
+
+export interface ContributorView {
+  orgs: Org[];
+  /** Public aid points (all active sites). Aid points are public by design —
+   *  people are meant to find them; the source already publishes them. */
+  sites: SiteView[];
+  /** Subset of `sites` the contributor may edit (owns or is delegated). */
+  managedSiteIds: string[];
+}
+
+/** The read a self-signup contributor gets. DELIBERATELY OMITS the needs board:
+ *  needs can carry precise locations and contacts of people in danger, which is
+ *  the coordinator-only layer (D1). Contributors see public aid points and know
+ *  which ones they may manage; they contribute the rest through the forms. */
+export async function contributorView(userId: string, email: string): Promise<ContributorView> {
+  const now = nowIso();
+  const [orgs, sites, managed] = await Promise.all([
+    listOrgs(),
+    listSites(),
+    listSitesManagedBy(userId, email.toLowerCase()),
+  ]);
+  const orgById = new Map(orgs.map((o) => [o.id, o]));
+  const managedIds = new Set(managed.map((s) => s.id));
+  return {
+    orgs,
+    sites: sites
+      .filter((s) => s.status === "active")
+      .map((site) => ({ site, org: orgById.get(site.orgId) ?? null, freshness: freshnessOf(site.updatedAt, now) })),
+    managedSiteIds: [...managedIds],
+  };
+}
+
+// --- Site coordinator delegation (peer, no central approval) ---------------
+
+/** The responsable of a site (or a coordinator) grants another person, by
+ *  email, the right to manage THAT site — after vetting them onsite. Revocable,
+ *  optionally time-boxed. Only the owner or a coordinator may grant. */
+export async function grantSiteCoordinator(
+  input: { siteId: string; email: string; hoursValid?: number | null },
+  actor: SiteActor,
+): Promise<void> {
+  const site = await getSite(input.siteId);
+  if (!site) throw notFound(`site ${input.siteId} not found`);
+  const isOwner = Boolean(site.createdByUserId && site.createdByUserId === actor.userId);
+  if (!actor.isCoordinator && !isOwner) {
+    throw forbidden("Solo el responsable del sitio puede dar acceso a otra persona.");
+  }
+  const email = input.email.trim().toLowerCase();
+  if (!email) throw badRequest("Falta el correo de la persona.");
+  const expiresAt =
+    input.hoursValid && input.hoursValid > 0
+      ? new Date(Date.parse(nowIso()) + input.hoursValid * 3_600_000).toISOString()
+      : null;
+  await transaction(async () => {
+    await upsertSiteGrant({ siteId: site.id, email, grantedBy: actor.email ?? actor.by, createdAt: nowIso(), expiresAt });
+    await appendEvent({
+      entityType: "site",
+      entityId: site.id,
+      type: "site.access_granted",
+      actor: actorLabel(actor),
+      payload: { email, until: expiresAt, by: actor.by },
+    });
+  });
+}
+
+export async function revokeSiteCoordinator(
+  input: { siteId: string; email: string },
+  actor: SiteActor,
+): Promise<void> {
+  const site = await getSite(input.siteId);
+  if (!site) throw notFound(`site ${input.siteId} not found`);
+  const isOwner = Boolean(site.createdByUserId && site.createdByUserId === actor.userId);
+  if (!actor.isCoordinator && !isOwner) {
+    throw forbidden("Solo el responsable del sitio puede quitar acceso.");
+  }
+  const email = input.email.trim().toLowerCase();
+  await transaction(async () => {
+    await revokeSiteGrant(site.id, email);
+    await appendEvent({
+      entityType: "site",
+      entityId: site.id,
+      type: "site.access_revoked",
+      actor: actorLabel(actor),
+      payload: { email, by: actor.by },
+    });
+  });
+}
+
+/** List the active/expired grants on a site — visible to the owner/coordinator. */
+export async function siteCoordinators(siteId: string): Promise<SiteGrant[]> {
+  return listSiteGrants(siteId);
+}
+
+function actorLabel(actor: SiteActor): string {
+  if (actor.email) return `${actor.isCoordinator ? "coordinator" : "user"}:${actor.email}`;
+  return `coordinator:${actor.by}`;
 }

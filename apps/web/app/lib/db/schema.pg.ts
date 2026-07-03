@@ -125,7 +125,9 @@ CREATE TABLE IF NOT EXISTS sites (
   synced_at     TEXT,                       -- last reconciled with source; local edits after this win
   announcement  TEXT NOT NULL DEFAULT '',   -- site broadcast ("hoy entregan comida 2-5pm")
   announcement_until TEXT,                  -- ISO expiry; announcement hides after this
-  radius_m      INTEGER                     -- coverage radius in meters (NULL = a point, not an area)
+  radius_m      INTEGER,                    -- coverage radius in meters (NULL = a point, not an area)
+  created_by_user_id TEXT,                  -- the responsable: whoever created the site owns it (Supabase user id)
+  created_by_email   TEXT                   -- their email, for display/audit
 );
 
 -- Additive migrations for databases created before these columns existed.
@@ -137,6 +139,8 @@ ALTER TABLE sites ADD COLUMN IF NOT EXISTS synced_at TEXT;
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS announcement TEXT NOT NULL DEFAULT '';
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS announcement_until TEXT;
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS radius_m INTEGER;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS created_by_user_id TEXT;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS created_by_email TEXT;
 
 CREATE TABLE IF NOT EXISTS needs (
   id            TEXT PRIMARY KEY,
@@ -177,6 +181,16 @@ CREATE TABLE IF NOT EXISTS org_memberships (
   PRIMARY KEY (user_id, org_id)
 );
 ALTER TABLE org_memberships ADD COLUMN IF NOT EXISTS expires_at TEXT;
+
+-- Peer-delegated site coordination (HOS-2026-011 site:<id> scope). See schema.ts.
+CREATE TABLE IF NOT EXISTS site_grants (
+  site_id       TEXT NOT NULL REFERENCES sites(id),
+  email         TEXT NOT NULL,
+  granted_by    TEXT NOT NULL DEFAULT '',
+  created_at    TEXT NOT NULL,
+  expires_at    TEXT,
+  PRIMARY KEY (site_id, email)
+);
 
 CREATE TABLE IF NOT EXISTS offers (
   id            TEXT PRIMARY KEY,

@@ -52,6 +52,8 @@ export function mapSite(row: Row): Site {
     announcement: str(row.announcement),
     announcementUntil: strOrNull(row.announcement_until),
     radiusM: numOrNull(row.radius_m),
+    createdByUserId: strOrNull(row.created_by_user_id),
+    createdByEmail: strOrNull(row.created_by_email),
   };
 }
 

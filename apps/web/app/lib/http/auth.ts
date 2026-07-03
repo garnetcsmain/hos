@@ -15,6 +15,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { HttpError } from "../errors.ts";
 import { isSupabaseAuthConfigured } from "../auth/supabaseConfig.ts";
+import type { UserIdentity } from "../auth/session.ts";
 
 /** Who passed the coordinator gate. `email`/`userId` are only known on the
  *  Supabase path — the shared token and the explicit dev-open escape hatch
@@ -27,11 +28,36 @@ export interface CoordinatorIdentity {
   userId: string | null;
 }
 
+/** Any authenticated caller. `isCoordinator` distinguishes an invite-only
+ *  coordinator (full board access) from a self-signup contributor (may add
+ *  records and manage sites they own, but NOT read the sensitive board). */
+export interface RequestActor extends CoordinatorIdentity {
+  isCoordinator: boolean;
+}
+
 /** Audit string for event payloads. Honest by construction: a shared-token
- *  caller is labeled as such, never dressed up as a named person. */
-export function actorTag(identity: CoordinatorIdentity): string {
-  if (identity.via === "supabase" && identity.email) return `coordinator:${identity.email}`;
-  return `coordinator:${identity.via}`;
+ *  caller is labeled as such, a contributor as `user:`, never dressed up as a
+ *  coordinator they are not. */
+export function actorTag(identity: CoordinatorIdentity & { isCoordinator?: boolean }): string {
+  const role = identity.isCoordinator === false ? "user" : "coordinator";
+  if (identity.via === "supabase" && identity.email) return `${role}:${identity.email}`;
+  return `${role}:${identity.via}`;
+}
+
+/** Build the actor the coordination service expects: audit label + identity +
+ *  role, so per-site ownership/authorization can be enforced. */
+export function actorFrom(identity: RequestActor): {
+  by: string;
+  userId: string | null;
+  email: string | null;
+  isCoordinator: boolean;
+} {
+  return {
+    by: actorTag(identity),
+    userId: identity.userId,
+    email: identity.email,
+    isCoordinator: identity.isCoordinator,
+  };
 }
 
 let warnedDevOpen = false;
@@ -69,11 +95,44 @@ export interface CoordinatorGateDeps {
   sessionFromRequest: (request: Request) => Promise<{ email: string; userId: string } | null>;
 }
 
+export interface UserGateDeps {
+  userFromRequest: (request: Request) => Promise<UserIdentity | null>;
+}
+
 // Lazy import so @supabase/supabase-js is never pulled into the edge/build graph
 // of routes; it loads only at request time on the Node runtime.
 async function defaultSessionFromRequest(request: Request) {
   const { coordinatorFromSupabase } = await import("../auth/session.ts");
   return coordinatorFromSupabase(request);
+}
+
+async function defaultUserFromRequest(request: Request) {
+  const { userFromSupabase } = await import("../auth/session.ts");
+  return userFromSupabase(request);
+}
+
+// The gate for ANY signed-in caller — a self-signup contributor OR a
+// coordinator. Used by the CREATE endpoints (anyone verified may contribute)
+// and by contributor reads. Coordinators also pass (isCoordinator=true), as do
+// the shared token / dev-open escape hatches (treated as coordinator-level,
+// since those are operator credentials). Throws 401 when nobody is signed in.
+export async function requireUser(
+  request: Request,
+  deps: UserGateDeps = { userFromRequest: defaultUserFromRequest },
+): Promise<RequestActor> {
+  if (isSupabaseAuthConfigured()) {
+    const user = await deps.userFromRequest(request);
+    if (user) {
+      return { via: "supabase", email: user.email, userId: user.userId, isCoordinator: user.isCoordinator };
+    }
+    // No verified session: only the operator token / dev-open may still pass.
+    if (request.headers.get("x-hos-coordinator-token") || process.env.HOS_DEV_OPEN === "1") {
+      return { ...assertCoordinator(request), isCoordinator: true };
+    }
+    throw new HttpError(401, "unauthorized: inicie sesión o cree una cuenta");
+  }
+  // Supabase not configured: only the token / dev-open path exists.
+  return { ...assertCoordinator(request), isCoordinator: true };
 }
 
 // The coordinator gate for routes. When Supabase auth is CONFIGURED, an

@@ -15,6 +15,16 @@ function seedOrg(name = "Cruz Roja") {
   return svc.createOrg({ name, kind: "ngo" });
 }
 
+// A coordinator actor for site mutations that now take a SiteActor.
+const COORD = { by: "coordinator:test@hos", userId: null, email: "test@hos", isCoordinator: true };
+// A self-signup contributor (owns nothing until they create it).
+const contributor = (userId: string, email: string) => ({
+  by: `user:${email}`,
+  userId,
+  email,
+  isCoordinator: false,
+});
+
 test("create org -> site -> need; a need starts open", async () => {
   const org = await seedOrg("Refugio A");
   const site = await svc.createSite({
@@ -122,7 +132,7 @@ test("site announcement: set, display window, clear — all audited", async () =
 
   const withAviso = await svc.setSiteAnnouncement(
     { siteId: site.id, message: "Hoy entregan comida 2-5pm", hoursValid: 6 },
-    "coordinator:test@hos",
+    COORD,
   );
   assert.equal(withAviso.announcement, "Hoy entregan comida 2-5pm");
   assert.ok(withAviso.announcementUntil, "expiry is set");
@@ -133,7 +143,7 @@ test("site announcement: set, display window, clear — all audited", async () =
   const afterExpiry = new Date(Date.parse(withAviso.announcementUntil!) + 60_000).toISOString();
   assert.equal(activeAnnouncement(withAviso, afterExpiry), null);
 
-  const cleared = await svc.setSiteAnnouncement({ siteId: site.id, message: "", hoursValid: 24 }, "coordinator:test@hos");
+  const cleared = await svc.setSiteAnnouncement({ siteId: site.id, message: "", hoursValid: 24 }, COORD);
   assert.equal(cleared.announcement, "");
   assert.equal(cleared.announcementUntil, null);
 
@@ -189,9 +199,102 @@ test("site 'otro' free-text label is captured in the audit event", async () => {
   const org = await seedOrg("Org Otro");
   const site = await svc.createSite(
     { name: "Punto raro", orgId: org.id, district: "Catia", category: "otro", lat: null, lng: null, bedsTotal: 0, bedsFree: 0, notes: "", otherLabel: "carga de gas doméstico" },
-    "coordinator:test@hos",
+    COORD,
   );
   const events = await eventsFor("site", site.id);
   const created = events.find((e) => e.type === "site.created");
   assert.equal((created!.payload as { otherLabel?: string }).otherLabel, "carga de gas doméstico");
+});
+
+// --- Self-signup / site ownership authorization (the security boundary) ----
+
+test("site ownership: creator becomes responsable and can manage their site", async () => {
+  const org = await seedOrg("Org Ownership");
+  const ana = contributor("user-ana", "ana@ejemplo.com");
+  const site = await svc.createSite(
+    { name: "Acopio de Ana", orgId: org.id, district: "Catia", category: "acopio", lat: null, lng: null, bedsTotal: 0, bedsFree: 0, notes: "" },
+    ana,
+  );
+  assert.equal(site.createdByUserId, "user-ana");
+  assert.equal(site.createdByEmail, "ana@ejemplo.com");
+
+  // Ana (the responsable) can update her own site.
+  const updated = await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 10, bedsFree: 4, status: "active", notes: "" },
+    ana,
+  );
+  assert.equal(updated.bedsFree, 4);
+});
+
+test("a contributor CANNOT modify a site they don't own or manage", async () => {
+  const org = await seedOrg("Org Foreign");
+  const ana = contributor("user-ana2", "ana2@ejemplo.com");
+  const beto = contributor("user-beto", "beto@ejemplo.com");
+  const site = await svc.createSite(
+    { name: "Sitio de Ana", orgId: org.id, district: "Macuto", category: "acopio", lat: null, lng: null, bedsTotal: 0, bedsFree: 0, notes: "" },
+    ana,
+  );
+  await assert.rejects(
+    svc.updateSiteCapacity({ siteId: site.id, bedsTotal: 5, bedsFree: 5, status: "active", notes: "" }, beto),
+    /No tiene permiso/,
+  );
+  // ...but a coordinator always can.
+  await assert.doesNotReject(
+    svc.updateSiteCapacity({ siteId: site.id, bedsTotal: 5, bedsFree: 5, status: "active", notes: "" }, COORD),
+  );
+});
+
+test("peer delegation: responsable grants a volunteer manage rights on their site (revocable)", async () => {
+  const org = await seedOrg("Org Delegation");
+  const ana = contributor("user-ana3", "ana3@ejemplo.com");
+  const vol = contributor("user-vol", "voluntario@ejemplo.com");
+  const site = await svc.createSite(
+    { name: "Refugio de Ana", orgId: org.id, district: "La Guaira", category: "refugio", lat: null, lng: null, bedsTotal: 10, bedsFree: 10, notes: "" },
+    ana,
+  );
+
+  // Before the grant, the volunteer is blocked.
+  await assert.rejects(
+    svc.updateSiteCapacity({ siteId: site.id, bedsTotal: 10, bedsFree: 3, status: "active", notes: "" }, vol),
+    /No tiene permiso/,
+  );
+
+  // A random signed-up user cannot grant access — only the responsable.
+  await assert.rejects(
+    svc.grantSiteCoordinator({ siteId: site.id, email: "voluntario@ejemplo.com" }, vol),
+    /Solo el responsable/,
+  );
+
+  // Ana (responsable) grants the volunteer, who can now manage the site.
+  await svc.grantSiteCoordinator({ siteId: site.id, email: "Voluntario@Ejemplo.com" }, ana);
+  await assert.doesNotReject(
+    svc.updateSiteCapacity({ siteId: site.id, bedsTotal: 10, bedsFree: 3, status: "active", notes: "" }, vol),
+  );
+
+  // Revoked -> blocked again.
+  await svc.revokeSiteCoordinator({ siteId: site.id, email: "voluntario@ejemplo.com" }, ana);
+  await assert.rejects(
+    svc.updateSiteCapacity({ siteId: site.id, bedsTotal: 10, bedsFree: 1, status: "active", notes: "" }, vol),
+    /No tiene permiso/,
+  );
+});
+
+test("contributor view excludes the sensitive needs board, shows managed sites", async () => {
+  const org = await seedOrg("Org Contrib");
+  const ana = contributor("user-ana4", "ana4@ejemplo.com");
+  const site = await svc.createSite(
+    { name: "Acopio Contrib", orgId: org.id, district: "Chacao", category: "acopio", lat: null, lng: null, bedsTotal: 0, bedsFree: 0, notes: "" },
+    ana,
+  );
+  // A sensitive need exists on the board...
+  await svc.createNeed(
+    { orgId: org.id, siteId: null, district: "Chacao", lat: 10.49, lng: -66.85, category: "rescue", quantity: 1, unit: "", urgency: "critical", notes: "familia atrapada, contacto 0412..." },
+    "user:ana4@ejemplo.com",
+  );
+  const view = await svc.contributorView("user-ana4", "ana4@ejemplo.com");
+  // The contributor view has NO needs field at all (needs stay coordinator-only).
+  assert.equal((view as { needs?: unknown }).needs, undefined);
+  // Ana sees her own site among the public aid points and may manage it.
+  assert.ok(view.sites.some((s) => s.site.id === site.id));
+  assert.ok(view.managedSiteIds.includes(site.id));
 });
