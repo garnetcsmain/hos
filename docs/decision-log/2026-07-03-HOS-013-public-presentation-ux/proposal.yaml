@@ -1,0 +1,183 @@
+decision_id: "HOS-2026-013"
+title: "Public presentation & everyday UX: live pulse board (\"Brain Board\"), personalized dashboards, 12-year-old onboarding bar, and a \"Ver como\" audience switcher"
+category: "strategic"
+proposer: "Executive Orchestrator (drafted at human principal's direction, 2026-07-03)"
+date: "2026-07-03"
+status: "DRAFT — awaiting Board review"
+board_status: "pending"
+
+summary: >
+  Decide how HOS presents itself to the world and how any person — not just a
+  trained coordinator — finds what they need. Four connected pieces, from the
+  human principal's direction of 2026-07-03: (D1) a live "pulse board" (his
+  working name: Brain Board) that animates the connections actually happening
+  in the system (need posted -> assigned -> confirmed received; site confirmed
+  operative) in near-real time, so an outsider understands in seconds that the
+  system is alive and what it does; (D2) personalized dashboards ("Mi tablero")
+  so people compose a view of only the districts/categories they care about
+  instead of scrolling a 1000-row board; (D3) onboarding and wayfinding held to
+  a 12-year-old usability bar — the existing bilingual landing already targets
+  that reading level for EXPLAINING, this extends it to DOING; (D4) a "Ver
+  como" switcher so a coordinator/admin can see exactly what any other audience
+  sees; (D5) coordinator-console ergonomics fixes that fall out of the same
+  feedback. The public-facing variant of D1 is explicitly gated: it may not
+  ship until the HOS-2026-007 public-feed gate re-review passes.
+
+context:
+  problem: >
+    Three verified gaps. (a) The coordinator console now carries the full real
+    dataset (1021 needs, 150 sites from caracasayuda.com) and reads as a wall —
+    the human principal's own feedback 2026-07-03: "looking great but a bit
+    complex to use… there seems to be an infinite scrolling" (the sites column
+    rendered all 150 cards unpaged; fixed same day as HOS-2026-007-09, but the
+    density problem is broader). (b) The public today gets a static explainer
+    (the bilingual landing at /) and nothing live: the system's actual work —
+    connections being made between needs and help — is invisible, which
+    undersells trust and adoption. (c) There is no persona-shaped entry: a
+    person who needs water, a diaspora volunteer, a donor, and a coordinator
+    all land on the same pages and must self-navigate.
+  user_impact: >
+    A family member, donor, remote volunteer, or journalist sees within
+    seconds that HOS is alive and what it is doing — without any affected
+    person being exposed — and can save a view of only what they care about. A
+    coordinator can preview exactly what any audience sees before it ships,
+    which doubles as a standing privacy-leak audit. A first-time visitor gets
+    from "what is this?" to a useful screen in two choices.
+  constraints: >
+    (1) HOS-2026-007's deferred gates stand: the public/aggregated feed and
+    volunteer dispatch are CLOSED pending human D3 threat-model sign-off plus
+    real auth (HOS-2026-001-08). The human principal answered HOS-2026-008-D1
+    on 2026-07-03 (Venezuelan state = LATENT adversary, in scope; coordinator-
+    gated precise locations permitted; public-feed gate unblocked for
+    re-review) — that answer is recorded in-session but NOT yet written into
+    the 008 decision log, and it unblocks the RE-REVIEW, not the gate itself.
+    (2) HOS-2026-008 minimization posture: the public variant must be PII-free
+    BY CONSTRUCTION — imported need free-text names real people today, so
+    need.notes may never reach a public payload; needs stay district-grain;
+    aggregates are k-thresholded; event timing is delayed/coarsened so the
+    feed cannot serve as a real-time targeting oracle. Site identity/address
+    is already-public source data (caracasayuda.com) and lower-risk.
+    (3) Honesty principle (recurring Board condition): the animation renders
+    REAL recorded events, possibly delayed/aggregated — never decorative fake
+    motion; any sample/demo mode is labeled as a demonstration.
+    (4) Audience reality: low-end Android phones on intermittent networks; the
+    board must degrade to a cheap static snapshot, and WhatsApp sharing (OG
+    image cards) is the actual distribution channel to design for.
+    (5) "Las sugerencias son solo una guía: decide una persona" stays visible
+    in any public framing — nothing may imply automated dispatch.
+
+sub_decisions:
+  - id: "D1-live-pulse-board"
+    note: >
+      A live visualization of system activity: district/site nodes, animated
+      pulses for state transitions (need posted, assigned, received, site
+      confirmed), honest counters, and a PII-free event ticker ("Rescate
+      asignado - Carayaca", never a name). Two audiences, one component:
+      (a) coordinator-gated full version inside the console — buildable NOW
+      behind the existing gate, doubles as situational awareness; (b) public
+      version fed exclusively by a new aggregate feed endpoint whose
+      serializer is PII-free by construction (unit-tested contract: no names,
+      no free text, no precise need locations, k>=5 aggregates, timing
+      coarsened to >=15-min buckets) — ships only after the 007 gate
+      re-review passes. Until then, the landing may embed the component in
+      labeled demonstration mode (synthetic data, marked "demostración").
+  - id: "D2-personal-dashboards"
+    note: >
+      "Mi tablero": pick districts + categories + role once; the app defaults
+      there on return. Stored locally (no account required), encoded in a
+      shareable URL, deletable in one tap. Coordinator saved views reuse the
+      same mechanism. Personalization must never suppress critical safety
+      banners; the shared source of truth stays one board with filters, not
+      forked data.
+  - id: "D3-onboarding-12yo-bar"
+    note: >
+      First-run flow: one question — "¿Qué necesita hacer?" (Necesito ayuda /
+      Quiero ayudar / Traigo información / Coordino) — then straight to a
+      useful, pre-filtered screen; at most two choices deep. Plain-Spanish
+      (usted) copy at a 12-year-old reading level, one primary action per
+      screen, reusing the existing Term glossary and the coordination tour
+      pattern. The landing already explains HOS at this bar; this decision
+      extends the same bar to doing things in the product.
+  - id: "D4-ver-como-switcher"
+    note: >
+      An audience switcher for privileged users: render exactly what the
+      public / a volunteer / another role sees. STRICTLY a render-preview of
+      the lower-privilege payload (fetch as-that-audience), never a privilege
+      change; becomes fully role-aware once HOS-2026-011 capabilities land.
+      Interim version (public-vs-coordinator toggle) is buildable now and is
+      the cheapest standing leak-audit tool we can own.
+  - id: "D5-console-ergonomics"
+    note: >
+      Independent of the public layer: collapse per-card assignment controls
+      behind a single action (today every open need renders an org dropdown +
+      two buttons), add a search box (find a site/need by name fast), default
+      triage presets, and pagination parity (sites column paged 2026-07-03,
+      HOS-2026-007-09). These land behind the existing gate regardless of
+      gate outcomes.
+
+options:
+  - id: "A-gated-first-then-public"
+    note: >
+      Proposer's recommendation. Build the pulse board + dashboards +
+      onboarding behind existing surfaces now (coordinator gate; landing demo
+      mode labeled as demonstration), run the HOS-2026-007 public-feed gate
+      re-review in parallel (now unblocked by the 2026-07-03 D1 answer), and
+      flip the public variant on only after sign-off, on top of the tested
+      PII-free feed contract. Fastest path that violates no standing gate.
+  - id: "B-static-comms-only"
+    note: >
+      Keep the landing as the only public face; add periodic hand-made
+      infographics. Rejected as the end state: it hides the system's actual
+      operation, does not scale trust, and forfeits the differentiator the
+      principal named (seeing connections happen). Acceptable only as the
+      fallback if the gate re-review fails.
+  - id: "C-public-realtime-now"
+    note: >
+      Ship the public live board immediately. Rejected: the public-feed gate
+      is CLOSED; shipping would bypass a standing Board condition and the
+      threat-model re-review that the D1 answer specifically routes through.
+
+resources:
+  prerequisites:
+    - "PII-free aggregate feed endpoint with a serializer whose output shape is enforced by tests (the public contract) — small, buildable now, no external dependency."
+    - "HOS-2026-007 public-feed gate re-review (Board) + human sign-off before any public variant serves real data; real auth (HOS-2026-001-08) per the original gate condition."
+    - "The 2026-07-03 HOS-2026-008-D1 answer written verbatim into the 008 decision log (it currently exists only in-session)."
+    - "No new external dependencies: SVG/canvas for the live board; Remotion is already in-tree for landing animations; keyless Leaflet+Carto already serves the map."
+  time_estimate: >
+    Coordinator-gated pulse board + demo mode: ~1 week. Personal dashboards +
+    onboarding flow: ~1 week. Ver-como interim toggle: days. Public flip:
+    gated on review, not on engineering.
+
+success_criteria:
+  - "A first-time visitor on a low-end phone can answer 'what is this and is it working' within ~30 seconds."
+  - "The public feed payload contains zero PII by construction, enforced by serializer unit tests, not by review vigilance."
+  - "A new user reaches a useful, relevant screen in at most two choices; a 12-year-old completes 'find water points near me' unaided in a moderated test."
+  - "'Ver como' output is byte-identical to what the selected audience actually receives."
+  - "Personal dashboards work with no account, survive reload, and never hide critical alerts."
+  - "The coordinator console page stays finite and responsive with the full real dataset loaded."
+
+risks:
+  - "Spectacle over honesty: a 'sci-fi' board that dramatizes or fakes activity would violate the honesty principle the Board has enforced since HOS-2026-002-D4. Mitigation: animations bind 1:1 to recorded events; demo mode is labeled."
+  - "Targeting-oracle risk: even aggregate 'which district is weakest right now' has adversarial value. Mitigation: k-thresholds, delay buckets, district grain, and an explicit Contrarian pass in the gate re-review."
+  - "Performance: continuous animation on low-end devices can make the public page unusable for its primary audience. Mitigation: static SSR snapshot first, animation as progressive enhancement."
+  - "Personalization fragmenting shared truth: saved views must filter, never fork; critical banners are unfilterable."
+  - "Ver-como drift: if the switcher ever elevates instead of downgrades, it becomes a privilege bug by design. Mitigation: preview always fetches the LOWER-privilege payload."
+  - "Scope creep toward volunteer dispatch, which remains CLOSED under HOS-2026-007; this proposal must not become its side door."
+
+board_questions_to_answer:
+  - "Contrarian: what can a hostile actor learn from the public aggregate feed (district weakness, response cadence, org activity patterns), and do the proposed k-thresholds/delays actually neutralize it?"
+  - "Researcher: what did Ushahidi-style public crisis feeds and ReliefWeb/HDX-grade dashboards learn about public visibility under hostile states — and is there a precedent for the animated live-pulse framing helping (or hurting) trust?"
+  - "User: does a family in Catia on a $60 Android with 3G get real value from the pulse board, or only from 'Mi tablero' + search? Which of the four pieces is the actual adoption driver?"
+  - "Principals: does demo-mode-on-the-landing (synthetic, labeled) satisfy the honesty principle, or does any animated demonstration on the public site pre-empt the gate?"
+  - "Expansionist: is an embeddable/sharable widget (allied orgs, news sites, WhatsApp OG cards) worth naming as a later gate now, so the feed contract is designed once?"
+
+notes: >
+  Direction provenance: human principal, 2026-07-03 session — "Brain Board…
+  show animated like sci-fi the connections that are occurring in almost real
+  time with real data… a more dynamic way of people finding what they need and
+  creating personalized dashboard… Focus in User Experience for a 12 years
+  old… my user will need a switcher button to see what other's users see…
+  onboarding and how it works must be extremely good and efficient."
+  Companion proposal: HOS-2026-014 (site stewardship) supplies the data
+  freshness this layer displays; the two reinforce each other and should be
+  reviewed together.

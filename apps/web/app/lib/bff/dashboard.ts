@@ -1,4 +1,5 @@
 import {
+  Activity,
   Boxes,
   Building2,
   Check,
@@ -20,6 +21,7 @@ import {
 // today without hiding the roadmap.
 export const navItems = [
   { label: "Coordinación", href: "/coordination", icon: Boxes, wip: false },
+  { label: "Pulso", href: "/pulso", icon: Activity, wip: false },
   { label: "Mapa", href: "/console", icon: Map, wip: true },
   { label: "Desaparecidos", href: "/missing", icon: UserRoundSearch, wip: true },
   { label: "Encontrados", href: "/found", icon: UserCheck, wip: true },

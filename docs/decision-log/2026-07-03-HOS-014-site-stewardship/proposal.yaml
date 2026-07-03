@@ -1,0 +1,194 @@
+decision_id: "HOS-2026-014"
+title: "Site stewardship: how a person claims responsibility for a site, what it requires, and how they stay accountable for keeping it fresh"
+category: "strategic"
+proposer: "Executive Orchestrator (drafted at human principal's direction, 2026-07-03)"
+date: "2026-07-03"
+status: "DRAFT — awaiting Board review"
+board_status: "pending"
+
+summary: >
+  Define the missing half of site liveness: a named human ("Responsable del
+  sitio") accountable for keeping one site's data fresh — acopios, refugios,
+  medical points, work/excavation areas — with a claim path that works both
+  for field-trained volunteers AND fully remotely, per the human principal's
+  direction of 2026-07-03. Today the console has liveness ACTIONS (Confirmar
+  operativo / Marcar cerrado / Reabrir, audited, freshness-badged) but no
+  OWNERSHIP: any coordinator can press the buttons, nobody is responsible for
+  any given site, and with 150 imported sites the default state is a wall of
+  "Sin actualizar +24h". This proposal defines who may claim a site, the
+  requirements, the verification of a remote claim, the accountability loop
+  (attributed updates + freshness SLA + automatic lapse), and the safety rule
+  that steward identity is never public.
+
+context:
+  problem: >
+    Verified current state: (a) HOS-2026-007-07 imported 150 real aid sites;
+    their freshness decays and the source records expire after 5 days —
+    without owners the board rots and coordinators must re-verify everything
+    themselves, which does not scale. (b) The liveness buttons exist and are
+    audited (updateSiteCapacity), but they are a coordinator-wide capability,
+    not per-site responsibility. (c) The authorization substrate was already
+    decided but not built: HOS-2026-011-D5 recognized a mid-tier site-lead as
+    real (a verified code-level ownership rule exists — only the requesting
+    site may mark a supply 'received') and adopted site:<id> as a first-class
+    capability scope, while deferring the named role until agency-admin + RLS
+    land. HOS-2026-010-D2 green-lit the device-key+PIN identity those grants
+    would attach to (awaiting human/legal sign-off). (d) No document defines
+    HOW a person becomes responsible for a site, what it requires, or what
+    accountability means. That workflow is this proposal.
+  user_impact: >
+    A coordinator opens the console and sees, per site, whether a named
+    responsible person exists and whether they are meeting their update
+    rhythm — instead of 150 anonymous stale cards. A shelter volunteer in
+    Cagua or a diaspora volunteer abroad can take responsibility for a site
+    they genuinely know, keep it updated remotely, and be visibly credited
+    (to coordinators) for it. People consuming the board — including the
+    HOS-2026-013 public layer if its gate opens — get data that is fresh
+    because someone specific is on the hook, with staleness honestly shown
+    when they are not.
+  constraints: >
+    (1) Enforced per-site permissions are hard-blocked on the same chain as
+    HOS-2026-011: Postgres (BLK-001 / HOS-2026-001-07), real auth
+    (HOS-2026-001-08), capabilities + RLS (HOS-2026-011, awaiting human
+    sign-off), identity substrate (HOS-2026-010-D2, awaiting human/legal
+    sign-off). Anything shipped before those lands is honor-system
+    attribution under the shared coordinator gate and must say so — the same
+    MET_WITH_WATCH caveat the 007 gate re-review recorded for honest-state.
+    (2) Adversarial-state posture (HOS-2026-008; D1 answered 2026-07-03:
+    latent adversary, in scope): being the named keeper of an aid site is a
+    targetable role — HOS-2026-012's review cited a named fatal precedent in
+    exactly this population (Operacion Tun Tun). Steward identity is
+    coordinator-visible only, never public; public surfaces may say at most
+    "confirmado por el responsable del sitio hace 2 h".
+    (3) Honesty principle: stewardship must never make data LOOK fresher than
+    it is — a steward pressing "confirmar" without knowing is worse than a
+    stale badge. Training and copy must say what confirming asserts.
+    (4) Minimization: a steward record is a name/handle, contact channel, and
+    site link — no address, no document scans, no location history.
+
+sub_decisions:
+  - id: "D1-who-and-requirements"
+    note: >
+      Requirements to become responsible for a site: (a) verified identity —
+      device-key+PIN once HOS-2026-010 lands; interim: a coordinator-created
+      named entry (vouched); (b) a reachable contact channel (phone/WhatsApp);
+      (c) demonstrated connection to the site — physically present (field
+      volunteer/staff) OR verified remotely per D2; (d) a five-minute
+      micro-training at the 12-year-old bar (what to update, how often, what
+      'confirmar' asserts, honesty rules) with explicit acceptance of the
+      update rhythm. Two steward kinds, one mechanism: field steward and
+      remote steward differ only in verification path, per the principal's
+      direction that remote must be first-class.
+  - id: "D2-claim-flow-remote-capable"
+    note: >
+      Claim paths: (a) coordinator-initiated grant (coordinator knows the
+      site's people — the trained-volunteer path the principal described);
+      (b) self-request from the site card ("Ser responsable de este sitio")
+      routed to a coordinator queue, never auto-granted; (c) remote claim
+      verification for (b): the coordinator verifies affiliation through an
+      out-of-band check — calling the site's publicly listed phone (many
+      imported sites carry one), the site's org vouching, or a named existing
+      steward confirming. Grant = a site:<id>-scoped capability bundle
+      (update capacity/status/hours/notes for that one site), exactly the
+      scope HOS-2026-011-D5 already adopted. Multiple stewards per site
+      allowed (shifts); one is marked primary contact.
+  - id: "D3-accountability-loop"
+    note: >
+      Every steward update is attributed (append-only audit already exists).
+      Each site carries an update rhythm by category (strawman to validate:
+      refugio beds 24h, medico 24h, acopio 48h — numbers for the Board/User
+      review, not sacred). Missing the rhythm: the freshness badge already
+      degrades (honest signal, keep it); the steward gets a nudge once
+      notification channels exist (interim: a coordinator 'sitios vencidos'
+      triage list, sorted stalest-first). Sustained neglect (e.g. 3
+      consecutive missed windows or 7 days silent): stewardship LAPSES
+      automatically — the site shows "sin responsable" and becomes claimable
+      again, and the lapse is recorded, not hidden. Accountability here means
+      visible follow-through and losing the role, never public shaming.
+  - id: "D4-steward-safety"
+    note: >
+      Steward identity and contact are coordinator-visible only. Public and
+      volunteer surfaces show role-grain attribution at most ("responsable
+      del sitio"), never a name. Steward lists are never exportable in bulk.
+      The steward record follows HOS-2026-008 minimization (name/handle,
+      channel, site link — nothing else). Declining to be publicly credited
+      must cost nothing: recognition happens inside the coordinator layer.
+  - id: "D5-interim-vs-enforced"
+    note: >
+      Enforced version (capability-checked writes, RLS) waits for the
+      010/011/Postgres chain. Interim version buildable now behind the
+      coordinator gate: steward as a named field on the site + attributed
+      liveness actions + rhythm/lapse logic + 'sitios vencidos' triage view,
+      under the shared-token honesty caveat. Board question: is the interim
+      worth shipping (it changes coordinator behavior and starts the
+      stewardship culture) or does honor-system enforcement teach habits the
+      enforced version will break?
+
+options:
+  - id: "A-stewardship-with-remote-path"
+    note: >
+      Proposer's recommendation: the full model above (D1-D5), phased interim
+      -> enforced. Matches the principal's direction (field-trained stewards
+      AND remote claiming, accountability for freshness) and lands on
+      authorization primitives the Board already adopted (011-D5 site scope).
+  - id: "B-field-training-only"
+    note: >
+      Only physically-present trained volunteers may hold sites (the
+      principal's first instinct, which he himself then extended). Rejected
+      as the sole path: excludes the diaspora and remote helpers, cannot
+      cover 150+ sites across Venezuela, and adds a travel gate to a data
+      problem. Field training remains one valid verification path inside A.
+  - id: "C-crowd-liveness-only"
+    note: >
+      Status quo plus: keep coordinator-wide confirm buttons, add no
+      ownership. Rejected: with nobody responsible, freshness depends on
+      whoever happens to look; 24h-stale is already the default state of the
+      imported board today. This is the do-nothing baseline the proposal
+      exists to fix.
+
+resources:
+  prerequisites:
+    - "Interim: none blocking — reuses the coordinator gate, sites schema (a steward field + rhythm metadata), and the existing audited updateSiteCapacity path."
+    - "Enforced: HOS-2026-010-D2 identity (human/legal sign-off), HOS-2026-011 capabilities + RLS (human sign-off), Postgres (BLK-001) — the same chain those decisions already established."
+    - "Steward nudges need a notification channel (BLK-003); until then the coordinator triage list is the nudge."
+  time_estimate: >
+    Interim slice (steward field + claim queue + rhythm/lapse + triage view):
+    roughly one week, similar in shape to the 007 coordination slice.
+    Enforced upgrade rides the 010/011 build whenever that is signed off.
+
+success_criteria:
+  - "Every active site can show: responsible person exists (yes/no), last confirmed when, and whether the update rhythm is being met."
+  - "A remote person with a real connection to a site can become its steward without anyone traveling, through a verification a coordinator can complete in minutes."
+  - "Stale sites surface as a worked triage list, not a wall: 'sitios vencidos' ordered stalest-first with the steward (or 'sin responsable') visible."
+  - "Stewardship lapses automatically and visibly when neglected; a site never appears owned-and-fresh when it is neither."
+  - "No steward name or contact ever appears on a public or volunteer-facing surface."
+  - "Every steward write is attributed in the append-only audit; under the interim shared token, the UI says attribution is honor-system."
+
+risks:
+  - "Data poisoning via fake claims: an adversary claims a site remotely and marks it closed (denial of aid) or open (honeypot). Mitigation: no auto-grant, out-of-band verification, coordinator approval, full audit, instant revocation — and the Contrarian question below."
+  - "Steward burnout / silent abandonment: mitigated by multiple stewards per site, automatic lapse instead of silent staleness, and rhythm numbers set realistically (Board/User to pressure-test the strawman SLAs)."
+  - "Interim honor-system attribution being mistaken for verified identity — the exact watch-item the 007 gate re-review recorded. UI copy must carry the caveat until 010/011 land."
+  - "Targeting exposure of stewards if any surface leaks names (D4 is the control; treat any leak as a security bug, not a UX bug)."
+  - "Rhythm too aggressive -> permanent 'vencido' wall (alarm fatigue); too lax -> stale board. The numbers must be validated against real steward behavior in the pilot, not chosen in a document."
+
+board_questions_to_answer:
+  - "Contrarian: walk the fake-steward attack end to end (remote claim -> verification -> grant -> poisoned updates). Which verification step actually stops it, and is that step cheap enough that coordinators will really do it?"
+  - "Researcher: what do OSM/HOT validator roles, Ushahidi verification workflows, and UNHCR/IFRC camp-management focal-point practice say about named per-site responsibility — and what failure modes did they hit (gatekeeping, burnout, capture)?"
+  - "User: will a shelter volunteer with a shared phone actually update beds every 24h? What is the minimum-friction update action that survives a real shift (one-tap confirm? WhatsApp-shaped?), and do the strawman SLAs survive contact with reality?"
+  - "Principals: does the interim honor-system slice strengthen or undermine the honesty posture — is 'attributed but unverified' clearly better than 'anonymous but gated', or worse?"
+  - "Expansionist: does stewardship generalize beyond sites (district stewards? category stewards for rescue triage?) and should the grant mechanism be designed once for that — without expanding this proposal's build scope?"
+
+notes: >
+  Direction provenance: human principal, 2026-07-03 session — "have we defined
+  how a coordinator will claim that site and the requirements for it? … i
+  first thought of training a volunteer as coordinator that will help keep
+  'centros de acopio' or 'refugees camps' or excavation centers or work areas
+  up-to-date but i think the best is to create a way that we can do it also
+  remotely and make the responsible accountable for the information so they
+  update it and maintain it."
+  Answer to his question as of this draft: the claiming WORKFLOW was not
+  previously defined anywhere; the closest existing pieces are the audited
+  liveness buttons (HOS-2026-007-07), the site:<id> capability scope +
+  deferred site-lead role (HOS-2026-011-D5), and the identity substrate
+  (HOS-2026-010-D2). Companion proposal: HOS-2026-013 — stewards supply the
+  freshness that the public pulse board displays.
