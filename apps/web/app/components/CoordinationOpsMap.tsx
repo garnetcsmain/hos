@@ -67,7 +67,6 @@ export function CoordinationOpsMap() {
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [nowTick, setNowTick] = useState(() => Date.now());
-  const [district, setDistrict] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -171,7 +170,9 @@ export function CoordinationOpsMap() {
               {error}
             </div>
           ) : board ? (
-            <LeafletMap board={board} activeDistrict={district} onSelect={setDistrict} height="100%" />
+            // No onShowList: there is no list on the ops screen; the district
+            // popup offers its summary + zoom only.
+            <LeafletMap board={board} activeDistrict={null} height="100%" />
           ) : (
             <div className="flex h-full items-center justify-center text-[13px] font-bold text-[var(--hos-muted)]">
               Cargando mapa…

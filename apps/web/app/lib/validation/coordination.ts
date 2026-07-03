@@ -58,6 +58,15 @@ export const siteUpdateSchema = z.object({
   notes: optionalText(2000),
 });
 
+// Site broadcast ("hoy entregan comida 2-5pm"). Empty message clears it.
+// hoursValid bounds how long it stays visible (max one week — a standing
+// notice belongs in the site notes, not a broadcast).
+export const siteAnnouncementSchema = z.object({
+  siteId: z.string().trim().min(1).max(40),
+  message: z.string().trim().max(200).optional().transform((v) => v ?? ""),
+  hoursValid: z.number().int().min(1).max(168).optional().transform((v) => v ?? 24),
+});
+
 export const needCreateSchema = z.object({
   orgId: z.string().trim().min(1, "requesting org is required").max(40),
   siteId: z.string().trim().max(40).optional().transform((v) => (v ? v : null)),
@@ -92,6 +101,7 @@ export const offerCreateSchema = z.object({
 
 export type SiteCreateInput = z.infer<typeof siteCreateSchema>;
 export type SiteUpdateInput = z.infer<typeof siteUpdateSchema>;
+export type SiteAnnouncementInput = z.infer<typeof siteAnnouncementSchema>;
 export type NeedCreateInput = z.infer<typeof needCreateSchema>;
 export type NeedTransitionInput = z.infer<typeof needTransitionSchema>;
 export type OfferCreateInput = z.infer<typeof offerCreateSchema>;

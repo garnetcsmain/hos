@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { BedDouble, Check, Clock, Truck, X } from "lucide-react";
+import { BedDouble, Check, Clock, Megaphone, Truck, X } from "lucide-react";
 import { Term } from "@/app/components/Term";
 import {
   createNeed,
   createOffer,
   createOrg,
   createSite,
+  setSiteAnnouncement,
   transitionNeed,
   updateSiteCapacity,
 } from "@/app/lib/client/coordination";
 import type { Freshness } from "@/app/lib/coordination/freshness";
+import { activeAnnouncement } from "@/app/lib/domain/coordination";
 import type { NeedCategory, Org, OrgKind, SiteCategory, Urgency } from "@/app/lib/domain/coordination";
 import type { NeedView, OfferView, SiteView } from "@/app/lib/domain/coordinationViews";
 
@@ -124,6 +126,28 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
   const [free, setFree] = useState(String(site.bedsFree));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Site broadcast ("hoy entregan comida 2-5pm") — set by whoever is
+  // responsible for the point (a coordinator today; the site:<id> capability
+  // scope when HOS-2026-011 lands). Auto-hides at expiry.
+  const aviso = activeAnnouncement(site, new Date().toISOString());
+  const [announcing, setAnnouncing] = useState(false);
+  const [avisoText, setAvisoText] = useState("");
+  const [avisoHours, setAvisoHours] = useState("24");
+
+  async function publishAviso(message: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await setSiteAnnouncement({ siteId: site.id, message, hoursValid: Number(avisoHours) });
+      setAnnouncing(false);
+      setAvisoText("");
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo publicar el aviso.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function save() {
     setBusy(true);
@@ -202,6 +226,19 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
         </button>
       </div>
       ) : null}
+      {aviso ? (
+        <div className="mt-[10px] flex items-start gap-[8px] rounded-[6px] bg-[#FDF3D7] px-[10px] py-[8px]">
+          <Megaphone className="mt-[1px] h-[14px] w-[14px] shrink-0 text-[#7A5200]" strokeWidth={2.4} />
+          <div className="text-[12px] font-extrabold leading-[16px] text-[#7A5200]">
+            {aviso}
+            {site.announcementUntil ? (
+              <span className="ml-[6px] font-bold text-[#A98A3A]">
+                (vence {new Date(site.announcementUntil).toLocaleString("es-VE", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })})
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       {site.notes ? <p className="mt-[8px] text-[12px] font-bold leading-[16px] text-[var(--hos-muted)]">{site.notes}</p> : null}
       <div className="mt-[10px] flex flex-wrap items-center gap-[12px] border-t border-[#E2E8E4] pt-[8px]">
         {site.status === "active" ? (
@@ -233,8 +270,59 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
             Reabrir
           </button>
         )}
+        {site.status === "active" ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setAnnouncing((v) => !v)}
+            className="text-[12px] font-extrabold text-[#7A5200] hover:underline disabled:opacity-60"
+          >
+            {announcing ? "Cerrar aviso" : aviso ? "Cambiar aviso" : "Publicar aviso"}
+          </button>
+        ) : null}
+        {aviso && !announcing ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void publishAviso("")}
+            className="text-[12px] font-extrabold text-[var(--hos-muted)] hover:underline disabled:opacity-60"
+          >
+            Quitar aviso
+          </button>
+        ) : null}
         {error ? <span className="text-[12px] font-bold text-[var(--hos-red)]">{error}</span> : null}
       </div>
+      {announcing ? (
+        <div className="mt-[10px] flex flex-wrap items-end gap-[8px] border-t border-[#E2E8E4] pt-[10px]">
+          <label className="min-w-[220px] flex-1 text-[11px] font-extrabold text-[var(--hos-muted)]">
+            Aviso (ej. &quot;Hoy entregan comida 2-5pm&quot;)
+            <input
+              type="text"
+              maxLength={200}
+              className={`${fieldBase} mt-[4px] w-full`}
+              value={avisoText}
+              onChange={(e) => setAvisoText(e.target.value)}
+            />
+          </label>
+          <label className="text-[11px] font-extrabold text-[var(--hos-muted)]">
+            Visible por
+            <select className={`${fieldBase} mt-[4px] w-[110px]`} value={avisoHours} onChange={(e) => setAvisoHours(e.target.value)}>
+              <option value="6">6 horas</option>
+              <option value="12">12 horas</option>
+              <option value="24">24 horas</option>
+              <option value="48">48 horas</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            disabled={busy || !avisoText.trim()}
+            onClick={() => void publishAviso(avisoText.trim())}
+            className="h-[36px] rounded-[6px] bg-[#7A5200] px-[14px] text-[12px] font-extrabold text-white disabled:opacity-60"
+          >
+            Publicar
+          </button>
+        </div>
+      ) : null}
       {editing ? (
         <div className="mt-[10px] flex flex-wrap items-end gap-[8px] border-t border-[#E2E8E4] pt-[10px]">
           <label className="text-[11px] font-extrabold text-[var(--hos-muted)]">

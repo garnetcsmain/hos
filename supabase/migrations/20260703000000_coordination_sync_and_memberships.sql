@@ -22,6 +22,13 @@ ALTER TABLE sites ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS source_id TEXT;
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS synced_at TEXT;
 
+-- Site broadcast (human direction 2026-07-03): a short announcement the
+-- responsible party sets on a site ("hoy entregan comida 2-5pm") with an
+-- expiry, shown on the map/console while current. Coordinator-set today;
+-- moves to the site:<id> capability scope when HOS-2026-011 lands.
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS announcement TEXT NOT NULL DEFAULT '';
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS announcement_until TEXT;
+
 ALTER TABLE needs ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
 ALTER TABLE needs ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
 ALTER TABLE needs ADD COLUMN IF NOT EXISTS source_id TEXT;

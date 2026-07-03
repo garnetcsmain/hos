@@ -71,6 +71,20 @@ export interface Site {
    *  this instant (updatedAt > syncedAt) protects the row from being
    *  overwritten by later syncs. Null for records created directly in HOS. */
   syncedAt: string | null;
+  /** Broadcast from the site's responsible party ("hoy entregan comida
+   *  2-5pm"). Shown on the map/console only while unexpired; set by a
+   *  coordinator today, by the site:<id> capability scope once HOS-2026-011
+   *  lands. Empty string = no announcement. */
+  announcement: string;
+  announcementUntil: string | null;
+}
+
+/** The announcement to display right now, or null if none/expired. Expiry is
+ *  a display rule (the record keeps its history in the event log). */
+export function activeAnnouncement(site: Site, nowIso: string): string | null {
+  if (!site.announcement) return null;
+  if (site.announcementUntil && Date.parse(site.announcementUntil) < Date.parse(nowIso)) return null;
+  return site.announcement;
 }
 
 export type NeedCategory =

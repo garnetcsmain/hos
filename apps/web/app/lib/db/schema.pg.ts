@@ -122,7 +122,9 @@ CREATE TABLE IF NOT EXISTS sites (
   status        TEXT NOT NULL DEFAULT 'active',
   notes         TEXT NOT NULL DEFAULT '',
   source_id     TEXT,                       -- caracasayuda.com record id (provenance)
-  synced_at     TEXT                        -- last reconciled with source; local edits after this win
+  synced_at     TEXT,                       -- last reconciled with source; local edits after this win
+  announcement  TEXT NOT NULL DEFAULT '',   -- site broadcast ("hoy entregan comida 2-5pm")
+  announcement_until TEXT                   -- ISO expiry; announcement hides after this
 );
 
 -- Additive migrations for databases created before these columns existed.
@@ -131,6 +133,8 @@ ALTER TABLE sites ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS source_id TEXT;
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS synced_at TEXT;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS announcement TEXT NOT NULL DEFAULT '';
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS announcement_until TEXT;
 
 CREATE TABLE IF NOT EXISTS needs (
   id            TEXT PRIMARY KEY,

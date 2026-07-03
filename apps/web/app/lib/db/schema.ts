@@ -115,7 +115,9 @@ CREATE TABLE IF NOT EXISTS sites (
   status        TEXT NOT NULL DEFAULT 'active',
   notes         TEXT NOT NULL DEFAULT '',
   source_id     TEXT,                       -- caracasayuda.com record id (provenance)
-  synced_at     TEXT                        -- last reconciled with source; local edits after this win
+  synced_at     TEXT,                       -- last reconciled with source; local edits after this win
+  announcement  TEXT NOT NULL DEFAULT '',   -- site broadcast ("hoy entregan comida 2-5pm")
+  announcement_until TEXT                   -- ISO expiry; announcement hides after this
 );
 
 CREATE TABLE IF NOT EXISTS needs (
@@ -199,6 +201,8 @@ export const SQLITE_MIGRATIONS: readonly string[] = [
   `ALTER TABLE sites ADD COLUMN lng REAL`,
   `ALTER TABLE sites ADD COLUMN source_id TEXT`,
   `ALTER TABLE sites ADD COLUMN synced_at TEXT`,
+  `ALTER TABLE sites ADD COLUMN announcement TEXT NOT NULL DEFAULT ''`,
+  `ALTER TABLE sites ADD COLUMN announcement_until TEXT`,
   `ALTER TABLE needs ADD COLUMN lat REAL`,
   `ALTER TABLE needs ADD COLUMN lng REAL`,
   `ALTER TABLE needs ADD COLUMN source_id TEXT`,

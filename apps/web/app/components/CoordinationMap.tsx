@@ -38,12 +38,14 @@ export function CoordinationMap({
 }: {
   board: CoordinationView;
   activeDistrict: string | null;
+  /** Called from the district popup's explicit "Ver en lista" action (never
+   *  from a bare marker click — human feedback 2026-07-03). */
   onSelect: (district: string | null) => void;
 }) {
   return (
     <section className="flex flex-col gap-[10px]">
       <div className="overflow-hidden rounded-[8px] border border-[var(--hos-border)]">
-        <LeafletMap board={board} activeDistrict={activeDistrict} onSelect={onSelect} />
+        <LeafletMap board={board} activeDistrict={activeDistrict} onShowList={onSelect} />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-[10px]">

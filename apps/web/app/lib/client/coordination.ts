@@ -36,6 +36,13 @@ export const updateSiteCapacity = (payload: {
   notes?: string;
 }) => write("/api/coordination/sites", payload, "PATCH");
 
+// Empty message clears the broadcast.
+export const setSiteAnnouncement = (payload: {
+  siteId: string;
+  message: string;
+  hoursValid?: number;
+}) => write("/api/coordination/sites/announcement", payload);
+
 export const createNeed = (payload: {
   orgId: string;
   siteId?: string;

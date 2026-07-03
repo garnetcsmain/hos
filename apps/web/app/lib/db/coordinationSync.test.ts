@@ -73,6 +73,12 @@ test("sync: untouched imported rows refresh; locally-edited rows are preserved",
   await resetAllTablesForTests();
   await runCoordinationSync(async () => [punto(), needPunto()]);
 
+  // The protection predicate is updated_at > synced_at at millisecond grain.
+  // This test can otherwise run fast enough to land the local edit in the
+  // SAME millisecond as the sync stamp (impossible at human/cron timescales),
+  // so step past it explicitly.
+  await new Promise((r) => setTimeout(r, 5));
+
   // A coordinator receives the need in HOS (local edit bumps updated_at).
   const before = await needRow("00000000-0000-0000-0000-000000000002");
   await svc.transitionNeed(

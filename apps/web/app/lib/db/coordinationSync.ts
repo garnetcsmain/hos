@@ -126,6 +126,11 @@ interface ExistingRow {
   synced_at: string | null;
 }
 
+// Millisecond grain: a local edit stamped in the exact same ms as the sync's
+// synced_at would read as unmodified. At nightly-cron vs human-edit
+// timescales that cannot happen; noted so nobody "fixes" this to >= (which
+// would mark every seeded row — synced_at == updated_at by construction —
+// as locally modified and freeze the first refresh).
 function locallyModified(row: ExistingRow): boolean {
   if (!row.synced_at) return true; // unknown reconcile point: refuse to overwrite
   return Date.parse(row.updated_at) > Date.parse(row.synced_at);
@@ -236,6 +241,8 @@ export async function runCoordinationSync(
             notes,
             sourceId: p.id,
             syncedAt: now,
+            announcement: "",
+            announcementUntil: null,
           });
           summary.sitesInserted += 1;
         } else if (locallyModified(existing)) {

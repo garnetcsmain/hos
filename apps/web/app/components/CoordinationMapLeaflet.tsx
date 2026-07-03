@@ -21,14 +21,40 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { centroidFor, inCorridor, REGION_CENTER, REGION_ZOOM, type LatLng } from "@/app/lib/geo/districts";
 import { CATEGORY_LABEL, SITE_CATEGORY_LABEL, SITE_PIN } from "@/app/components/CoordinationParts";
+import { activeAnnouncement } from "@/app/lib/domain/coordination";
 import type { CoordinationView, NeedView, SiteView } from "@/app/lib/domain/coordinationViews";
-import type { SiteCategory } from "@/app/lib/domain/coordination";
-
+import type { NeedCategory, SiteCategory } from "@/app/lib/domain/coordination";
 
 interface Rollup {
   district: string;
   needs: number;
   critical: number;
+  /** Open-need count per category, for the district popup breakdown. */
+  byCategory: Map<NeedCategory, number>;
+  /** Active aid points in the district. */
+  sites: number;
+}
+
+/** Directions to a point — the coordinator-facing "cómo llegar". A
+ *  destination-only maps link; no HOS data leaves the console. */
+function directionsUrl(lat: number, lng: number): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat}%2C${lng}`;
+}
+
+const popupFont = { font: "600 12px system-ui,sans-serif", maxWidth: 250 } as const;
+const popupTitle = { font: "800 13px system-ui,sans-serif" } as const;
+
+function DirectionsLink({ lat, lng }: { lat: number; lng: number }) {
+  return (
+    <a
+      href={directionsUrl(lat, lng)}
+      target="_blank"
+      rel="noreferrer"
+      style={{ display: "inline-block", marginTop: 6, font: "800 12px system-ui,sans-serif", color: "#2f7fb8" }}
+    >
+      Cómo llegar →
+    </a>
+  );
 }
 
 const COLORS = { critical: "#B4392E", needs: "#D98A1F", clear: "#2E7D5B" } as const;
@@ -143,8 +169,8 @@ function NeedDots({ needs }: { needs: NeedView[] }) {
             </span>
           </Tooltip>
           <Popup>
-            <div style={{ font: "600 12px system-ui,sans-serif", maxWidth: 240 }}>
-              <div style={{ font: "800 13px system-ui,sans-serif" }}>
+            <div style={popupFont}>
+              <div style={popupTitle}>
                 {CATEGORY_LABEL[v.need.category]} · {v.need.district}
               </div>
               {v.need.notes ? (
@@ -153,6 +179,7 @@ function NeedDots({ needs }: { needs: NeedView[] }) {
                 </div>
               ) : null}
               {v.org ? <div style={{ color: "#5B6660", marginTop: 4 }}>Fuente: {v.org.name}</div> : null}
+              <DirectionsLink lat={v.need.lat as number} lng={v.need.lng as number} />
             </div>
           </Popup>
         </CircleMarker>
@@ -161,19 +188,144 @@ function NeedDots({ needs }: { needs: NeedView[] }) {
   );
 }
 
-function SitePopup({ view }: { view: SiteView }) {
+// The sync composes site notes as " · "-separated segments where structured
+// parts carry a label ("Dirección: …", "Horario: …", "Tel: …") and the free
+// text describes what the point receives/offers. Split them back into labeled
+// lines so the popup answers the field questions (what do they take? where?
+// when? whom do I call?) without reading a wall of text.
+const NOTE_LABELS = ["Dirección", "Horario", "Tel"] as const;
+
+function splitSiteNotes(notes: string): { offers: string[]; labeled: Array<{ label: string; value: string }> } {
+  const offers: string[] = [];
+  const labeled: Array<{ label: string; value: string }> = [];
+  for (const raw of notes.split(" · ")) {
+    const seg = raw.trim();
+    if (!seg) continue;
+    const label = NOTE_LABELS.find((l) => seg.startsWith(`${l}:`));
+    if (label) labeled.push({ label, value: seg.slice(label.length + 1).trim() });
+    else if (seg !== "Sin verificar en el origen") offers.push(seg);
+  }
+  return { offers, labeled };
+}
+
+function SitePopup({ view, rollup }: { view: SiteView; rollup: Rollup | null }) {
   const { site, org } = view;
+  const { offers, labeled } = splitSiteNotes(site.notes);
+  const aviso = activeAnnouncement(site, new Date().toISOString());
   return (
-    <div style={{ font: "600 12px system-ui,sans-serif", maxWidth: 240 }}>
-      <div style={{ font: "800 13px system-ui,sans-serif" }}>{site.name}</div>
+    <div style={popupFont}>
+      <div style={popupTitle}>{site.name}</div>
       <div style={{ color: "#5B6660", marginTop: 2 }}>
         {SITE_CATEGORY_LABEL[site.category]} · {site.district}
       </div>
-      {site.category === "refugio" || site.bedsTotal > 0 ? (
-        <div style={{ marginTop: 4 }}>{site.bedsFree} / {site.bedsTotal} camas libres</div>
+      {aviso ? (
+        <div
+          style={{
+            marginTop: 6,
+            padding: "6px 8px",
+            borderRadius: 6,
+            background: "#FDF3D7",
+            color: "#7A5200",
+            font: "800 12px system-ui,sans-serif",
+            lineHeight: "16px",
+          }}
+        >
+          AVISO: {aviso}
+        </div>
       ) : null}
-      {site.notes ? <div style={{ marginTop: 4, lineHeight: "16px" }}>{site.notes}</div> : null}
-      {org ? <div style={{ color: "#5B6660", marginTop: 4 }}>Fuente: {org.name}</div> : null}
+      {site.category === "refugio" || site.bedsTotal > 0 ? (
+        <div style={{ marginTop: 6, fontWeight: 800 }}>
+          {site.bedsFree} / {site.bedsTotal} camas libres
+        </div>
+      ) : null}
+      {offers.length > 0 ? (
+        <div style={{ marginTop: 6, lineHeight: "16px" }}>
+          <span style={{ fontWeight: 800 }}>Ofrece: </span>
+          {offers.join(" · ")}
+        </div>
+      ) : null}
+      {labeled.map((l) => (
+        <div key={l.label} style={{ marginTop: 4, lineHeight: "16px" }}>
+          <span style={{ fontWeight: 800 }}>{l.label}: </span>
+          {l.value}
+        </div>
+      ))}
+      {rollup && rollup.needs > 0 ? (
+        <div style={{ marginTop: 6, color: "#8A2A1E", lineHeight: "16px" }}>
+          En este distrito: {rollup.needs} necesidades abiertas
+          {rollup.critical > 0 ? ` (${rollup.critical} críticas)` : ""}
+        </div>
+      ) : null}
+      {org ? <div style={{ color: "#5B6660", marginTop: 6 }}>Fuente: {org.name}</div> : null}
+      {site.lat !== null && site.lng !== null ? <DirectionsLink lat={site.lat} lng={site.lng} /> : null}
+    </div>
+  );
+}
+
+// District badge popup: a summary + explicit actions, instead of the old
+// behavior of instantly yanking the coordinator to the filtered list with no
+// explanation (human feedback 2026-07-03).
+function DistrictPopup({
+  rollup,
+  pos,
+  onShowList,
+}: {
+  rollup: Rollup;
+  pos: LatLng;
+  onShowList?: (district: string) => void;
+}) {
+  const map = useMap();
+  const top = [...rollup.byCategory.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+  const buttonStyle = {
+    font: "800 12px system-ui,sans-serif",
+    padding: "6px 10px",
+    borderRadius: 6,
+    border: "1px solid #c9d6d0",
+    background: "#fff",
+    color: "#17211e",
+    cursor: "pointer",
+  } as const;
+  return (
+    <div style={popupFont}>
+      <div style={popupTitle}>{rollup.district}</div>
+      <div style={{ marginTop: 4, lineHeight: "16px" }}>
+        <span style={{ fontWeight: 800, color: "#8A2A1E" }}>{rollup.needs}</span> necesidades abiertas
+        {rollup.critical > 0 ? (
+          <>
+            {" · "}
+            <span style={{ fontWeight: 800, color: "#B4392E" }}>{rollup.critical} críticas</span>
+          </>
+        ) : null}
+      </div>
+      {top.length > 0 ? (
+        <div style={{ marginTop: 2, color: "#5B6660", lineHeight: "16px" }}>
+          {top.map(([cat, n]) => `${CATEGORY_LABEL[cat]} ${n}`).join(" · ")}
+        </div>
+      ) : null}
+      <div style={{ marginTop: 2, color: "#5B6660" }}>
+        {rollup.sites} {rollup.sites === 1 ? "punto de ayuda activo" : "puntos de ayuda activos"}
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <button
+          type="button"
+          style={buttonStyle}
+          onClick={() => {
+            map.closePopup();
+            map.flyTo([pos.lat, pos.lng], Math.max(map.getZoom(), 14));
+          }}
+        >
+          Acercar
+        </button>
+        {onShowList ? (
+          <button
+            type="button"
+            style={{ ...buttonStyle, background: "#0e1713", color: "#fff", border: "1px solid #0e1713" }}
+            onClick={() => onShowList(rollup.district)}
+          >
+            Ver en lista
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -181,30 +333,44 @@ function SitePopup({ view }: { view: SiteView }) {
 export default function CoordinationMapLeaflet({
   board,
   activeDistrict,
-  onSelect,
+  onShowList,
   height = 440,
 }: {
   board: CoordinationView;
   activeDistrict: string | null;
-  onSelect: (district: string | null) => void;
+  /** "Ver en lista" action in the district popup — the console passes a
+   *  handler that filters the list; views without a list (ops map) omit it. */
+  onShowList?: (district: string) => void;
   /** Fixed panel height in the console; "100%" in the full-screen ops view. */
   height?: number | string;
 }) {
-  // District rollups are needs-only: sites draw their own pins now, and a
-  // district with sites but nothing needed shouldn't shout for attention.
+  // District rollups are needs-only for color/count: sites draw their own
+  // pins, and a district with sites but nothing needed shouldn't shout for
+  // attention. Site counts ride along for the district popup summary.
   const rollups = useMemo(() => {
     const m = new Map<string, Rollup>();
+    const districtRollup = (district: string): Rollup => {
+      let r = m.get(district);
+      if (!r) {
+        r = { district, needs: 0, critical: 0, byCategory: new Map(), sites: 0 };
+        m.set(district, r);
+      }
+      return r;
+    };
     for (const n of board.needs) {
       if (n.need.status !== "open") continue;
-      let r = m.get(n.need.district);
-      if (!r) {
-        r = { district: n.need.district, needs: 0, critical: 0 };
-        m.set(n.need.district, r);
-      }
+      const r = districtRollup(n.need.district);
       r.needs += 1;
       if (n.need.urgency === "critical") r.critical += 1;
+      r.byCategory.set(n.need.category, (r.byCategory.get(n.need.category) ?? 0) + 1);
     }
-    return [...m.values()];
+    for (const s of board.sites) {
+      if (s.site.status !== "active") continue;
+      // Only count sites into existing need districts or create a quiet entry
+      // for the popup lookup — badge rendering below filters to needs > 0.
+      districtRollup(s.site.district).sites += 1;
+    }
+    return m;
   }, [board]);
 
   const siteMarkers = useMemo(
@@ -223,7 +389,10 @@ export default function CoordinationMapLeaflet({
     [board],
   );
 
-  const markers = rollups.map((r, i) => ({ r, pos: centroidFor(r.district, i) }));
+  // Badges only for districts with open needs; site-only districts stay quiet.
+  const markers = [...rollups.values()]
+    .filter((r) => r.needs > 0)
+    .map((r, i) => ({ r, pos: centroidFor(r.district, i) }));
   // Frame the affected corridor: need districts plus corridor sites. Sites
   // elsewhere in the country must not drag the initial view out to all of
   // Venezuela — they stay reachable by zooming out.
@@ -256,10 +425,14 @@ export default function CoordinationMapLeaflet({
           icon={siteIcon(v.site.category)}
         >
           <Tooltip direction="top" offset={[0, -12]} opacity={1}>
-            <span style={{ fontWeight: 800 }}>{v.site.name}</span>
+            <span style={{ fontWeight: 800 }}>
+              {v.site.name}
+              {activeAnnouncement(v.site, new Date().toISOString()) ? " · AVISO" : ""}
+              {v.site.category === "refugio" ? ` · ${v.site.bedsFree}/${v.site.bedsTotal} camas` : ""}
+            </span>
           </Tooltip>
           <Popup>
-            <SitePopup view={v} />
+            <SitePopup view={v} rollup={rollups.get(v.site.district) ?? null} />
           </Popup>
         </Marker>
       ))}
@@ -269,7 +442,6 @@ export default function CoordinationMapLeaflet({
           position={[pos.lat, pos.lng]}
           icon={badgeIcon(r, activeDistrict === r.district)}
           zIndexOffset={1000}
-          eventHandlers={{ click: () => onSelect(activeDistrict === r.district ? null : r.district) }}
         >
           <Tooltip direction="top" offset={[0, -16]} opacity={1}>
             <span style={{ fontWeight: 800 }}>
@@ -278,6 +450,9 @@ export default function CoordinationMapLeaflet({
               {r.critical > 0 ? ` · ${r.critical} críticas` : ""}
             </span>
           </Tooltip>
+          <Popup>
+            <DistrictPopup rollup={r} pos={pos} onShowList={onShowList} />
+          </Popup>
         </Marker>
       ))}
       <MapController points={points} />

@@ -25,6 +25,7 @@ import {
   listOrgs,
   listSites,
   setNeedStatus,
+  updateSiteAnnouncement as repoUpdateSiteAnnouncement,
   updateSiteCapacity as repoUpdateSiteCapacity,
 } from "../repositories/coordination.ts";
 import { appendEvent } from "../repositories/events.ts";
@@ -40,6 +41,7 @@ import type {
   NeedCreateInput,
   NeedTransitionInput,
   OfferCreateInput,
+  SiteAnnouncementInput,
   SiteCreateInput,
   SiteUpdateInput,
 } from "../validation/coordination.ts";
@@ -91,6 +93,8 @@ export async function createSite(input: SiteCreateInput, by = "unattributed"): P
     notes: input.notes,
     sourceId: null,
     syncedAt: null,
+    announcement: "",
+    announcementUntil: null,
   };
   await transaction(async () => {
     await insertSite(site);
@@ -126,6 +130,33 @@ export async function updateSiteCapacity(input: SiteUpdateInput, by = "unattribu
     });
   });
   return { ...site, ...input, bedsFree, updatedAt: nowIso() };
+}
+
+/** Set or clear a site's broadcast ("hoy entregan comida 2-5pm"). Coordinator
+ *  capability today; becomes the site:<id> scope's job when HOS-2026-011
+ *  lands. An empty message clears. Audited like every other write. */
+export async function setSiteAnnouncement(
+  input: SiteAnnouncementInput,
+  by = "unattributed",
+): Promise<Site> {
+  const site = await getSite(input.siteId);
+  if (!site) throw notFound(`site ${input.siteId} not found`);
+  const org = await getOrg(site.orgId);
+  const message = input.message;
+  const until = message
+    ? new Date(Date.parse(nowIso()) + input.hoursValid * 3_600_000).toISOString()
+    : null;
+  await transaction(async () => {
+    await repoUpdateSiteAnnouncement(site.id, message, until);
+    await appendEvent({
+      entityType: "site",
+      entityId: site.id,
+      type: message ? "site.announcement_set" : "site.announcement_cleared",
+      actor: `org:${org?.name ?? site.orgId}`,
+      payload: { message, until, by },
+    });
+  });
+  return { ...site, announcement: message, announcementUntil: until, updatedAt: nowIso() };
 }
 
 // --- Needs ----------------------------------------------------------------

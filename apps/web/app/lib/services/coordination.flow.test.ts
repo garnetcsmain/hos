@@ -112,3 +112,35 @@ test("createNeed with an unknown org is rejected", async () => {
     }),
   );
 });
+
+test("site announcement: set, display window, clear — all audited", async () => {
+  const org = await seedOrg("Refugio G");
+  const site = await svc.createSite({
+    name: "Refugio G", orgId: org.id, district: "Macuto", category: "refugio", lat: null, lng: null,
+    bedsTotal: 20, bedsFree: 5, notes: "",
+  });
+
+  const withAviso = await svc.setSiteAnnouncement(
+    { siteId: site.id, message: "Hoy entregan comida 2-5pm", hoursValid: 6 },
+    "coordinator:test@hos",
+  );
+  assert.equal(withAviso.announcement, "Hoy entregan comida 2-5pm");
+  assert.ok(withAviso.announcementUntil, "expiry is set");
+
+  // Display rule: visible now, hidden after the expiry instant.
+  const { activeAnnouncement } = await import("../domain/coordination.ts");
+  assert.equal(activeAnnouncement(withAviso, new Date().toISOString()), "Hoy entregan comida 2-5pm");
+  const afterExpiry = new Date(Date.parse(withAviso.announcementUntil!) + 60_000).toISOString();
+  assert.equal(activeAnnouncement(withAviso, afterExpiry), null);
+
+  const cleared = await svc.setSiteAnnouncement({ siteId: site.id, message: "", hoursValid: 24 }, "coordinator:test@hos");
+  assert.equal(cleared.announcement, "");
+  assert.equal(cleared.announcementUntil, null);
+
+  const events = await eventsFor("site", site.id);
+  const types = events.map((e) => e.type);
+  assert.ok(types.includes("site.announcement_set"));
+  assert.ok(types.includes("site.announcement_cleared"));
+  const setEvent = events.find((e) => e.type === "site.announcement_set");
+  assert.equal((setEvent!.payload as { by?: string }).by, "coordinator:test@hos");
+});

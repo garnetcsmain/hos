@@ -440,9 +440,10 @@ export function CoordinationConsole() {
                 ) : null}
 
                 {district ? (
-                  <div>
+                  <div className="flex flex-wrap items-center gap-[8px]">
                     <span className="inline-flex items-center gap-[8px] rounded-full bg-[#EEF2EF] px-[12px] py-[6px] text-[12px] font-extrabold text-[var(--hos-text)]">
-                      Distrito: {district}
+                      Distrito: {district} · {visibleNeeds.length} nec. · {visibleSites.length}{" "}
+                      {visibleSites.length === 1 ? "sitio" : "sitios"}
                       <button
                         type="button"
                         onClick={() => {
@@ -453,6 +454,9 @@ export function CoordinationConsole() {
                       >
                         <X className="h-[13px] w-[13px]" strokeWidth={2.6} />
                       </button>
+                    </span>
+                    <span className="text-[11px] font-bold text-[var(--hos-muted)]">
+                      Filtrado desde el mapa · la X muestra todo de nuevo
                     </span>
                   </div>
                 ) : null}

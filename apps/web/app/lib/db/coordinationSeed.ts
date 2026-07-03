@@ -54,6 +54,8 @@ export async function seedCoordinationIfEmpty(): Promise<boolean> {
         notes: s.notes,
         sourceId: s.sourceId,
         syncedAt: s.updatedAt,
+        announcement: "",
+        announcementUntil: null,
       });
     }
 

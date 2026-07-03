@@ -49,6 +49,8 @@ export function mapSite(row: Row): Site {
     notes: str(row.notes),
     sourceId: strOrNull(row.source_id),
     syncedAt: strOrNull(row.synced_at),
+    announcement: str(row.announcement),
+    announcementUntil: strOrNull(row.announcement_until),
   };
 }
 

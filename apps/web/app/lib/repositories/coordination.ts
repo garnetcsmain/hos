@@ -45,8 +45,8 @@ export async function countOrgs(): Promise<number> {
 
 const insertSiteStmt = lazyStatement(
   `INSERT INTO sites
-     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes, source_id, synced_at)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes, source_id, synced_at, announcement, announcement_until)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 export async function insertSite(site: Site): Promise<void> {
@@ -66,6 +66,8 @@ export async function insertSite(site: Site): Promise<void> {
     site.notes,
     site.sourceId,
     site.syncedAt,
+    site.announcement,
+    site.announcementUntil,
   );
 }
 
@@ -88,6 +90,20 @@ export async function updateSiteCapacity(
   await db.prepare(
     `UPDATE sites SET beds_total = ?, beds_free = ?, status = ?, notes = ?, updated_at = ? WHERE id = ?`,
   ).run(fields.bedsTotal, fields.bedsFree, fields.status, fields.notes, nowIso(), id);
+}
+
+/** Set or clear (empty message) a site's broadcast. Bumps updated_at: an
+ *  announcement is a live signal from the site, so freshness reads honest —
+ *  and the bump marks the row locally-modified, which protects it from the
+ *  nightly source sync (local edits win). */
+export async function updateSiteAnnouncement(
+  id: string,
+  announcement: string,
+  announcementUntil: string | null,
+): Promise<void> {
+  await db.prepare(
+    `UPDATE sites SET announcement = ?, announcement_until = ?, updated_at = ? WHERE id = ?`,
+  ).run(announcement, announcementUntil, nowIso(), id);
 }
 
 // --- Needs ----------------------------------------------------------------
