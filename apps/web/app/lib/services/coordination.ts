@@ -33,6 +33,7 @@ import { transaction } from "../db/client.ts";
 import { newNeedId, newOfferId, newOrgId, newSiteId } from "../domain/ids.ts";
 import { nowIso } from "../domain/time.ts";
 import { badRequest, notFound } from "../errors.ts";
+import { approxKm } from "../coordination/classify.ts";
 import { freshnessOf } from "../coordination/freshness.ts";
 import { rankOffersForNeed } from "../coordination/match.ts";
 import type { Need, Offer, Org, OrgKind, Site } from "@/app/lib/domain/coordination";
@@ -74,8 +75,30 @@ export async function createOrg(
 
 // --- Sites ----------------------------------------------------------------
 
+/** Two records for the same physical point (within this distance) are a
+ *  duplicate — unless they serve different districts, which legitimately means
+ *  more than one group is covering the zone (human rule, 2026-07-03). */
+const DUPLICATE_SITE_KM = 0.1;
+
+async function assertNotDuplicateLocation(input: SiteCreateInput): Promise<void> {
+  if (input.lat === null || input.lng === null) return;
+  const pin = { lat: input.lat, lng: input.lng };
+  for (const site of await listSites()) {
+    if (site.status !== "active" || site.lat === null || site.lng === null) continue;
+    if (approxKm(pin, { lat: site.lat, lng: site.lng }) > DUPLICATE_SITE_KM) continue;
+    if (site.district !== input.district) continue; // different support area: allowed
+    const owner = (await getOrg(site.orgId))?.name ?? site.orgId;
+    throw badRequest(
+      `Ya existe un punto en esa ubicación: "${site.name}" (${owner}). ` +
+        `Si es el mismo punto, coordine con ellos en vez de duplicarlo; ` +
+        `si su grupo atiende otra zona desde aquí, elija ese otro distrito.`,
+    );
+  }
+}
+
 export async function createSite(input: SiteCreateInput, by = "unattributed"): Promise<Site> {
   const org = await requireOrg(input.orgId);
+  await assertNotDuplicateLocation(input);
   const now = nowIso();
   const site: Site = {
     id: newSiteId(),

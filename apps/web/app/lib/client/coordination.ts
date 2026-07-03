@@ -4,7 +4,7 @@
 
 import { coordinatorHeaders, request } from "./api.ts";
 import type { CoordinationView } from "@/app/lib/domain/coordinationViews";
-import type { NeedCategory, Org, OrgKind, Urgency } from "@/app/lib/domain/coordination";
+import type { NeedCategory, Org, OrgKind, SiteCategory, Urgency } from "@/app/lib/domain/coordination";
 
 const write = <T>(path: string, body: unknown, method = "POST") =>
   request<T>(path, {
@@ -22,7 +22,10 @@ export const createOrg = (payload: { name: string; kind: OrgKind }) =>
 export const createSite = (payload: {
   name: string;
   orgId: string;
+  category?: SiteCategory;
   district: string;
+  lat?: number | null;
+  lng?: number | null;
   bedsTotal: number;
   bedsFree: number;
   notes?: string;

@@ -71,3 +71,29 @@ directamente en HOS nunca es sobrescrito por la sincronización. La marca
 - No despacha voluntarios ni asigna tareas (decisión pendiente de la mesa).
 - No recibe reportes del público directamente (la compuerta de ingreso con
   clasificación automática está diseñada pero cerrada hasta que se apruebe).
+
+## 7. Casos de protección: niños solos, violencia, abusos — LEA ESTO
+
+Estos casos existen en toda emergencia y este panel NO es el lugar para sus
+detalles. Regla general: **refiera a especialistas; escriba lo mínimo.**
+
+1. **Niño/a solo/a (no acompañado):** manténgalo con un adulto de confianza
+   identificado y registre el caso por el flujo de reunificación (reporte de
+   persona encontrada), que ya existe y protege esos datos. NUNCA publique la
+   ubicación de un menor solo en el tablero de necesidades ni en un aviso.
+2. **Violencia sexual:** NO escriba nombres, detalles ni relatos en HOS — ni
+   en notas, ni en avisos. Su papel es conectar a la persona (si ella lo
+   quiere) con servicios especializados de salud y apoyo. La confidencialidad
+   y el consentimiento de la sobreviviente mandan.
+3. **Abuso policial o de autoridades:** NO lo registre en HOS. Este sistema
+   corre en infraestructura que puede ser exigida legalmente; un registro
+   aquí puede convertirse en una lista de denunciantes. Refiéralo a una
+   organización de derechos humanos que documente con protocolos seguros.
+4. **En ningún caso** escriba nombres de víctimas o presuntos agresores en
+   las notas de una necesidad, un sitio o un aviso.
+
+¿Por qué tan estricto? Los datos de protección son los más peligrosos que un
+sistema puede guardar: mal manejados, dañan exactamente a quienes queremos
+proteger. Hay una propuesta formal en revisión (HOS-2026-015) para definir
+qué puede registrar HOS de forma segura; hasta que se apruebe, aplica esta
+guía.

@@ -144,3 +144,35 @@ test("site announcement: set, display window, clear — all audited", async () =
   const setEvent = events.find((e) => e.type === "site.announcement_set");
   assert.equal((setEvent!.payload as { by?: string }).by, "coordinator:test@hos");
 });
+
+test("duplicate-location guard: same spot + same district rejected; different district allowed", async () => {
+  const orgA = await seedOrg("Org A");
+  const orgB = await seedOrg("Org B");
+  await svc.createSite({
+    name: "Acopio Plaza", orgId: orgA.id, district: "Catia", category: "acopio",
+    lat: 10.5160, lng: -66.9500, bedsTotal: 0, bedsFree: 0, notes: "",
+  });
+
+  // ~40m away, same district, different org -> duplicate of the same point.
+  await assert.rejects(
+    svc.createSite({
+      name: "Acopio Plaza Bis", orgId: orgB.id, district: "Catia", category: "acopio",
+      lat: 10.51635, lng: -66.9500, bedsTotal: 0, bedsFree: 0, notes: "",
+    }),
+    /Ya existe un punto en esa ubicación/,
+  );
+
+  // Same spot but declared for a DIFFERENT support area -> two groups covering
+  // the zone, allowed by design.
+  const other = await svc.createSite({
+    name: "Acopio Plaza — apoyo La Guaira", orgId: orgB.id, district: "La Guaira", category: "acopio",
+    lat: 10.51635, lng: -66.9500, bedsTotal: 0, bedsFree: 0, notes: "",
+  });
+  assert.equal(other.district, "La Guaira");
+
+  // Far away is never a duplicate.
+  await svc.createSite({
+    name: "Acopio Lejano", orgId: orgB.id, district: "Catia", category: "acopio",
+    lat: 10.5300, lng: -66.9500, bedsTotal: 0, bedsFree: 0, notes: "",
+  });
+});

@@ -21,6 +21,14 @@ export type OrgKind =
   | "ngo"
   | "government"
   | "hospital"
+  // Expanded 2026-07-03 (human direction: "una lista más grande") — the real
+  // actors showing up in the field data: churches run acopios, neighborhood
+  // groups run zones, companies donate logistics.
+  | "church"
+  | "community"
+  | "volunteers"
+  | "school"
+  | "business"
   | "other";
 
 /** A participating organization — the accountable actor behind every site,

@@ -57,6 +57,50 @@ export const DISTRICT_CENTROIDS: Record<string, LatLng> = {
   "Caracas Este": { lat: 10.492, lng: -66.835 },
 };
 
+// Curated district choices for forms (human direction 2026-07-03: "Distrito
+// should become a list"). Ordered for a coordinator scanning it: coast west to
+// east, then Caracas, then metro Miranda, then the coarse fallbacks. Excludes
+// the alias spellings above ("Maiquetia") — those exist only so imported text
+// still matches.
+export const DISTRICT_OPTIONS: readonly string[] = [
+  // La Guaira coast
+  "Carayaca",
+  "Catia La Mar",
+  "Maiquetía",
+  "La Guaira",
+  "Macuto",
+  "Caraballeda",
+  "Naiguatá",
+  // Caracas — Libertador
+  "Catia",
+  "23 de Enero",
+  "El Junquito",
+  "Antímano",
+  "Caricuao",
+  "La Vega",
+  "El Paraíso",
+  "El Valle",
+  "Coche",
+  "Caracas Centro",
+  "Sabana Grande",
+  // Caracas — metro Miranda
+  "Chacao",
+  "Baruta",
+  "El Hatillo",
+  "Petare",
+  "La Dolorita",
+  "Caucagüita",
+  "Guarenas",
+  "Guatire",
+  "Los Teques",
+  "San Antonio de los Altos",
+  "Charallave",
+  "Santa Teresa del Tuy",
+  // Coarse fallbacks
+  "Caracas",
+  "Otra región",
+];
+
 // Where to frame the map when there are no known districts to fit to.
 export const REGION_CENTER: LatLng = { lat: 10.53, lng: -66.93 };
 export const REGION_ZOOM = 11;

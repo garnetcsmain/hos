@@ -2,7 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Boxes, HelpCircle, List, Map as MapIcon, Plus, RefreshCw, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Boxes,
+  Building2,
+  HelpCircle,
+  List,
+  Map as MapIcon,
+  MapPin,
+  Package,
+  Plus,
+  RefreshCw,
+  Siren,
+  X,
+} from "lucide-react";
 import { AppShell } from "@/app/components/HosDashboard";
 import { Term } from "@/app/components/Term";
 import { CoordinationMap } from "@/app/components/CoordinationMap";
@@ -119,13 +132,57 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
+// The four record types a coordinator can create. "Nuevo registro" opens a
+// focused flow (human feedback 2026-07-03): first pick WHAT to register, then
+// see only that form — filters, lists and map get out of the way.
+type CreateKind = "need" | "offer" | "site" | "org";
+
+const CREATE_OPTIONS: Array<{
+  kind: CreateKind;
+  title: string;
+  description: string;
+  icon: typeof Siren;
+  accent: string;
+}> = [
+  {
+    kind: "need",
+    title: "Publicar necesidad",
+    description: "Algo que falta: rescate, agua, comida, medicinas…",
+    icon: Siren,
+    accent: "text-[var(--hos-red)]",
+  },
+  {
+    kind: "offer",
+    title: "Publicar suministro",
+    description: "Algo que su organización puede aportar.",
+    icon: Package,
+    accent: "text-[var(--hos-green)]",
+  },
+  {
+    kind: "site",
+    title: "Agregar sitio",
+    description: "Un punto físico: acopio, refugio, atención médica…",
+    icon: MapPin,
+    accent: "text-[var(--hos-blue)]",
+  },
+  {
+    kind: "org",
+    title: "Registrar organización",
+    description: "El grupo responsable detrás de sitios y suministros.",
+    icon: Building2,
+    accent: "text-[var(--hos-text)]",
+  },
+];
+
 export function CoordinationConsole() {
   const router = useRouter();
   const [board, setBoard] = useState<CoordinationView | null>(null);
   const [error, setError] = useState("");
   const [denied, setDenied] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  const [creating, setCreating] = useState(false);
+  // null = board; "menu" = pick a record type; a CreateKind = that form only.
+  const [createKind, setCreateKind] = useState<"menu" | CreateKind | null>(null);
+  const creating = createKind !== null;
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [nowTick, setNowTick] = useState(() => Date.now());
@@ -254,8 +311,24 @@ export function CoordinationConsole() {
 
   const openCreate = () => {
     setView("list");
-    setCreating((v) => !v);
+    setCreateKind((k) => (k ? null : "menu"));
   };
+
+  // After a successful create, return to the board so the new record is
+  // immediately visible in context.
+  const onCreated = () => {
+    reload();
+    setCreateKind(null);
+  };
+
+  const activeSites = useMemo(
+    () =>
+      (board?.sites ?? [])
+        .filter((v) => v.site.status === "active")
+        .map((v) => v.site)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [board],
+  );
 
   return (
     <AppShell
@@ -291,28 +364,37 @@ export function CoordinationConsole() {
           </div>
         ) : board ? (
           <>
-            <section className="flex items-start gap-[12px] rounded-[8px] border border-[var(--hos-border)] bg-white p-[14px]">
-              <span className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full bg-[#EEF6F2]">
-                <Boxes className="h-5 w-5 text-[var(--hos-green)]" strokeWidth={2.2} />
-              </span>
-              <p className="text-[12px] font-bold leading-[17px] text-[var(--hos-muted)]">
-                Solo coordinadores · no es pública. Ubicaciones por <Term k="distrito">distrito</Term>. Un suministro
-                se marca <span className="font-extrabold"><Term k="recibido">recibido</Term></span> solo cuando el sitio
-                lo confirma, nunca automático. Las sugerencias son solo una guía: decide una persona.
-              </p>
-            </section>
+            {!creating ? (
+              <>
+                <section className="flex items-start gap-[12px] rounded-[8px] border border-[var(--hos-border)] bg-white p-[14px]">
+                  <span className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full bg-[#EEF6F2]">
+                    <Boxes className="h-5 w-5 text-[var(--hos-green)]" strokeWidth={2.2} />
+                  </span>
+                  <p className="text-[12px] font-bold leading-[17px] text-[var(--hos-muted)]">
+                    Solo coordinadores · no es pública. Ubicaciones por <Term k="distrito">distrito</Term>. Un suministro
+                    se marca <span className="font-extrabold"><Term k="recibido">recibido</Term></span> solo cuando el sitio
+                    lo confirma, nunca automático. Las sugerencias son solo una guía: decide una persona.
+                  </p>
+                </section>
 
-            <div data-tour="metrics" className="grid grid-cols-4 gap-[12px] max-[760px]:grid-cols-2">
-              <Metric value={metrics.open} label="necesidades abiertas" color="text-[var(--hos-warn)]" />
-              <Metric value={metrics.critical} label="críticas" color="text-[var(--hos-red)]" />
-              <Metric value={metrics.beds} label="camas libres" color="text-[var(--hos-green)]" />
-              <Metric value={metrics.sites} label="sitios" color="text-[var(--hos-blue)]" />
-            </div>
+                <div data-tour="metrics" className="grid grid-cols-4 gap-[12px] max-[760px]:grid-cols-2">
+                  <Metric value={metrics.open} label="necesidades abiertas" color="text-[var(--hos-warn)]" />
+                  <Metric value={metrics.critical} label="críticas" color="text-[var(--hos-red)]" />
+                  <Metric value={metrics.beds} label="camas libres" color="text-[var(--hos-green)]" />
+                  <Metric value={metrics.sites} label="sitios" color="text-[var(--hos-blue)]" />
+                </div>
+              </>
+            ) : null}
 
             <div className="flex items-center justify-between gap-[12px] max-[620px]:flex-col max-[620px]:items-stretch">
               <div className="flex items-center gap-[14px]">
-                <h2 className="text-[16px] font-extrabold text-[var(--hos-text)]">Panel de coordinación</h2>
-                <div data-tour="view-toggle" className="flex items-center gap-[2px] rounded-[8px] border border-[var(--hos-border)] bg-white p-[3px]">
+                <h2 className="text-[16px] font-extrabold text-[var(--hos-text)]">
+                  {creating ? "Nuevo registro" : "Panel de coordinación"}
+                </h2>
+                <div
+                  data-tour="view-toggle"
+                  className={`flex items-center gap-[2px] rounded-[8px] border border-[var(--hos-border)] bg-white p-[3px] ${creating ? "hidden" : ""}`}
+                >
                   <button
                     type="button"
                     onClick={() => setView("list")}
@@ -333,7 +415,7 @@ export function CoordinationConsole() {
                 <button
                   type="button"
                   onClick={openHelp}
-                  className="inline-flex h-[30px] items-center gap-[5px] rounded-[6px] px-[8px] text-[12px] font-extrabold text-[var(--hos-muted)] transition hover:text-[var(--hos-text)]"
+                  className={`inline-flex h-[30px] items-center gap-[5px] rounded-[6px] px-[8px] text-[12px] font-extrabold text-[var(--hos-muted)] transition hover:text-[var(--hos-text)] ${creating ? "hidden" : ""}`}
                 >
                   <HelpCircle className="h-[15px] w-[15px]" strokeWidth={2.2} />
                   <span className="max-[620px]:hidden">¿Cómo funciona?</span>
@@ -369,7 +451,7 @@ export function CoordinationConsole() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-[8px]">
+            <div className={`flex flex-col gap-[8px] ${creating ? "hidden" : ""}`}>
               <div className="flex flex-wrap items-center gap-[6px]">
                 <span className="w-[110px] shrink-0 text-[11px] font-extrabold uppercase tracking-wide text-[var(--hos-red)]">
                   Necesidades
@@ -418,7 +500,70 @@ export function CoordinationConsole() {
               </div>
             </div>
 
-            {view === "map" && filteredBoard ? (
+            {creating ? (
+              // Focused create flow: the rest of the board steps aside so the
+              // coordinator only sees the record being created.
+              <section className="mx-auto w-full max-w-[760px]">
+                {createKind === "menu" ? (
+                  <>
+                    <h3 className="text-[15px] font-extrabold text-[var(--hos-text)]">¿Qué quiere registrar?</h3>
+                    <div className="mt-[12px] grid grid-cols-2 gap-[12px] max-[640px]:grid-cols-1">
+                      {CREATE_OPTIONS.map((o) => {
+                        const Icon = o.icon;
+                        return (
+                          <button
+                            key={o.kind}
+                            type="button"
+                            onClick={() => setCreateKind(o.kind)}
+                            className="flex items-start gap-[12px] rounded-[8px] border border-[var(--hos-border)] bg-white p-[16px] text-left transition hover:border-[var(--hos-dark)]"
+                          >
+                            <Icon className={`mt-[2px] h-[22px] w-[22px] shrink-0 ${o.accent}`} strokeWidth={2.2} />
+                            <span>
+                              <span className="block text-[14px] font-extrabold text-[var(--hos-text)]">{o.title}</span>
+                              <span className="mt-[2px] block text-[12px] font-bold leading-[16px] text-[var(--hos-muted)]">
+                                {o.description}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  (() => {
+                    const opt = CREATE_OPTIONS.find((o) => o.kind === createKind);
+                    if (!opt) return null;
+                    const Icon = opt.icon;
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setCreateKind("menu")}
+                          className="inline-flex items-center gap-[6px] text-[12px] font-extrabold text-[var(--hos-muted)] hover:text-[var(--hos-text)]"
+                        >
+                          <ArrowLeft className="h-[13px] w-[13px]" strokeWidth={2.6} /> Elegir otro tipo
+                        </button>
+                        <div className="mt-[10px] rounded-[8px] border border-[var(--hos-border)] bg-white p-[16px]">
+                          <div className="mb-[12px] flex items-center gap-[10px]">
+                            <Icon className={`h-[20px] w-[20px] ${opt.accent}`} strokeWidth={2.2} />
+                            <span className="text-[15px] font-extrabold text-[var(--hos-text)]">{opt.title}</span>
+                          </div>
+                          {createKind === "need" ? (
+                            <PostNeedForm orgs={orgs} sites={activeSites} onChanged={onCreated} />
+                          ) : createKind === "offer" ? (
+                            <PostOfferForm orgs={orgs} onChanged={onCreated} />
+                          ) : createKind === "site" ? (
+                            <AddSiteForm orgs={orgs} onChanged={onCreated} />
+                          ) : (
+                            <AddOrgForm onChanged={onCreated} />
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()
+                )}
+              </section>
+            ) : view === "map" && filteredBoard ? (
               <CoordinationMap
                 board={filteredBoard}
                 activeDistrict={district}
@@ -430,14 +575,6 @@ export function CoordinationConsole() {
               />
             ) : (
               <>
-                {creating ? (
-                  <div className="grid grid-cols-2 gap-[12px] max-[900px]:grid-cols-1">
-                    <Panel title="Publicar necesidad"><PostNeedForm orgs={orgs} onChanged={reload} /></Panel>
-                    <Panel title="Publicar suministro"><PostOfferForm orgs={orgs} onChanged={reload} /></Panel>
-                    <Panel title="Agregar sitio"><AddSiteForm orgs={orgs} onChanged={reload} /></Panel>
-                    <Panel title="Registrar organización"><AddOrgForm onChanged={reload} /></Panel>
-                  </div>
-                ) : null}
 
                 {district ? (
                   <div className="flex flex-wrap items-center gap-[8px]">

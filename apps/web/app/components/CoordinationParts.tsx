@@ -1,7 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { BedDouble, Check, Clock, Megaphone, Truck, X } from "lucide-react";
+import dynamic from "next/dynamic";
+import {
+  Baby,
+  BedDouble,
+  Check,
+  Clock,
+  Droplets,
+  HelpCircle,
+  Home,
+  Megaphone,
+  Search,
+  Shirt,
+  Siren,
+  Sparkles,
+  Stethoscope,
+  Truck,
+  UtensilsCrossed,
+  X,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Term } from "@/app/components/Term";
 import {
   createNeed,
@@ -12,10 +31,23 @@ import {
   transitionNeed,
   updateSiteCapacity,
 } from "@/app/lib/client/coordination";
+import { searchAddress, type GeocodeHit } from "@/app/lib/client/geocode";
+import { districtFromText, nearestDistrict } from "@/app/lib/coordination/classify";
+import { DISTRICT_OPTIONS, type LatLng } from "@/app/lib/geo/districts";
 import type { Freshness } from "@/app/lib/coordination/freshness";
 import { activeAnnouncement } from "@/app/lib/domain/coordination";
-import type { NeedCategory, Org, OrgKind, SiteCategory, Urgency } from "@/app/lib/domain/coordination";
+import type { NeedCategory, Org, OrgKind, Site, SiteCategory, Urgency } from "@/app/lib/domain/coordination";
 import type { NeedView, OfferView, SiteView } from "@/app/lib/domain/coordinationViews";
+
+// Pin-picker map is Leaflet (SSR-unsafe) — loaded only when the site form opens.
+const SitePinMap = dynamic(() => import("@/app/components/SitePinMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[220px] items-center justify-center rounded-[6px] bg-[#EEF2EF] text-[12px] font-bold text-[var(--hos-muted)]">
+      Cargando mapa…
+    </div>
+  ),
+});
 
 export const CATEGORY_LABEL: Record<NeedCategory, string> = {
   rescue: "Rescate",
@@ -75,15 +107,46 @@ const NEED_STATUS: Record<string, { label: string; className: string }> = {
 
 const CATEGORIES = Object.keys(CATEGORY_LABEL) as NeedCategory[];
 const URGENCIES: Urgency[] = ["low", "normal", "high", "critical"];
-const ORG_KINDS: OrgKind[] = ["shelter", "responder", "ngo", "government", "hospital", "other"];
+const ORG_KINDS: OrgKind[] = [
+  "shelter",
+  "responder",
+  "ngo",
+  "church",
+  "community",
+  "volunteers",
+  "government",
+  "hospital",
+  "school",
+  "business",
+  "other",
+];
 
 const ORG_KIND_LABEL: Record<OrgKind, string> = {
   shelter: "Refugio",
   responder: "Equipo de rescate",
   ngo: "ONG",
+  church: "Iglesia / comunidad de fe",
+  community: "Grupo comunitario / vecinal",
+  volunteers: "Grupo de voluntarios",
   government: "Gobierno",
-  hospital: "Hospital",
+  hospital: "Hospital / clínica",
+  school: "Escuela / universidad",
+  business: "Empresa privada",
   other: "Otro",
+};
+
+// One icon per need category so the pickers read at a glance (human feedback
+// 2026-07-03: "add some icon so it is easier to recognize").
+export const CATEGORY_ICON: Record<NeedCategory, LucideIcon> = {
+  rescue: Siren,
+  water: Droplets,
+  food: UtensilsCrossed,
+  formula: Baby,
+  medical: Stethoscope,
+  shelter: Home,
+  hygiene: Sparkles,
+  clothing: Shirt,
+  other: HelpCircle,
 };
 
 const fieldBase =
@@ -466,39 +529,202 @@ function useSubmit(onChanged: () => void) {
   return { busy, error, run };
 }
 
-export function PostNeedForm({ orgs, onChanged }: { orgs: Org[]; onChanged: () => void }) {
+/** Labeled field — every form input gets a visible label (human feedback
+ *  2026-07-03: bare "0 0" inputs were unreadable). */
+function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <label className={`block text-[11px] font-extrabold text-[var(--hos-muted)] ${className}`}>
+      {label}
+      <div className="mt-[4px] font-normal">{children}</div>
+    </label>
+  );
+}
+
+function DistrictSelect({ value, onChange }: { value: string; onChange: (d: string) => void }) {
+  return (
+    <select className={fieldBase} value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="" disabled>
+        Elija el distrito…
+      </option>
+      {DISTRICT_OPTIONS.map((d) => (
+        <option key={d} value={d}>
+          {d}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/** Icon-grid category picker — recognition over recall. */
+function CategoryPicker({ value, onChange }: { value: NeedCategory; onChange: (c: NeedCategory) => void }) {
+  return (
+    <div className="grid grid-cols-3 gap-[6px] max-[520px]:grid-cols-2">
+      {CATEGORIES.map((c) => {
+        const Icon = CATEGORY_ICON[c];
+        const active = value === c;
+        return (
+          <button
+            key={c}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(c)}
+            className={`flex h-[38px] items-center gap-[7px] rounded-[6px] border px-[10px] text-[12px] font-extrabold transition ${
+              active
+                ? "border-[var(--hos-dark)] bg-[var(--hos-dark)] text-white"
+                : "border-[var(--hos-border)] bg-white text-[var(--hos-muted)] hover:text-[var(--hos-text)]"
+            }`}
+          >
+            <Icon className="h-[15px] w-[15px] shrink-0" strokeWidth={2.4} />
+            {CATEGORY_LABEL[c]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const SITE_CATEGORIES: SiteCategory[] = ["acopio", "refugio", "medico", "internet", "mascotas", "otro"];
+
+function SiteCategoryPicker({ value, onChange }: { value: SiteCategory; onChange: (c: SiteCategory) => void }) {
+  return (
+    <div className="grid grid-cols-3 gap-[6px] max-[520px]:grid-cols-2">
+      {SITE_CATEGORIES.map((c) => {
+        const active = value === c;
+        return (
+          <button
+            key={c}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(c)}
+            className={`flex h-[38px] items-center gap-[7px] rounded-[6px] border px-[10px] text-[12px] font-extrabold transition ${
+              active
+                ? "border-[var(--hos-dark)] bg-[var(--hos-dark)] text-white"
+                : "border-[var(--hos-border)] bg-white text-[var(--hos-muted)] hover:text-[var(--hos-text)]"
+            }`}
+          >
+            <span
+              className="flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[4px] text-[10px] font-extrabold text-white"
+              style={{ background: SITE_PIN[c].color }}
+            >
+              {SITE_PIN[c].glyph}
+            </span>
+            {SITE_CATEGORY_LABEL[c]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** When only the caracasayuda community org exists, a coordinator publishing
+ *  "as" it is usually a mistake — nudge them to register the real org first. */
+function OrgSelectHint({ orgs }: { orgs: Org[] }) {
+  if (orgs.length > 1) return null;
+  return (
+    <p className="mt-[4px] text-[11px] font-bold text-[var(--hos-muted)]">
+      ¿Publica en nombre de una organización? Regístrela primero con &quot;Registrar organización&quot;.
+    </p>
+  );
+}
+
+export function PostNeedForm({
+  orgs,
+  sites = [],
+  onChanged,
+}: {
+  orgs: Org[];
+  /** Active sites, so a need can point at a concrete place (human feedback
+   *  2026-07-03: "specific to a site so people know where to go"). */
+  sites?: Site[];
+  onChanged: () => void;
+}) {
   const [orgId, setOrgId] = useState(orgs[0]?.id ?? "");
   const [district, setDistrict] = useState("");
+  const [siteId, setSiteId] = useState("");
   const [category, setCategory] = useState<NeedCategory>("water");
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState("");
   const [urgency, setUrgency] = useState<Urgency>("normal");
+  const [notes, setNotes] = useState("");
   const { busy, error, run } = useSubmit(onChanged);
+
+  const siteOptions = district ? sites.filter((s) => s.district === district) : sites;
 
   return (
     <form
-      className="grid grid-cols-2 gap-[8px] max-[640px]:grid-cols-1"
+      className="flex flex-col gap-[10px]"
       onSubmit={(e) => {
         e.preventDefault();
         void run(
-          () => createNeed({ orgId, district, category, quantity: Number(quantity) || 1, unit, urgency }),
-          () => { setDistrict(""); setQuantity("1"); setUnit(""); },
+          () =>
+            createNeed({
+              orgId,
+              siteId: siteId || undefined,
+              district,
+              category,
+              quantity: Number(quantity) || 1,
+              unit,
+              urgency,
+              notes,
+            }),
+          () => { setDistrict(""); setSiteId(""); setQuantity("1"); setUnit(""); setNotes(""); },
         );
       }}
     >
-      <select className={fieldBase} value={orgId} onChange={(e) => setOrgId(e.target.value)}>
-        {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-      </select>
-      <input className={fieldBase} placeholder="Distrito" value={district} onChange={(e) => setDistrict(e.target.value)} />
-      <select className={fieldBase} value={category} onChange={(e) => setCategory(e.target.value as NeedCategory)}>
-        {CATEGORIES.map((c) => <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>)}
-      </select>
-      <select className={fieldBase} value={urgency} onChange={(e) => setUrgency(e.target.value as Urgency)}>
-        {URGENCIES.map((u) => <option key={u} value={u}>{URGENCY[u].label}</option>)}
-      </select>
-      <input type="number" min={1} className={fieldBase} placeholder="Cantidad" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-      <input className={fieldBase} placeholder="Unidad (L, latas…)" value={unit} onChange={(e) => setUnit(e.target.value)} />
-      <div className="col-span-2 flex items-center gap-[10px] max-[640px]:col-span-1">
+      <Field label="¿Qué se necesita?">
+        <CategoryPicker value={category} onChange={setCategory} />
+      </Field>
+      <div className="grid grid-cols-2 gap-[8px] max-[640px]:grid-cols-1">
+        <Field label="Organización que lo pide">
+          <select className={fieldBase} value={orgId} onChange={(e) => setOrgId(e.target.value)}>
+            {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+          </select>
+          <OrgSelectHint orgs={orgs} />
+        </Field>
+        <Field label="Urgencia">
+          <select className={fieldBase} value={urgency} onChange={(e) => setUrgency(e.target.value as Urgency)}>
+            {URGENCIES.map((u) => <option key={u} value={u}>{URGENCY[u].label}</option>)}
+          </select>
+        </Field>
+        <Field label="Distrito">
+          <DistrictSelect
+            value={district}
+            onChange={(d) => {
+              setDistrict(d);
+              setSiteId("");
+            }}
+          />
+        </Field>
+        <Field label="Sitio (opcional — para saber a dónde llegar)">
+          <select
+            className={fieldBase}
+            value={siteId}
+            onChange={(e) => {
+              const id = e.target.value;
+              setSiteId(id);
+              const site = sites.find((s) => s.id === id);
+              if (site) setDistrict(site.district);
+            }}
+          >
+            <option value="">Sin sitio específico</option>
+            {siteOptions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} — {s.district}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Cantidad">
+          <input type="number" min={1} className={fieldBase} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+        </Field>
+        <Field label="Unidad (L, latas…)">
+          <input className={fieldBase} value={unit} onChange={(e) => setUnit(e.target.value)} />
+        </Field>
+      </div>
+      <Field label="Detalle o punto de referencia (opcional)">
+        <input className={fieldBase} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} />
+      </Field>
+      <div className="flex items-center gap-[10px]">
         <button type="submit" disabled={busy || !orgId || !district} className="h-[38px] rounded-[6px] bg-[var(--hos-red)] px-[16px] text-[13px] font-extrabold text-white disabled:opacity-60">
           Publicar necesidad
         </button>
@@ -518,7 +744,7 @@ export function PostOfferForm({ orgs, onChanged }: { orgs: Org[]; onChanged: () 
 
   return (
     <form
-      className="grid grid-cols-2 gap-[8px] max-[640px]:grid-cols-1"
+      className="flex flex-col gap-[10px]"
       onSubmit={(e) => {
         e.preventDefault();
         void run(
@@ -527,15 +753,26 @@ export function PostOfferForm({ orgs, onChanged }: { orgs: Org[]; onChanged: () 
         );
       }}
     >
-      <select className={fieldBase} value={orgId} onChange={(e) => setOrgId(e.target.value)}>
-        {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-      </select>
-      <input className={fieldBase} placeholder="Distrito" value={district} onChange={(e) => setDistrict(e.target.value)} />
-      <select className={fieldBase} value={category} onChange={(e) => setCategory(e.target.value as NeedCategory)}>
-        {CATEGORIES.map((c) => <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>)}
-      </select>
-      <input type="number" min={1} className={fieldBase} placeholder="Cantidad" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
-      <input className={fieldBase} placeholder="Unidad" value={unit} onChange={(e) => setUnit(e.target.value)} />
+      <Field label="¿Qué se ofrece?">
+        <CategoryPicker value={category} onChange={setCategory} />
+      </Field>
+      <div className="grid grid-cols-2 gap-[8px] max-[640px]:grid-cols-1">
+        <Field label="Organización que lo ofrece">
+          <select className={fieldBase} value={orgId} onChange={(e) => setOrgId(e.target.value)}>
+            {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+          </select>
+          <OrgSelectHint orgs={orgs} />
+        </Field>
+        <Field label="Distrito donde está">
+          <DistrictSelect value={district} onChange={setDistrict} />
+        </Field>
+        <Field label="Cantidad">
+          <input type="number" min={1} className={fieldBase} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+        </Field>
+        <Field label="Unidad (L, latas…)">
+          <input className={fieldBase} value={unit} onChange={(e) => setUnit(e.target.value)} />
+        </Field>
+      </div>
       <div className="flex items-center gap-[10px]">
         <button type="submit" disabled={busy || !orgId || !district} className="h-[38px] rounded-[6px] bg-[var(--hos-green)] px-[16px] text-[13px] font-extrabold text-white disabled:opacity-60">
           Publicar suministro
@@ -546,35 +783,158 @@ export function PostOfferForm({ orgs, onChanged }: { orgs: Org[]; onChanged: () 
   );
 }
 
+/** If the pin sits near a known district centroid, pre-fill the district;
+ *  address text wins when it names one (same text-first rule as the sync). */
+function districtForPick(label: string, pos: LatLng): string {
+  const fromText = districtFromText(label);
+  if (fromText) return fromText;
+  const near = nearestDistrict(pos);
+  return near.km <= 12 ? near.district : "Otra región";
+}
+
 export function AddSiteForm({ orgs, onChanged }: { orgs: Org[]; onChanged: () => void }) {
   const [name, setName] = useState("");
   const [orgId, setOrgId] = useState(orgs[0]?.id ?? "");
+  const [category, setCategory] = useState<SiteCategory>("acopio");
   const [district, setDistrict] = useState("");
+  const [address, setAddress] = useState("");
+  const [hits, setHits] = useState<GeocodeHit[]>([]);
+  const [pos, setPos] = useState<LatLng | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const [bedsTotal, setBedsTotal] = useState("0");
   const [bedsFree, setBedsFree] = useState("0");
   const { busy, error, run } = useSubmit(onChanged);
 
+  async function search() {
+    if (!address.trim()) return;
+    setSearching(true);
+    setSearchError("");
+    try {
+      const results = await searchAddress(address.trim());
+      setHits(results);
+      if (results.length === 0) setSearchError("Sin resultados — puede fijar el punto directamente en el mapa.");
+    } catch (e) {
+      setSearchError(e instanceof Error ? e.message : "No se pudo buscar.");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function pick(hit: GeocodeHit) {
+    const p = { lat: hit.lat, lng: hit.lng };
+    setPos(p);
+    setHits([]);
+    setAddress(hit.label);
+    if (!district) setDistrict(districtForPick(hit.label, p));
+  }
+
   return (
     <form
-      className="grid grid-cols-2 gap-[8px] max-[640px]:grid-cols-1"
+      className="flex flex-col gap-[10px]"
       onSubmit={(e) => {
         e.preventDefault();
         void run(
-          () => createSite({ name, orgId, district, bedsTotal: Number(bedsTotal) || 0, bedsFree: Number(bedsFree) || 0 }),
-          () => { setName(""); setDistrict(""); setBedsTotal("0"); setBedsFree("0"); },
+          () =>
+            createSite({
+              name,
+              orgId,
+              category,
+              district,
+              lat: pos?.lat ?? null,
+              lng: pos?.lng ?? null,
+              bedsTotal: Number(bedsTotal) || 0,
+              bedsFree: Number(bedsFree) || 0,
+              notes: address.trim() ? `Dirección: ${address.trim()}` : "",
+            }),
+          () => {
+            setName(""); setDistrict(""); setAddress(""); setPos(null); setHits([]);
+            setBedsTotal("0"); setBedsFree("0");
+          },
         );
       }}
     >
-      <input className={fieldBase} placeholder="Nombre del sitio" value={name} onChange={(e) => setName(e.target.value)} />
-      <select className={fieldBase} value={orgId} onChange={(e) => setOrgId(e.target.value)}>
-        {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-      </select>
-      <input className={fieldBase} placeholder="Distrito" value={district} onChange={(e) => setDistrict(e.target.value)} />
-      <div className="grid grid-cols-2 gap-[8px]">
-        <input type="number" min={0} className={fieldBase} placeholder="Libres" value={bedsFree} onChange={(e) => setBedsFree(e.target.value)} />
-        <input type="number" min={0} className={fieldBase} placeholder="Totales" value={bedsTotal} onChange={(e) => setBedsTotal(e.target.value)} />
+      <Field label="Tipo de punto">
+        <SiteCategoryPicker value={category} onChange={setCategory} />
+      </Field>
+      <div className="grid grid-cols-2 gap-[8px] max-[640px]:grid-cols-1">
+        <Field label="Nombre del sitio">
+          <input className={fieldBase} value={name} onChange={(e) => setName(e.target.value)} />
+        </Field>
+        <Field label="Organización responsable">
+          <select className={fieldBase} value={orgId} onChange={(e) => setOrgId(e.target.value)}>
+            {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+          </select>
+          <OrgSelectHint orgs={orgs} />
+        </Field>
       </div>
-      <div className="col-span-2 flex items-center gap-[10px] max-[640px]:col-span-1">
+      <Field label="Dirección — busque y luego ajuste el punto en el mapa">
+        <div className="flex gap-[8px]">
+          <input
+            className={fieldBase}
+            placeholder="Av. / calle, sector, ciudad…"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void search();
+              }
+            }}
+          />
+          <button
+            type="button"
+            disabled={searching || !address.trim()}
+            onClick={() => void search()}
+            className="inline-flex h-[38px] shrink-0 items-center gap-[6px] rounded-[6px] border border-[var(--hos-border)] bg-white px-[12px] text-[12px] font-extrabold text-[var(--hos-text)] disabled:opacity-60"
+          >
+            <Search className="h-[14px] w-[14px]" strokeWidth={2.4} /> {searching ? "Buscando…" : "Buscar"}
+          </button>
+        </div>
+        {searchError ? <p className="mt-[4px] text-[11px] font-bold text-[var(--hos-warn)]">{searchError}</p> : null}
+        {hits.length > 0 ? (
+          <ul className="mt-[6px] flex flex-col gap-[4px]">
+            {hits.map((h) => (
+              <li key={`${h.lat},${h.lng}`}>
+                <button
+                  type="button"
+                  onClick={() => pick(h)}
+                  className="w-full rounded-[6px] border border-[var(--hos-border)] bg-white px-[10px] py-[7px] text-left text-[12px] font-bold text-[var(--hos-text)] hover:border-[var(--hos-dark)]"
+                >
+                  {h.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </Field>
+      <Field label={pos ? "Punto fijado — arrástrelo o toque el mapa para ajustarlo" : "Toque el mapa para fijar el punto exacto"}>
+        <div className="overflow-hidden rounded-[6px] border border-[var(--hos-border)]">
+          <SitePinMap
+            pos={pos}
+            onChange={(p) => {
+              setPos(p);
+              if (!district) setDistrict(districtForPick(address, p));
+            }}
+          />
+        </div>
+      </Field>
+      <div className="grid grid-cols-2 gap-[8px] max-[640px]:grid-cols-1">
+        <Field label="Distrito">
+          <DistrictSelect value={district} onChange={setDistrict} />
+        </Field>
+        {category === "refugio" ? (
+          <div className="grid grid-cols-2 gap-[8px]">
+            <Field label="Camas libres">
+              <input type="number" min={0} className={fieldBase} value={bedsFree} onChange={(e) => setBedsFree(e.target.value)} />
+            </Field>
+            <Field label="Camas totales">
+              <input type="number" min={0} className={fieldBase} value={bedsTotal} onChange={(e) => setBedsTotal(e.target.value)} />
+            </Field>
+          </div>
+        ) : null}
+      </div>
+      <div className="flex items-center gap-[10px]">
         <button type="submit" disabled={busy || !name || !orgId || !district} className="h-[38px] rounded-[6px] bg-[var(--hos-blue)] px-[16px] text-[13px] font-extrabold text-white disabled:opacity-60">
           Agregar sitio
         </button>
@@ -591,20 +951,28 @@ export function AddOrgForm({ onChanged }: { onChanged: () => void }) {
 
   return (
     <form
-      className="flex flex-wrap items-center gap-[8px]"
+      className="flex flex-col gap-[10px]"
       onSubmit={(e) => {
         e.preventDefault();
         void run(() => createOrg({ name, kind }), () => setName(""));
       }}
     >
-      <input className={`${fieldBase} w-auto`} placeholder="Nombre de la organización" value={name} onChange={(e) => setName(e.target.value)} />
-      <select className={`${fieldBase} w-auto`} value={kind} onChange={(e) => setKind(e.target.value as OrgKind)}>
-        {ORG_KINDS.map((k) => <option key={k} value={k}>{ORG_KIND_LABEL[k]}</option>)}
-      </select>
-      <button type="submit" disabled={busy || !name} className="h-[38px] rounded-[6px] border border-[var(--hos-border)] bg-white px-[14px] text-[13px] font-extrabold text-[var(--hos-text)] disabled:opacity-60">
-        Registrar organización
-      </button>
-      {error ? <span className="text-[12px] font-bold text-[var(--hos-red)]">{error}</span> : null}
+      <div className="grid grid-cols-2 gap-[8px] max-[640px]:grid-cols-1">
+        <Field label="Nombre de la organización">
+          <input className={fieldBase} value={name} onChange={(e) => setName(e.target.value)} />
+        </Field>
+        <Field label="Tipo">
+          <select className={fieldBase} value={kind} onChange={(e) => setKind(e.target.value as OrgKind)}>
+            {ORG_KINDS.map((k) => <option key={k} value={k}>{ORG_KIND_LABEL[k]}</option>)}
+          </select>
+        </Field>
+      </div>
+      <div className="flex items-center gap-[10px]">
+        <button type="submit" disabled={busy || !name} className="h-[38px] rounded-[6px] bg-[var(--hos-dark)] px-[16px] text-[13px] font-extrabold text-white disabled:opacity-60">
+          Registrar organización
+        </button>
+        {error ? <span className="text-[12px] font-bold text-[var(--hos-red)]">{error}</span> : null}
+      </div>
     </form>
   );
 }

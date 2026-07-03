@@ -139,6 +139,17 @@ export interface LocatedNeed {
   lng: number | null;
 }
 
+/** Closest known district centroid to a point, with its distance — used by
+ *  the sync's pin fallback and by the site form's address picker. */
+export function nearestDistrict(p: LatLng): { district: string; km: number } {
+  let best: { district: string; km: number } | null = null;
+  for (const [district, centroid] of Object.entries(DISTRICT_CENTROIDS)) {
+    const km = approxKm(p, centroid);
+    if (!best || km < best.km) best = { district, km };
+  }
+  return best as { district: string; km: number };
+}
+
 /** Resolve a need's location text-first:
  *  - text names a district → that district; keep the pin only if it agrees;
  *  - no district in text → fall back to the pin IF it is inside the affected
@@ -153,12 +164,8 @@ export function locateNeed(text: string, pin: LatLng | null): LocatedNeed | null
     return { district: fromText, lat: pinAgrees ? pin.lat : null, lng: pinAgrees ? pin.lng : null };
   }
   if (pin && inCorridor(pin)) {
-    let best: { district: string; km: number } | null = null;
-    for (const [district, centroid] of Object.entries(DISTRICT_CENTROIDS)) {
-      const km = approxKm(pin, centroid);
-      if (!best || km < best.km) best = { district, km };
-    }
-    if (best) return { district: best.district, lat: pin.lat, lng: pin.lng };
+    const best = nearestDistrict(pin);
+    return { district: best.district, lat: pin.lat, lng: pin.lng };
   }
   return null;
 }

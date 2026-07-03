@@ -34,7 +34,19 @@ const quantity = z.number().int().min(1).max(1_000_000).optional().transform((v)
 export const orgCreateSchema = z.object({
   name: z.string().trim().min(1, "org name is required").max(160),
   kind: z
-    .enum(["shelter", "responder", "ngo", "government", "hospital", "other"])
+    .enum([
+      "shelter",
+      "responder",
+      "ngo",
+      "government",
+      "hospital",
+      "church",
+      "community",
+      "volunteers",
+      "school",
+      "business",
+      "other",
+    ])
     .default("other"),
 });
 
