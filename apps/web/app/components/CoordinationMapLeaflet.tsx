@@ -16,7 +16,7 @@
 // SSR-unsafe (Leaflet touches window), so it is always dynamic-imported.
 
 import { useEffect, useMemo, useRef } from "react";
-import { CircleMarker, MapContainer, TileLayer, Marker, Tooltip, Popup, useMap } from "react-leaflet";
+import { Circle, CircleMarker, MapContainer, TileLayer, Marker, Tooltip, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { centroidFor, inCorridor, REGION_CENTER, REGION_ZOOM, type LatLng } from "@/app/lib/geo/districts";
@@ -418,6 +418,18 @@ export default function CoordinationMapLeaflet({
         maxZoom={19}
       />
       <NeedDots needs={needDots} />
+      {/* Coverage areas: a faint circle for each site that declared a radius,
+          so overlapping groups covering one zone read as distinct areas. */}
+      {siteMarkers
+        .filter((v) => v.site.radiusM && v.site.radiusM > 0)
+        .map((v) => (
+          <Circle
+            key={`area-${v.site.id}`}
+            center={[v.site.lat as number, v.site.lng as number]}
+            radius={v.site.radiusM as number}
+            pathOptions={{ color: SITE_PIN[v.site.category].color, weight: 1, fillOpacity: 0.06 }}
+          />
+        ))}
       {siteMarkers.map((v) => (
         <Marker
           key={v.site.id}

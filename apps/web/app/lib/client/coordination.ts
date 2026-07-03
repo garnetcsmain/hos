@@ -26,9 +26,11 @@ export const createSite = (payload: {
   district: string;
   lat?: number | null;
   lng?: number | null;
+  radiusM?: number | null;
   bedsTotal: number;
   bedsFree: number;
   notes?: string;
+  otherLabel?: string;
 }) => write("/api/coordination/sites", payload);
 
 export const updateSiteCapacity = (payload: {
@@ -55,6 +57,7 @@ export const createNeed = (payload: {
   unit?: string;
   urgency: Urgency;
   notes?: string;
+  otherLabel?: string;
 }) => write("/api/coordination/needs", payload);
 
 export const transitionNeed = (payload: {
@@ -71,4 +74,5 @@ export const createOffer = (payload: {
   quantity: number;
   unit?: string;
   notes?: string;
+  otherLabel?: string;
 }) => write("/api/coordination/offers", payload);

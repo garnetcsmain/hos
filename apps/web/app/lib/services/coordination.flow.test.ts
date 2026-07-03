@@ -170,9 +170,28 @@ test("duplicate-location guard: same spot + same district rejected; different di
   });
   assert.equal(other.district, "La Guaira");
 
+  // Same spot, same district, but a DIFFERENT coverage radius -> a different
+  // support area -> allowed (radius is how two groups share one address).
+  const wideArea = await svc.createSite({
+    name: "Cobertura amplia Catia", orgId: orgB.id, district: "Catia", category: "acopio",
+    lat: 10.5160, lng: -66.9500, radiusM: 1500, bedsTotal: 0, bedsFree: 0, notes: "",
+  });
+  assert.equal(wideArea.radiusM, 1500);
+
   // Far away is never a duplicate.
   await svc.createSite({
     name: "Acopio Lejano", orgId: orgB.id, district: "Catia", category: "acopio",
     lat: 10.5300, lng: -66.9500, bedsTotal: 0, bedsFree: 0, notes: "",
   });
+});
+
+test("site 'otro' free-text label is captured in the audit event", async () => {
+  const org = await seedOrg("Org Otro");
+  const site = await svc.createSite(
+    { name: "Punto raro", orgId: org.id, district: "Catia", category: "otro", lat: null, lng: null, bedsTotal: 0, bedsFree: 0, notes: "", otherLabel: "carga de gas doméstico" },
+    "coordinator:test@hos",
+  );
+  const events = await eventsFor("site", site.id);
+  const created = events.find((e) => e.type === "site.created");
+  assert.equal((created!.payload as { otherLabel?: string }).otherLabel, "carga de gas doméstico");
 });

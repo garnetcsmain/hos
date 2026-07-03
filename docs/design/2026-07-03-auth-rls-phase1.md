@@ -28,6 +28,31 @@ does not deliver.
    now so activating org-scoped authorization is a data + policy change, not
    a schema retrofit.
 
+## Delegated org-publish permission (schema shipped, enforcement deferred)
+
+Human direction 2026-07-03: "only volunteers with coordination access may
+select organizations other than their own to help enter data; the responsible
+party grants and revokes this, for hours, days, or indefinitely."
+
+- **Schema shipped now:** `org_memberships.expires_at` (nullable). A row
+  `(user_id, org_id, capability_bundle='publisher', expires_at)` models a
+  time-boxed grant; `expires_at IS NULL` = indefinite. Additive on all three
+  schema paths.
+- **Enforcement is DEFERRED, honestly:** today every coordinator authenticated
+  by the shared gate can already act for any org — there is no per-user
+  identity binding a write to a person, so a UI that *pretended* to scope
+  publishing per-user would be a fake control. The grant/revoke UI and the
+  "may I publish for org X?" check both land with real per-user auth
+  (HOS-2026-001-08), reading:
+  `has a non-expired membership row for (me, orgX)` OR `is a global
+  coordinator`. Until then the field-entry helper (a coordinator entering data
+  on behalf of many orgs) is exactly today's behavior, and the audit `by`
+  already records who did it.
+- **Revocation** is deleting the row or setting `expires_at` to now; grants are
+  never destructive (they only widen access), so per HOS-2026-010-R2 no
+  step-up is required to create one — only to revoke someone else's, which is
+  a later concern.
+
 ## Phase 2 — DESIGNED, blocked on activation decisions
 
 - **App-layer org ownership checks** on coordination writes (need transition

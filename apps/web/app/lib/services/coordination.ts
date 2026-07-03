@@ -76,9 +76,11 @@ export async function createOrg(
 // --- Sites ----------------------------------------------------------------
 
 /** Two records for the same physical point (within this distance) are a
- *  duplicate — unless they serve different districts, which legitimately means
- *  more than one group is covering the zone (human rule, 2026-07-03). */
+ *  duplicate — UNLESS their support area differs (human rule, 2026-07-03):
+ *  a different district, or a materially different coverage radius, both mean
+ *  more than one group is legitimately covering the zone. */
 const DUPLICATE_SITE_KM = 0.1;
+const RADIUS_MATCH_TOLERANCE_M = 100;
 
 async function assertNotDuplicateLocation(input: SiteCreateInput): Promise<void> {
   if (input.lat === null || input.lng === null) return;
@@ -87,11 +89,15 @@ async function assertNotDuplicateLocation(input: SiteCreateInput): Promise<void>
     if (site.status !== "active" || site.lat === null || site.lng === null) continue;
     if (approxKm(pin, { lat: site.lat, lng: site.lng }) > DUPLICATE_SITE_KM) continue;
     if (site.district !== input.district) continue; // different support area: allowed
+    // Different declared coverage → different support area → allowed.
+    const sameRadius =
+      Math.abs((site.radiusM ?? 0) - (input.radiusM ?? 0)) <= RADIUS_MATCH_TOLERANCE_M;
+    if (!sameRadius) continue;
     const owner = (await getOrg(site.orgId))?.name ?? site.orgId;
     throw badRequest(
-      `Ya existe un punto en esa ubicación: "${site.name}" (${owner}). ` +
+      `Ya existe un punto en esa ubicación con la misma cobertura: "${site.name}" (${owner}). ` +
         `Si es el mismo punto, coordine con ellos en vez de duplicarlo; ` +
-        `si su grupo atiende otra zona desde aquí, elija ese otro distrito.`,
+        `si su grupo atiende otra zona, elija otro distrito o un radio de cobertura distinto.`,
     );
   }
 }
@@ -118,6 +124,7 @@ export async function createSite(input: SiteCreateInput, by = "unattributed"): P
     syncedAt: null,
     announcement: "",
     announcementUntil: null,
+    radiusM: input.radiusM ?? null,
   };
   await transaction(async () => {
     await insertSite(site);
@@ -126,7 +133,17 @@ export async function createSite(input: SiteCreateInput, by = "unattributed"): P
       entityId: site.id,
       type: "site.created",
       actor: `org:${org.name}`,
-      payload: { district: site.district, bedsFree: site.bedsFree, bedsTotal: site.bedsTotal, by },
+      // otherLabel: when category is "otro", the free text the person typed —
+      // kept in the audit log so recurring answers can become real categories.
+      payload: {
+        district: site.district,
+        category: site.category,
+        radiusM: site.radiusM,
+        bedsFree: site.bedsFree,
+        bedsTotal: site.bedsTotal,
+        by,
+        ...(site.category === "otro" && input.otherLabel ? { otherLabel: input.otherLabel } : {}),
+      },
     });
   });
   return site;
@@ -214,7 +231,14 @@ export async function createNeed(input: NeedCreateInput, by = "unattributed"): P
       entityId: need.id,
       type: "need.posted",
       actor: `org:${org.name}`,
-      payload: { category: need.category, quantity: need.quantity, district: need.district, urgency: need.urgency, by },
+      payload: {
+        category: need.category,
+        quantity: need.quantity,
+        district: need.district,
+        urgency: need.urgency,
+        by,
+        ...(need.category === "other" && input.otherLabel ? { otherLabel: input.otherLabel } : {}),
+      },
     });
   });
   return need;
@@ -291,7 +315,13 @@ export async function createOffer(input: OfferCreateInput, by = "unattributed"):
       entityId: offer.id,
       type: "offer.posted",
       actor: `org:${org.name}`,
-      payload: { category: offer.category, quantity: offer.quantity, district: offer.district, by },
+      payload: {
+        category: offer.category,
+        quantity: offer.quantity,
+        district: offer.district,
+        by,
+        ...(offer.category === "other" && input.otherLabel ? { otherLabel: input.otherLabel } : {}),
+      },
     });
   });
   return offer;

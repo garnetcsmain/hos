@@ -29,6 +29,11 @@ ALTER TABLE sites ADD COLUMN IF NOT EXISTS synced_at TEXT;
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS announcement TEXT NOT NULL DEFAULT '';
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS announcement_until TEXT;
 
+-- 5. Coverage radius (human direction 2026-07-03): a site can declare an area
+--    it covers (meters), so several groups may legitimately share an address
+--    or district by covering different zones. NULL = a point, not an area.
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS radius_m INTEGER;
+
 ALTER TABLE needs ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
 ALTER TABLE needs ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
 ALTER TABLE needs ADD COLUMN IF NOT EXISTS source_id TEXT;
@@ -42,5 +47,11 @@ CREATE TABLE IF NOT EXISTS org_memberships (
   org_id        TEXT NOT NULL REFERENCES orgs(id),
   capability_bundle TEXT NOT NULL DEFAULT 'member',
   created_at    TEXT NOT NULL,
+  -- 6. Time-boxed delegated access: a responsible party can grant a volunteer
+  --    publish-for-my-org rights for hours/days or indefinitely (NULL). UNUSED
+  --    until real per-user auth (HOS-2026-001-08) enforces it; see
+  --    docs/design/2026-07-03-auth-rls-phase1.md.
+  expires_at    TEXT,
   PRIMARY KEY (user_id, org_id)
 );
+ALTER TABLE org_memberships ADD COLUMN IF NOT EXISTS expires_at TEXT;

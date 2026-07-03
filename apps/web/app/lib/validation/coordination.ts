@@ -50,16 +50,27 @@ export const orgCreateSchema = z.object({
     .default("other"),
 });
 
+// Coverage radius: up to 20 km (a whole zone). 0/absent = a point. Lets several
+// groups share an address by covering different areas. Kept optional (not
+// transformed to a default) so the service's parsed input type stays lenient.
+const radius = z.number().int().min(0).max(20_000).nullish();
+
+// When category is "otro", the free-text the person typed so recurring answers
+// can become real categories later (tallied via the audit event).
+const otherLabel = z.string().trim().max(80).optional();
+
 export const siteCreateSchema = z.object({
   name: z.string().trim().min(1, "site name is required").max(160),
   orgId: z.string().trim().min(1, "org is required").max(40),
-  district: z.string().trim().min(1, "district is required").max(120),
   category: siteCategory,
+  district: z.string().trim().min(1, "district is required").max(120),
   lat: coordinate(-90, 90),
   lng: coordinate(-180, 180),
+  radiusM: radius,
   bedsTotal: z.number().int().min(0).max(1_000_000).optional().transform((v) => v ?? 0),
   bedsFree: z.number().int().min(0).max(1_000_000).optional().transform((v) => v ?? 0),
   notes: optionalText(2000),
+  otherLabel,
 });
 
 export const siteUpdateSchema = z.object({
@@ -90,6 +101,7 @@ export const needCreateSchema = z.object({
   unit: optionalText(40),
   urgency,
   notes: optionalText(2000),
+  otherLabel,
 });
 
 // Status transitions. "claim" needs the committing org; "receive" is the
@@ -109,6 +121,7 @@ export const offerCreateSchema = z.object({
   quantity,
   unit: optionalText(40),
   notes: optionalText(2000),
+  otherLabel,
 });
 
 export type SiteCreateInput = z.infer<typeof siteCreateSchema>;

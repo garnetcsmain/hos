@@ -117,7 +117,8 @@ CREATE TABLE IF NOT EXISTS sites (
   source_id     TEXT,                       -- caracasayuda.com record id (provenance)
   synced_at     TEXT,                       -- last reconciled with source; local edits after this win
   announcement  TEXT NOT NULL DEFAULT '',   -- site broadcast ("hoy entregan comida 2-5pm")
-  announcement_until TEXT                   -- ISO expiry; announcement hides after this
+  announcement_until TEXT,                  -- ISO expiry; announcement hides after this
+  radius_m      INTEGER                     -- coverage radius in meters (NULL = a point, not an area)
 );
 
 CREATE TABLE IF NOT EXISTS needs (
@@ -150,6 +151,7 @@ CREATE TABLE IF NOT EXISTS org_memberships (
   org_id        TEXT NOT NULL REFERENCES orgs(id),
   capability_bundle TEXT NOT NULL DEFAULT 'member',
   created_at    TEXT NOT NULL,
+  expires_at    TEXT,                       -- NULL = indefinite; a responsible party may grant time-boxed delegated access
   PRIMARY KEY (user_id, org_id)
 );
 
@@ -203,8 +205,10 @@ export const SQLITE_MIGRATIONS: readonly string[] = [
   `ALTER TABLE sites ADD COLUMN synced_at TEXT`,
   `ALTER TABLE sites ADD COLUMN announcement TEXT NOT NULL DEFAULT ''`,
   `ALTER TABLE sites ADD COLUMN announcement_until TEXT`,
+  `ALTER TABLE sites ADD COLUMN radius_m INTEGER`,
   `ALTER TABLE needs ADD COLUMN lat REAL`,
   `ALTER TABLE needs ADD COLUMN lng REAL`,
   `ALTER TABLE needs ADD COLUMN source_id TEXT`,
   `ALTER TABLE needs ADD COLUMN synced_at TEXT`,
+  `ALTER TABLE org_memberships ADD COLUMN expires_at TEXT`,
 ];

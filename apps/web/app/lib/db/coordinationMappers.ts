@@ -51,6 +51,7 @@ export function mapSite(row: Row): Site {
     syncedAt: strOrNull(row.synced_at),
     announcement: str(row.announcement),
     announcementUntil: strOrNull(row.announcement_until),
+    radiusM: numOrNull(row.radius_m),
   };
 }
 

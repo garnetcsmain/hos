@@ -6,7 +6,7 @@
 // right" step. SSR-unsafe (Leaflet), so always dynamic-imported.
 
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
+import { Circle, MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { REGION_CENTER, type LatLng } from "@/app/lib/geo/districts";
@@ -37,9 +37,12 @@ function FollowPosition({ pos }: { pos: LatLng | null }) {
 
 export default function SitePinMap({
   pos,
+  radiusM = 0,
   onChange,
 }: {
   pos: LatLng | null;
+  /** Coverage radius in meters, drawn as a circle around the pin. 0 = a point. */
+  radiusM?: number;
   onChange: (pos: LatLng) => void;
 }) {
   return (
@@ -55,6 +58,9 @@ export default function SitePinMap({
         subdomains="abcd"
         maxZoom={19}
       />
+      {pos && radiusM > 0 ? (
+        <Circle center={[pos.lat, pos.lng]} radius={radiusM} pathOptions={{ color: "#1D6FA8", weight: 1.5, fillOpacity: 0.12 }} />
+      ) : null}
       {pos ? (
         <Marker
           position={[pos.lat, pos.lng]}

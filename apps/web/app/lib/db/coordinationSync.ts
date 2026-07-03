@@ -243,6 +243,7 @@ export async function runCoordinationSync(
             syncedAt: now,
             announcement: "",
             announcementUntil: null,
+            radiusM: null,
           });
           summary.sitesInserted += 1;
         } else if (locallyModified(existing)) {

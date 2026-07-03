@@ -124,7 +124,8 @@ CREATE TABLE IF NOT EXISTS sites (
   source_id     TEXT,                       -- caracasayuda.com record id (provenance)
   synced_at     TEXT,                       -- last reconciled with source; local edits after this win
   announcement  TEXT NOT NULL DEFAULT '',   -- site broadcast ("hoy entregan comida 2-5pm")
-  announcement_until TEXT                   -- ISO expiry; announcement hides after this
+  announcement_until TEXT,                  -- ISO expiry; announcement hides after this
+  radius_m      INTEGER                     -- coverage radius in meters (NULL = a point, not an area)
 );
 
 -- Additive migrations for databases created before these columns existed.
@@ -135,6 +136,7 @@ ALTER TABLE sites ADD COLUMN IF NOT EXISTS source_id TEXT;
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS synced_at TEXT;
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS announcement TEXT NOT NULL DEFAULT '';
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS announcement_until TEXT;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS radius_m INTEGER;
 
 CREATE TABLE IF NOT EXISTS needs (
   id            TEXT PRIMARY KEY,
@@ -171,8 +173,10 @@ CREATE TABLE IF NOT EXISTS org_memberships (
   org_id        TEXT NOT NULL REFERENCES orgs(id),
   capability_bundle TEXT NOT NULL DEFAULT 'member',
   created_at    TEXT NOT NULL,
+  expires_at    TEXT,                       -- NULL = indefinite; a responsible party may grant time-boxed delegated access
   PRIMARY KEY (user_id, org_id)
 );
+ALTER TABLE org_memberships ADD COLUMN IF NOT EXISTS expires_at TEXT;
 
 CREATE TABLE IF NOT EXISTS offers (
   id            TEXT PRIMARY KEY,

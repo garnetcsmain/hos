@@ -56,6 +56,7 @@ export async function seedCoordinationIfEmpty(): Promise<boolean> {
         syncedAt: s.updatedAt,
         announcement: "",
         announcementUntil: null,
+        radiusM: null,
       });
     }
 

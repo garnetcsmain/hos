@@ -85,6 +85,10 @@ export interface Site {
    *  lands. Empty string = no announcement. */
   announcement: string;
   announcementUntil: string | null;
+  /** Coverage radius in meters. A site is a POINT (null) or an AREA a group
+   *  covers — several groups may legitimately share one address/district by
+   *  covering different zones (human direction 2026-07-03). */
+  radiusM: number | null;
 }
 
 /** The announcement to display right now, or null if none/expired. Expiry is
