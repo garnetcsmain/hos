@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test \"app/lib/**/*.test.ts\"",
     "seed": "node app/lib/db/seed-runner.ts",
-    "seed:coordination": "node app/lib/db/reseed-coordination.ts"
+    "seed:coordination": "node app/lib/db/reseed-coordination.ts",
+    "sync:coordination": "node app/lib/db/sync-coordination.ts"
   },
   "dependencies": {
     "@remotion/player": "^4.0.484",

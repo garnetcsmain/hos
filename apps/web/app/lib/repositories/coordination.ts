@@ -45,8 +45,8 @@ export async function countOrgs(): Promise<number> {
 
 const insertSiteStmt = lazyStatement(
   `INSERT INTO sites
-     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes, source_id, synced_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 export async function insertSite(site: Site): Promise<void> {
@@ -64,6 +64,8 @@ export async function insertSite(site: Site): Promise<void> {
     site.bedsFree,
     site.status,
     site.notes,
+    site.sourceId,
+    site.syncedAt,
   );
 }
 
@@ -92,8 +94,8 @@ export async function updateSiteCapacity(
 
 const insertNeedStmt = lazyStatement(
   `INSERT INTO needs
-     (id, created_at, updated_at, org_id, site_id, district, category, quantity, unit, urgency, status, claimed_by_org_id, notes)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, created_at, updated_at, org_id, site_id, district, lat, lng, category, quantity, unit, urgency, status, claimed_by_org_id, notes, source_id, synced_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 export async function insertNeed(need: Need): Promise<void> {
@@ -104,6 +106,8 @@ export async function insertNeed(need: Need): Promise<void> {
     need.orgId,
     need.siteId,
     need.district,
+    need.lat,
+    need.lng,
     need.category,
     need.quantity,
     need.unit,
@@ -111,6 +115,8 @@ export async function insertNeed(need: Need): Promise<void> {
     need.status,
     need.claimedByOrgId,
     need.notes,
+    need.sourceId,
+    need.syncedAt,
   );
 }
 

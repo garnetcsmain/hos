@@ -108,12 +108,14 @@ CREATE TABLE IF NOT EXISTS sites (
   org_id        TEXT NOT NULL REFERENCES orgs(id),
   district      TEXT NOT NULL DEFAULT '',   -- coarse rollup key
   category      TEXT NOT NULL DEFAULT 'otro', -- acopio|refugio|medico|internet|mascotas|otro
-  lat           REAL,                       -- only for publicly-listed aid points
-  lng           REAL,                       -- (else NULL — needs never get coords)
+  lat           REAL,                       -- precise position when known
+  lng           REAL,                       -- (coordinator-gated display, D1 2026-07-03)
   beds_total    INTEGER NOT NULL DEFAULT 0,
   beds_free     INTEGER NOT NULL DEFAULT 0,
   status        TEXT NOT NULL DEFAULT 'active',
-  notes         TEXT NOT NULL DEFAULT ''
+  notes         TEXT NOT NULL DEFAULT '',
+  source_id     TEXT,                       -- caracasayuda.com record id (provenance)
+  synced_at     TEXT                        -- last reconciled with source; local edits after this win
 );
 
 CREATE TABLE IF NOT EXISTS needs (
@@ -123,13 +125,30 @@ CREATE TABLE IF NOT EXISTS needs (
   org_id        TEXT NOT NULL REFERENCES orgs(id),
   site_id       TEXT REFERENCES sites(id),
   district      TEXT NOT NULL DEFAULT '',
+  lat           REAL,                       -- precise position when the source pin is trusted
+  lng           REAL,                       -- (coordinator-gated display, D1 2026-07-03)
   category      TEXT NOT NULL DEFAULT 'other',
   quantity      INTEGER NOT NULL DEFAULT 1,
   unit          TEXT NOT NULL DEFAULT '',
   urgency       TEXT NOT NULL DEFAULT 'normal',
   status        TEXT NOT NULL DEFAULT 'open',
   claimed_by_org_id TEXT REFERENCES orgs(id),
-  notes         TEXT NOT NULL DEFAULT ''
+  notes         TEXT NOT NULL DEFAULT '',
+  source_id     TEXT,
+  synced_at     TEXT
+);
+
+-- User <-> org membership (HOS-2026-011-D3 prerequisite). user_id is the
+-- Supabase auth user id; capability_bundle names a bundle of capabilities at a
+-- scope (capabilities-on-scoped-resources model), not a flat role. Provisioned
+-- now so org-scoped authorization is not a later retrofit; UNUSED until real
+-- per-user auth (HOS-2026-001-08) activates it.
+CREATE TABLE IF NOT EXISTS org_memberships (
+  user_id       TEXT NOT NULL,
+  org_id        TEXT NOT NULL REFERENCES orgs(id),
+  capability_bundle TEXT NOT NULL DEFAULT 'member',
+  created_at    TEXT NOT NULL,
+  PRIMARY KEY (user_id, org_id)
 );
 
 CREATE TABLE IF NOT EXISTS offers (
@@ -167,6 +186,8 @@ CREATE INDEX IF NOT EXISTS idx_sites_org ON sites(org_id);
 CREATE INDEX IF NOT EXISTS idx_needs_status ON needs(status);
 CREATE INDEX IF NOT EXISTS idx_needs_district ON needs(district);
 CREATE INDEX IF NOT EXISTS idx_offers_category ON offers(category);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sites_source ON sites(source_id) WHERE source_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_needs_source ON needs(source_id) WHERE source_id IS NOT NULL;
 `;
 
 // Additive column migrations for databases created before the column existed.
@@ -176,4 +197,10 @@ export const SQLITE_MIGRATIONS: readonly string[] = [
   `ALTER TABLE sites ADD COLUMN category TEXT NOT NULL DEFAULT 'otro'`,
   `ALTER TABLE sites ADD COLUMN lat REAL`,
   `ALTER TABLE sites ADD COLUMN lng REAL`,
+  `ALTER TABLE sites ADD COLUMN source_id TEXT`,
+  `ALTER TABLE sites ADD COLUMN synced_at TEXT`,
+  `ALTER TABLE needs ADD COLUMN lat REAL`,
+  `ALTER TABLE needs ADD COLUMN lng REAL`,
+  `ALTER TABLE needs ADD COLUMN source_id TEXT`,
+  `ALTER TABLE needs ADD COLUMN synced_at TEXT`,
 ];

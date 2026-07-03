@@ -32,6 +32,11 @@ export async function seedCoordinationIfEmpty(): Promise<boolean> {
       kind: "other",
     });
 
+    // source_id + synced_at are persisted so the nightly sync
+    // (coordinationSync.ts) can reconcile these rows against the source
+    // instead of duplicating them. synced_at starts at the source's own
+    // updated time: any local edit after seeding moves updated_at past it,
+    // which protects the row from being overwritten (local edits win).
     for (const s of CARACASAYUDA_SITES) {
       await insertSite({
         id: newSiteId(),
@@ -47,6 +52,8 @@ export async function seedCoordinationIfEmpty(): Promise<boolean> {
         bedsFree: 0,
         status: "active",
         notes: s.notes,
+        sourceId: s.sourceId,
+        syncedAt: s.updatedAt,
       });
     }
 
@@ -58,6 +65,8 @@ export async function seedCoordinationIfEmpty(): Promise<boolean> {
         orgId: sourceOrg,
         siteId: null,
         district: n.district,
+        lat: null,
+        lng: null,
         category: n.category,
         quantity: 1,
         unit: "",
@@ -65,6 +74,8 @@ export async function seedCoordinationIfEmpty(): Promise<boolean> {
         status: "open",
         claimedByOrgId: null,
         notes: n.notes,
+        sourceId: n.sourceId,
+        syncedAt: n.updatedAt,
       });
     }
 

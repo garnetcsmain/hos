@@ -23,7 +23,7 @@ test("create org -> site -> need; a need starts open", async () => {
   });
   assert.equal(site.bedsFree, 10);
   const need = await svc.createNeed({
-    orgId: org.id, siteId: site.id, district: "Maiquetía", category: "water",
+    orgId: org.id, siteId: site.id, district: "Maiquetía", lat: null, lng: null, category: "water",
     quantity: 500, unit: "L", urgency: "high", notes: "",
   });
   assert.equal(need.status, "open");
@@ -42,7 +42,9 @@ test("claim then receive: honest lifecycle with attributable events", async () =
   const requester = await seedOrg("Refugio C");
   const claimer = await svc.createOrg({ name: "Protección Civil", kind: "government" });
   const need = await svc.createNeed({
-    orgId: requester.id, siteId: null, district: "Caracas", category: "food",
+    orgId: requester.id, siteId: null,
+    lat: null,
+    lng: null, district: "Caracas", category: "food",
     quantity: 200, unit: "raciones", urgency: "normal", notes: "",
   });
 
@@ -62,7 +64,9 @@ test("claim then receive: honest lifecycle with attributable events", async () =
 test("a received need is terminal and cannot be transitioned again", async () => {
   const org = await seedOrg("Refugio D");
   const need = await svc.createNeed({
-    orgId: org.id, siteId: null, district: "Caracas", category: "medical",
+    orgId: org.id, siteId: null,
+    lat: null,
+    lng: null, district: "Caracas", category: "medical",
     quantity: 10, unit: "dosis", urgency: "high", notes: "",
   });
   await svc.transitionNeed({ needId: need.id, action: "receive", byOrgId: null, note: "" });
@@ -72,7 +76,9 @@ test("a received need is terminal and cannot be transitioned again", async () =>
 test("only an open need can be claimed", async () => {
   const org = await seedOrg("Refugio E");
   const need = await svc.createNeed({
-    orgId: org.id, siteId: null, district: "Caracas", category: "water",
+    orgId: org.id, siteId: null,
+    lat: null,
+    lng: null, district: "Caracas", category: "water",
     quantity: 1, unit: "L", urgency: "low", notes: "",
   });
   await svc.transitionNeed({ needId: need.id, action: "cancel", byOrgId: null, note: "" });
@@ -82,7 +88,9 @@ test("only an open need can be claimed", async () => {
 test("coordinationView suggests a same-category, same-district offer for an open need", async () => {
   const org = await seedOrg("Refugio F");
   await svc.createNeed({
-    orgId: org.id, siteId: null, district: "Vargas", category: "hygiene",
+    orgId: org.id, siteId: null,
+    lat: null,
+    lng: null, district: "Vargas", category: "hygiene",
     quantity: 100, unit: "kits", urgency: "normal", notes: "",
   });
   await svc.createOffer({ orgId: org.id, district: "Vargas", category: "hygiene", quantity: 150, unit: "kits", notes: "" });
@@ -97,7 +105,9 @@ test("coordinationView suggests a same-category, same-district offer for an open
 test("createNeed with an unknown org is rejected", async () => {
   await assert.rejects(
     svc.createNeed({
-      orgId: "ORG-DOESNOTEXIST", siteId: null, district: "X", category: "water",
+      orgId: "ORG-DOESNOTEXIST", siteId: null,
+    lat: null,
+    lng: null, district: "X", category: "water",
       quantity: 1, unit: "L", urgency: "low", notes: "",
     }),
   );

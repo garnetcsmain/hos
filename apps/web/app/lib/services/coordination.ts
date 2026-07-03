@@ -6,6 +6,11 @@
 //  - every transition appends an attributable event to the shared event store.
 //
 // Nothing here auto-fulfills anything: the needs<->offer match is advisory only.
+//
+// Attribution (HOS-2026-001-08 Phase 1): event `actor` stays the acting ORG
+// (the accountable entity); the authenticated human/caller behind the request
+// is recorded in the payload as `by` (see actorTag in http/auth.ts). Under the
+// shared token `by` is honestly "coordinator:token", never a fabricated name.
 
 import {
   getNeed,
@@ -47,7 +52,10 @@ async function requireOrg(orgId: string): Promise<Org> {
 
 // --- Orgs -----------------------------------------------------------------
 
-export async function createOrg(input: { name: string; kind: OrgKind }): Promise<Org> {
+export async function createOrg(
+  input: { name: string; kind: OrgKind },
+  by = "unattributed",
+): Promise<Org> {
   const org: Org = { id: newOrgId(), createdAt: nowIso(), name: input.name, kind: input.kind };
   await transaction(async () => {
     await insertOrg(org);
@@ -56,7 +64,7 @@ export async function createOrg(input: { name: string; kind: OrgKind }): Promise
       entityId: org.id,
       type: "org.registered",
       actor: `org:${org.name}`,
-      payload: { kind: org.kind },
+      payload: { kind: org.kind, by },
     });
   });
   return org;
@@ -64,7 +72,7 @@ export async function createOrg(input: { name: string; kind: OrgKind }): Promise
 
 // --- Sites ----------------------------------------------------------------
 
-export async function createSite(input: SiteCreateInput): Promise<Site> {
+export async function createSite(input: SiteCreateInput, by = "unattributed"): Promise<Site> {
   const org = await requireOrg(input.orgId);
   const now = nowIso();
   const site: Site = {
@@ -81,6 +89,8 @@ export async function createSite(input: SiteCreateInput): Promise<Site> {
     bedsFree: Math.min(input.bedsFree, input.bedsTotal),
     status: "active",
     notes: input.notes,
+    sourceId: null,
+    syncedAt: null,
   };
   await transaction(async () => {
     await insertSite(site);
@@ -89,13 +99,13 @@ export async function createSite(input: SiteCreateInput): Promise<Site> {
       entityId: site.id,
       type: "site.created",
       actor: `org:${org.name}`,
-      payload: { district: site.district, bedsFree: site.bedsFree, bedsTotal: site.bedsTotal },
+      payload: { district: site.district, bedsFree: site.bedsFree, bedsTotal: site.bedsTotal, by },
     });
   });
   return site;
 }
 
-export async function updateSiteCapacity(input: SiteUpdateInput): Promise<Site> {
+export async function updateSiteCapacity(input: SiteUpdateInput, by = "unattributed"): Promise<Site> {
   const site = await getSite(input.siteId);
   if (!site) throw notFound(`site ${input.siteId} not found`);
   const org = await getOrg(site.orgId);
@@ -112,7 +122,7 @@ export async function updateSiteCapacity(input: SiteUpdateInput): Promise<Site> 
       entityId: site.id,
       type: "site.capacity_updated",
       actor: `org:${org?.name ?? site.orgId}`,
-      payload: { bedsFree, bedsTotal: input.bedsTotal, status: input.status },
+      payload: { bedsFree, bedsTotal: input.bedsTotal, status: input.status, by },
     });
   });
   return { ...site, ...input, bedsFree, updatedAt: nowIso() };
@@ -120,7 +130,7 @@ export async function updateSiteCapacity(input: SiteUpdateInput): Promise<Site> 
 
 // --- Needs ----------------------------------------------------------------
 
-export async function createNeed(input: NeedCreateInput): Promise<Need> {
+export async function createNeed(input: NeedCreateInput, by = "unattributed"): Promise<Need> {
   const org = await requireOrg(input.orgId);
   if (input.siteId && !(await getSite(input.siteId))) throw badRequest(`unknown site ${input.siteId}`);
   const now = nowIso();
@@ -131,6 +141,8 @@ export async function createNeed(input: NeedCreateInput): Promise<Need> {
     orgId: org.id,
     siteId: input.siteId,
     district: input.district,
+    lat: input.lat,
+    lng: input.lng,
     category: input.category,
     quantity: input.quantity,
     unit: input.unit,
@@ -138,6 +150,8 @@ export async function createNeed(input: NeedCreateInput): Promise<Need> {
     status: "open",
     claimedByOrgId: null,
     notes: input.notes,
+    sourceId: null,
+    syncedAt: null,
   };
   await transaction(async () => {
     await insertNeed(need);
@@ -146,7 +160,7 @@ export async function createNeed(input: NeedCreateInput): Promise<Need> {
       entityId: need.id,
       type: "need.posted",
       actor: `org:${org.name}`,
-      payload: { category: need.category, quantity: need.quantity, district: need.district, urgency: need.urgency },
+      payload: { category: need.category, quantity: need.quantity, district: need.district, urgency: need.urgency, by },
     });
   });
   return need;
@@ -154,7 +168,7 @@ export async function createNeed(input: NeedCreateInput): Promise<Need> {
 
 const TERMINAL = new Set(["received", "cancelled"]);
 
-export async function transitionNeed(input: NeedTransitionInput): Promise<Need> {
+export async function transitionNeed(input: NeedTransitionInput, by = "unattributed"): Promise<Need> {
   const need = await getNeed(input.needId);
   if (!need) throw notFound(`need ${input.needId} not found`);
   if (TERMINAL.has(need.status)) {
@@ -193,7 +207,7 @@ export async function transitionNeed(input: NeedTransitionInput): Promise<Need> 
       entityId: need.id,
       type: eventType,
       actor,
-      payload: { from: need.status, to: status, note: input.note },
+      payload: { from: need.status, to: status, note: input.note, by },
     });
   });
   return { ...need, status, claimedByOrgId, updatedAt: nowIso() };
@@ -201,7 +215,7 @@ export async function transitionNeed(input: NeedTransitionInput): Promise<Need> 
 
 // --- Offers ---------------------------------------------------------------
 
-export async function createOffer(input: OfferCreateInput): Promise<Offer> {
+export async function createOffer(input: OfferCreateInput, by = "unattributed"): Promise<Offer> {
   const org = await requireOrg(input.orgId);
   const now = nowIso();
   const offer: Offer = {
@@ -223,7 +237,7 @@ export async function createOffer(input: OfferCreateInput): Promise<Offer> {
       entityId: offer.id,
       type: "offer.posted",
       actor: `org:${org.name}`,
-      payload: { category: offer.category, quantity: offer.quantity, district: offer.district },
+      payload: { category: offer.category, quantity: offer.quantity, district: offer.district, by },
     });
   });
   return offer;

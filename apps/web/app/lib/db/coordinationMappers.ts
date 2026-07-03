@@ -47,6 +47,8 @@ export function mapSite(row: Row): Site {
     bedsFree: num(row.beds_free),
     status: str(row.status) as SiteStatus,
     notes: str(row.notes),
+    sourceId: strOrNull(row.source_id),
+    syncedAt: strOrNull(row.synced_at),
   };
 }
 
@@ -58,6 +60,8 @@ export function mapNeed(row: Row): Need {
     orgId: str(row.org_id),
     siteId: strOrNull(row.site_id),
     district: str(row.district),
+    lat: numOrNull(row.lat),
+    lng: numOrNull(row.lng),
     category: str(row.category) as NeedCategory,
     quantity: num(row.quantity),
     unit: str(row.unit),
@@ -65,6 +69,8 @@ export function mapNeed(row: Row): Need {
     status: str(row.status) as NeedStatus,
     claimedByOrgId: strOrNull(row.claimed_by_org_id),
     notes: str(row.notes),
+    sourceId: strOrNull(row.source_id),
+    syncedAt: strOrNull(row.synced_at),
   };
 }
 

@@ -22,8 +22,8 @@ const siteCategory = z
   .enum(["acopio", "refugio", "medico", "internet", "mascotas", "otro"])
   .default("otro");
 
-// Only for publicly-listed aid points (already on a public map); needs never
-// carry coordinates.
+// Precise coordinates are permitted on coordinator-gated records (human D1
+// answer 2026-07-03); district remains the required coarse key everywhere.
 const coordinate = (min: number, max: number) =>
   z.number().min(min).max(max).nullish().transform((v) => v ?? null);
 
@@ -62,6 +62,8 @@ export const needCreateSchema = z.object({
   orgId: z.string().trim().min(1, "requesting org is required").max(40),
   siteId: z.string().trim().max(40).optional().transform((v) => (v ? v : null)),
   district: z.string().trim().min(1, "district is required").max(120),
+  lat: coordinate(-90, 90),
+  lng: coordinate(-180, 180),
   category,
   quantity,
   unit: optionalText(40),

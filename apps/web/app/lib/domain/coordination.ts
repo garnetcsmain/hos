@@ -5,8 +5,13 @@
 // this. Only coordination sites, needs, and supplies are modeled here: people
 // (volunteers, beneficiaries) are deliberately OUT of scope this cycle.
 //
-// Two board conditions are baked into the types:
-//  - location is a coarse `district`, never a precise address (targeting risk);
+// Board conditions baked into the types, as amended by the human D1 answer
+// (docs/decision-log/2026-07-01-HOS-008-threat-model-operating-posture/
+// human_answer_D1.yaml, 2026-07-03):
+//  - `district` stays the coarse rollup key on every record;
+//  - precise lat/lng IS allowed on needs and sites INSIDE the coordinator-gated
+//    console (responders need the exact spot; the protection boundary is the
+//    auth gate, not coordinate coarsening). Public surfaces stay coarse.
 //  - org/actor is a first-class entity NOW, so multi-org accountability is not a
 //    later retrofit.
 
@@ -41,10 +46,8 @@ export type SiteCategory =
   | "otro";
 
 /** A public aid point (collection center, shelter, medical point…) and its live
- *  capacity. `district` stays coarse for rollups; `lat`/`lng` are only set for
- *  points that are ALREADY published on a public map (e.g. caracasayuda.com), so
- *  showing them precisely adds no targeting risk beyond the public source
- *  (Board condition HOS-2026-007 refined). Needs never carry coordinates. */
+ *  capacity. `district` stays coarse for rollups; `lat`/`lng` are shown only
+ *  inside the coordinator-gated console (human D1 answer 2026-07-03). */
 export interface Site {
   id: string;
   createdAt: string;
@@ -53,13 +56,21 @@ export interface Site {
   orgId: string;
   district: string;
   category: SiteCategory;
-  /** Precise position, only for publicly-listed aid points; null otherwise. */
+  /** Precise position when known; null otherwise. */
   lat: number | null;
   lng: number | null;
   bedsTotal: number;
   bedsFree: number;
   status: SiteStatus;
   notes: string;
+  /** caracasayuda.com record id when this row was imported/synced from the
+   *  public map; null for records created directly in HOS. Direct records are
+   *  NEVER touched by the sync (human precedence rule, 2026-07-03). */
+  sourceId: string | null;
+  /** Last time the sync reconciled this row with its source. A local edit after
+   *  this instant (updatedAt > syncedAt) protects the row from being
+   *  overwritten by later syncs. Null for records created directly in HOS. */
+  syncedAt: string | null;
 }
 
 export type NeedCategory =
@@ -90,6 +101,12 @@ export interface Need {
   /** Optional site this need is for. */
   siteId: string | null;
   district: string;
+  /** Precise position when the report carries a trustworthy one (its pin agrees
+   *  with its text-derived district) — coordinator-gated display only (human D1
+   *  answer 2026-07-03: responders need the exact spot). Null → the need shows
+   *  at its district centroid. */
+  lat: number | null;
+  lng: number | null;
   category: NeedCategory;
   quantity: number;
   unit: string;
@@ -98,6 +115,9 @@ export interface Need {
   /** Org that claimed the need (committed to serve it), if any. */
   claimedByOrgId: string | null;
   notes: string;
+  /** See Site.sourceId — same provenance/precedence semantics. */
+  sourceId: string | null;
+  syncedAt: string | null;
 }
 
 export type OfferStatus = "available" | "committed" | "depleted";
