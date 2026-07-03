@@ -16,9 +16,27 @@ import { timingSafeEqual } from "node:crypto";
 import { HttpError } from "../errors.ts";
 import { isSupabaseAuthConfigured } from "../auth/supabaseConfig.ts";
 
+/** Who passed the coordinator gate. `email`/`userId` are only known on the
+ *  Supabase path — the shared token and the explicit dev-open escape hatch
+ *  authenticate a caller without identifying a person. Threaded into event
+ *  payloads (`by`) so the audit log is forensic, not decorative
+ *  (HOS-2026-001-08 Phase 1; closes the gate re-review's MET_WITH_WATCH). */
+export interface CoordinatorIdentity {
+  via: "supabase" | "token" | "dev-open";
+  email: string | null;
+  userId: string | null;
+}
+
+/** Audit string for event payloads. Honest by construction: a shared-token
+ *  caller is labeled as such, never dressed up as a named person. */
+export function actorTag(identity: CoordinatorIdentity): string {
+  if (identity.via === "supabase" && identity.email) return `coordinator:${identity.email}`;
+  return `coordinator:${identity.via}`;
+}
+
 let warnedDevOpen = false;
 
-export function assertCoordinator(request: Request): void {
+export function assertCoordinator(request: Request): CoordinatorIdentity {
   const expected = process.env.HOS_COORDINATOR_TOKEN;
 
   if (!expected) {
@@ -29,7 +47,7 @@ export function assertCoordinator(request: Request): void {
         );
         warnedDevOpen = true;
       }
-      return;
+      return { via: "dev-open", email: null, userId: null };
     }
     // Fail closed: not configured, not explicitly opened for dev.
     throw new HttpError(
@@ -44,6 +62,7 @@ export function assertCoordinator(request: Request): void {
   if (a.length !== b.length || !timingSafeEqual(a, b)) {
     throw new HttpError(401, "unauthorized: coordinator token required");
   }
+  return { via: "token", email: null, userId: null };
 }
 
 export interface CoordinatorGateDeps {
@@ -63,17 +82,20 @@ async function defaultSessionFromRequest(request: Request) {
 // break-glass fallback. When Supabase auth is NOT configured, this is exactly
 // the token gate (assertCoordinator) — so existing deployments are unchanged
 // (HOS-2026-001-08, respecting the D3 fail-closed default).
+//
+// Returns WHO passed, so routes can attribute writes to a real identity.
+// Existing callers that ignore the return value are unchanged.
 export async function requireCoordinator(
   request: Request,
   deps: CoordinatorGateDeps = { sessionFromRequest: defaultSessionFromRequest },
-): Promise<void> {
+): Promise<CoordinatorIdentity> {
   if (isSupabaseAuthConfigured()) {
     const identity = await deps.sessionFromRequest(request);
-    if (identity) return;
+    if (identity) return { via: "supabase", email: identity.email, userId: identity.userId };
     // No valid session: only fall through to the token path if one was provided.
     if (!request.headers.get("x-hos-coordinator-token")) {
       throw new HttpError(401, "unauthorized: sign in as a coordinator");
     }
   }
-  assertCoordinator(request);
+  return assertCoordinator(request);
 }

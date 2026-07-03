@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { handleError, json } from "@/app/lib/http/respond";
-import { requireCoordinator } from "@/app/lib/http/auth";
+import { actorTag, requireCoordinator } from "@/app/lib/http/auth";
 import { enforceRateLimit } from "@/app/lib/http/rateLimit";
 import { siteCreateSchema, siteUpdateSchema } from "@/app/lib/validation/coordination";
 import { createSite, updateSiteCapacity } from "@/app/lib/services/coordination";
@@ -10,10 +10,10 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    await requireCoordinator(request);
+    const identity = await requireCoordinator(request);
     enforceRateLimit(request, "coordination-write", 120, 60_000);
     const body = await request.json().catch(() => ({}));
-    const site = await createSite(siteCreateSchema.parse(body));
+    const site = await createSite(siteCreateSchema.parse(body), actorTag(identity));
     return json({ site }, 201);
   } catch (error) {
     return handleError(error);
@@ -22,10 +22,10 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    await requireCoordinator(request);
+    const identity = await requireCoordinator(request);
     enforceRateLimit(request, "coordination-write", 120, 60_000);
     const body = await request.json().catch(() => ({}));
-    const site = await updateSiteCapacity(siteUpdateSchema.parse(body));
+    const site = await updateSiteCapacity(siteUpdateSchema.parse(body), actorTag(identity));
     return json({ site });
   } catch (error) {
     return handleError(error);
