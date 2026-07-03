@@ -1,25 +1,29 @@
 "use client";
 
 // Interactive map for the coordination board (Leaflet + OpenStreetMap, no API
-// key). Two layers with different location grain, on purpose:
-//  - NEEDS render one badge per DISTRICT at its centroid — never a precise spot
-//    (targeting risk, Board HOS-2026-007). Badge color = urgency, number = open
-//    needs; click filters the board by that district.
-//  - SITES that carry public coordinates (imported from caracasayuda.com) render
-//    as individual category pins with a detail popup; they are already published
-//    on a public map, so precision adds no new risk.
+// key). Three layers:
+//  - NEEDS roll up into one badge per DISTRICT at its centroid. Badge color =
+//    urgency, number = open needs; click filters the board by that district.
+//  - Zoomed in (>= NEED_DOT_MIN_ZOOM), needs that carry a trusted precise
+//    position ALSO render as individual urgency-colored dots — coordinator-
+//    gated per the human D1 answer (2026-07-03): responders need the exact
+//    spot, and this console is behind the auth gate. Needs without a trusted
+//    pin stay district-only.
+//  - SITES with coordinates render as individual category pins with a detail
+//    popup.
 // Scroll/pinch/double-click zoom are enabled so a coordinator can zoom from the
 // corridor overview down to street level (tiles go to zoom 19).
 // SSR-unsafe (Leaflet touches window), so it is always dynamic-imported.
 
 import { useEffect, useMemo, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Tooltip, Popup, useMap } from "react-leaflet";
+import { CircleMarker, MapContainer, TileLayer, Marker, Tooltip, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { centroidFor, inCorridor, REGION_CENTER, REGION_ZOOM, type LatLng } from "@/app/lib/geo/districts";
-import { SITE_CATEGORY_LABEL, SITE_PIN } from "@/app/components/CoordinationParts";
-import type { CoordinationView, SiteView } from "@/app/lib/domain/coordinationViews";
+import { CATEGORY_LABEL, SITE_CATEGORY_LABEL, SITE_PIN } from "@/app/components/CoordinationParts";
+import type { CoordinationView, NeedView, SiteView } from "@/app/lib/domain/coordinationViews";
 import type { SiteCategory } from "@/app/lib/domain/coordination";
+
 
 interface Rollup {
   district: string;
@@ -115,6 +119,48 @@ function MapController({ points }: { points: LatLng[] }) {
   return null;
 }
 
+// Always visible at every zoom (human direction 2026-07-03: exactness first).
+// Rendered on canvas (preferCanvas) so ~1000 dots stay cheap; district badges
+// and site pins live in the marker pane, which stacks above this layer.
+function NeedDots({ needs }: { needs: NeedView[] }) {
+  return (
+    <>
+      {needs.map((v) => (
+        <CircleMarker
+          key={v.need.id}
+          center={[v.need.lat as number, v.need.lng as number]}
+          radius={6}
+          pathOptions={{
+            color: "#fff",
+            weight: 1.5,
+            fillColor: v.need.urgency === "critical" ? COLORS.critical : v.need.urgency === "high" ? COLORS.needs : COLORS.clear,
+            fillOpacity: 0.9,
+          }}
+        >
+          <Tooltip direction="top" offset={[0, -6]} opacity={1}>
+            <span style={{ fontWeight: 800 }}>
+              {CATEGORY_LABEL[v.need.category]} · {v.need.district}
+            </span>
+          </Tooltip>
+          <Popup>
+            <div style={{ font: "600 12px system-ui,sans-serif", maxWidth: 240 }}>
+              <div style={{ font: "800 13px system-ui,sans-serif" }}>
+                {CATEGORY_LABEL[v.need.category]} · {v.need.district}
+              </div>
+              {v.need.notes ? (
+                <div style={{ marginTop: 4, lineHeight: "16px" }}>
+                  {v.need.notes.length > 220 ? `${v.need.notes.slice(0, 220)}…` : v.need.notes}
+                </div>
+              ) : null}
+              {v.org ? <div style={{ color: "#5B6660", marginTop: 4 }}>Fuente: {v.org.name}</div> : null}
+            </div>
+          </Popup>
+        </CircleMarker>
+      ))}
+    </>
+  );
+}
+
 function SitePopup({ view }: { view: SiteView }) {
   const { site, org } = view;
   return (
@@ -136,10 +182,13 @@ export default function CoordinationMapLeaflet({
   board,
   activeDistrict,
   onSelect,
+  height = 440,
 }: {
   board: CoordinationView;
   activeDistrict: string | null;
   onSelect: (district: string | null) => void;
+  /** Fixed panel height in the console; "100%" in the full-screen ops view. */
+  height?: number | string;
 }) {
   // District rollups are needs-only: sites draw their own pins now, and a
   // district with sites but nothing needed shouldn't shout for attention.
@@ -167,6 +216,13 @@ export default function CoordinationMapLeaflet({
     [board],
   );
 
+  // Open needs with a trusted precise position (pin agreed with text at
+  // import/sync time); the rest stay represented by their district badge.
+  const needDots = useMemo(
+    () => board.needs.filter((v) => v.need.status === "open" && v.need.lat !== null && v.need.lng !== null),
+    [board],
+  );
+
   const markers = rollups.map((r, i) => ({ r, pos: centroidFor(r.district, i) }));
   // Frame the affected corridor: need districts plus corridor sites. Sites
   // elsewhere in the country must not drag the initial view out to all of
@@ -183,7 +239,8 @@ export default function CoordinationMapLeaflet({
       center={[REGION_CENTER.lat, REGION_CENTER.lng]}
       zoom={REGION_ZOOM}
       scrollWheelZoom
-      style={{ height: 440, width: "100%" }}
+      preferCanvas
+      style={{ height, width: "100%" }}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -191,6 +248,7 @@ export default function CoordinationMapLeaflet({
         subdomains="abcd"
         maxZoom={19}
       />
+      <NeedDots needs={needDots} />
       {siteMarkers.map((v) => (
         <Marker
           key={v.site.id}

@@ -371,7 +371,7 @@ export function CoordinationConsole() {
 
             <div className="flex flex-col gap-[8px]">
               <div className="flex flex-wrap items-center gap-[6px]">
-                <span className="w-[110px] shrink-0 text-[11px] font-extrabold uppercase tracking-wide text-[var(--hos-muted)]">
+                <span className="w-[110px] shrink-0 text-[11px] font-extrabold uppercase tracking-wide text-[var(--hos-red)]">
                   Necesidades
                 </span>
                 <FilterChip
@@ -399,7 +399,7 @@ export function CoordinationConsole() {
                 />
               </div>
               <div className="flex flex-wrap items-center gap-[6px]">
-                <span className="w-[110px] shrink-0 text-[11px] font-extrabold uppercase tracking-wide text-[var(--hos-muted)]">
+                <span className="w-[110px] shrink-0 text-[11px] font-extrabold uppercase tracking-wide text-[var(--hos-green)]">
                   Puntos de ayuda
                 </span>
                 <FilterChip

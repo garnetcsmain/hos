@@ -1,9 +1,10 @@
-// District-level geography for the coordination map. NEEDS are deliberately
-// district-only — never precise addresses (targeting risk, Board HOS-2026-007: a
-// live needs board must not become a targeting map). These are approximate
-// district CENTROIDS, so a need marker points at the district, not any exact
-// spot. Sites imported from public maps (caracasayuda.com) may carry their own
-// public lat/lng and don't use this table.
+// District-level geography for the coordination map. `district` is the coarse
+// rollup key on every record; these approximate CENTROIDS place the district
+// badges. Precise per-record positions are allowed inside the coordinator-
+// gated console (human D1 answer 2026-07-03) — but only when the record's pin
+// agrees with its text-derived district (lib/coordination/classify.ts, which
+// also keeps these names in sync with the nightly caracasayuda sync). Public
+// surfaces only ever see district grain.
 
 export interface LatLng {
   lat: number;
@@ -11,9 +12,10 @@ export interface LatLng {
 }
 
 // Approximate centroids for the affected region: the La Guaira coast, Caracas
-// (Libertador + metro Miranda) and the near valleys. Used both by the map and
-// by the caracasayuda import (scripts/), which assigns each report to its
-// nearest centroid — keep names and coordinates in sync with that script.
+// (Libertador + metro Miranda) and the near valleys. Used by the map and by
+// the caracasayuda sync classifier (lib/coordination/classify.ts), which
+// matches district names in report text and falls back to the nearest
+// centroid for in-corridor pins.
 export const DISTRICT_CENTROIDS: Record<string, LatLng> = {
   // La Guaira (Vargas) coast, west to east
   Carayaca: { lat: 10.539, lng: -67.121 },
@@ -90,8 +92,3 @@ export function centroidFor(district: string, index = 0): LatLng {
     lng: REGION_CENTER.lng + ring * Math.sin(angle),
   };
 }
-
-// A generic geographic reference the coordinator can open — the region, not any
-// specific site.
-export const REGION_MAPS_LINK =
-  "https://www.google.com/maps/place/La+Guaira,+Venezuela/@10.56,-66.95,11z";
