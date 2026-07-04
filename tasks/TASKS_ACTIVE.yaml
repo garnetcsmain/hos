@@ -6,12 +6,12 @@
 ---
 
 # Task Summary
-total_tasks: 15
+total_tasks: 16
 in_backlog: 5
-in_sprint: 10
+in_sprint: 11
 in_progress: 4
 in_review: 0
-done: 8
+done: 9
 
 # Current Sprint
 current_sprint: "2026-W26"
@@ -94,7 +94,11 @@ epics:
     status: "planning"
     progress: "0%"
     board_status: "Full 5-persona board run 2026-07-02 — RESHAPE toward Option B (assume adversarial state, minimize now); reject A (leaves the named exposure) and C (rebuilds the bunker ahead of Phase 0). Core adversary classification (D1) ESCALATED to human — a board of AI agents must not decide whether the Venezuelan state is in scope; this is the 4th review to name it unanswered. Decisive reshape: field-level encryption is NOT a state-adversary control when the key is co-located with the ciphertext on a foreign-hosted Supabase DB (only crypto in the tree today is randomUUID + timingSafeEqual) — labeling it one would violate the honesty principle; minimization (collect less) + audit-log retention (stop keeping a permanent free-text who-helped-which-family ledger in events.payload) are the controls that actually hold, and both ship now with no external dependency. SHIP-NOW pile (no creds, no political answer): (D3) event-log payload minimization + retention TTL + query-access policy; (D4) close/coarsen the LIVE unauthenticated public search oracle (api/search returns givenName+city+status by bare name — the D3 re-identification CRITICAL, still live in main); (D2) write the field-by-field data-minimization classification; (D4/D5) write the tiered-visibility spec + reachability plan as docs. BLOCKED/ESCALATED pile: (D1) human adversary answer; (D2) field encryption WITH a real key-custody/jurisdiction design (needs human + ideally legal); (D4) ENFORCED refugee/volunteer/coordinator tiers — hard-blocked on Postgres (BLK-001) + a role primitive that does not exist (HOS-2026-011); (D5) heavier censorship-resilience infra — separate later gate only if blocking judged live and only without regressing Phase 0."
-    tasks: []  # no implementation tasks yet. Ship-now pile (oracle-narrowing, event-log retention/minimization, field-classification doc) can be scheduled as tactical hardening once the human confirms the interim; enforced tiers/encryption await the D1 answer + Postgres/role substrate.
+    tasks:
+      # Ship-now pile (no creds, no political answer). D3 payload-minimization
+      # landed 2026-07-04; oracle-narrowing (D4) awaits a quick human OK per the
+      # Judge's escalate note; enforced tiers/encryption await D1 + Postgres/role.
+      - { id: "HOS-2026-008-01", title: "D3 ship-now: stop persisting free-text notes in the append-only event log; document retention + query-access policy", owner: "DEV", status: "done", priority: "HIGH", note: "Judge D3 condition #1 landed 2026-07-04. familyReach.ts (family.reached / family.reach_attempted) and coordination.ts (need.received/cancelled) no longer write the coordinator's free-text note into events.payload; they record noteProvided:boolean instead. Full attribution (actor/type/entity/occurred_at/case linkage) preserved; timeline + forensic history intact. Regression test locks it in (a note carrying a phone number never lands in the stored payload). Retention TTL + query-access policy written to docs/decision-log/.../ship-now-d3-audit-log-retention.md; historical payload-redaction/prune job deferred to land with Postgres (BLK-001) since deleting rows would break the append-only invariant. Clean build + typecheck + lint + 89/89 tests." }
 
   - epic_id: "HOS-2026-009"
     title: "Unaccompanied-minor check-in and missing-child soft alert (non-biometric, non-tracking by default)"
@@ -182,7 +186,7 @@ epics:
 - [x] Run the board on HOS-2026-008 (operating threat model / adversarial-state posture) — 2026-07-02, see judge_decision.yaml
 - [ ] Get the human's binding answer to HOS-2026-008-D1: is the Venezuelan state in scope as an adversary against this data? (4th review to name it; Board recommends answering YES in writing). Unblocks the D3 public-search/auth escalation below and HOS-2026-007's deferred public feed.
 - [ ] Decide HOS-2026-008-D2 key custody/jurisdiction (needs human + ideally legal) before any field encryption can count as a state-adversary control
-- [ ] Schedule the HOS-2026-008 SHIP-NOW pile (needs no creds/political answer): (1) close/coarsen the live public search existence oracle, (2) event-log payload minimization + retention TTL, (3) write the data-minimization field-classification doc — pending a quick human OK to do interim hardening
+- [~] Schedule the HOS-2026-008 SHIP-NOW pile (needs no creds/political answer): (1) close/coarsen the live public search existence oracle — STILL OPEN, awaits a quick human OK per the Judge escalate note (product-behavior change), (2) event-log payload minimization + retention TTL — DONE 2026-07-04 (HOS-2026-008-01: free-text notes out of events.payload, policy documented, prune deferred to Postgres), (3) write the data-minimization field-classification doc — STILL OPEN
 - [ ] Run the board on HOS-2026-009 (unaccompanied-minor check-in) — sequence behind the HOS-2026-008 posture landing per its own notes
 - [ ] Get human sign-off on the D3 (auth/public-search) and D1 (cloud-AI DPA) escalations
 - [ ] Provision Tier-1 dependencies (coordinator token, DB, one AI key) — EXTERNAL_DEPENDENCIES.md

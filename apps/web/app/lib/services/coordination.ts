@@ -193,7 +193,10 @@ export async function transitionNeed(input: NeedTransitionInput): Promise<Need> 
       entityId: need.id,
       type: eventType,
       actor,
-      payload: { from: need.status, to: status, note: input.note },
+      // Attribution only in the durable log; the free-text note can carry
+      // re-contact detail and is kept out of the append-only event store
+      // (Board HOS-2026-008-D3).
+      payload: { from: need.status, to: status, noteProvided: input.note.length > 0 },
     });
   });
   return { ...need, status, claimedByOrgId, updatedAt: nowIso() };

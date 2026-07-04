@@ -100,7 +100,13 @@ export async function recordFamilyReach(input: FamilyReachInput): Promise<Family
         // family (Board D4). This is what "delivered" means here.
         type: "family.reached",
         actor,
-        payload: { missingId: notification.missingId, note: input.note },
+        // Attribution only in the durable, append-only log (Board HOS-2026-008-D3):
+        // who reached which family, when — never the coordinator's free-text
+        // contact note, which can carry re-contact PII (a phone number, an address,
+        // "she is hiding at..."). We record THAT a note was taken, not its content,
+        // so a permanent "who helped which family" ledger cannot be compelled or
+        // leaked out of the event store.
+        payload: { missingId: notification.missingId, noteProvided: input.note.length > 0 },
       });
 
       // Now — and only now — the case becomes publicly "resolved".
@@ -131,7 +137,9 @@ export async function recordFamilyReach(input: FamilyReachInput): Promise<Family
         entityId: notification.id,
         type: "family.reach_attempted",
         actor,
-        payload: { missingId: notification.missingId, note: input.note },
+        // Attribution only — no free-text note in the durable log (see above,
+        // Board HOS-2026-008-D3).
+        payload: { missingId: notification.missingId, noteProvided: input.note.length > 0 },
       });
     }
   });
