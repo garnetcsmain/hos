@@ -220,6 +220,7 @@ function SearchPanel() {
           {t("form.search", L)}
         </button>
       </div>
+      <p className="text-[12px] font-bold leading-[16px] text-[var(--hos-muted)]">{t("search.promise", L)}</p>
       {loading ? <p className="text-[13px] font-bold text-[var(--hos-muted)]">{t("result.submitting", L)}</p> : null}
       {data && rows.length === 0 && !loading ? <p className="text-[13px] font-bold text-[var(--hos-muted)]">{t("search.noResults", L)}</p> : null}
       <div className="flex flex-col gap-[10px]">

@@ -45,9 +45,9 @@ active_blockers:
 
 # Risk Summary (raised by the Board, HOS-2026-002)
 risks:
-  - status: "open"
+  - status: "partially mitigated"
     severity: "CRITICAL"
-    note: "Open public name+city search enables re-identification of people in hiding — needs a Venezuela-2026 threat-model sign-off (Board D3)."
+    note: "Public search was a full-name existence oracle (search.ts matched the query against each record's FULL name + city), letting an unauthenticated caller confirm a specific named person is present. SHIPPED 2026-07-06 (HOS-2026-008-D4 ship-now): public search is now a case-number-only lookup — a bare name or city returns nothing; only a caller who already holds the case number (or its 6-char code) can confirm a case, and only the least-PII projection. Plain-language promise surfaced in both search UIs. Residual coarser surface: the /api/missing and /api/found registry LISTINGS still expose first-name-only least-PII projections (no surname) to the public; enforcing tiered visibility on those is HOS-2026-001-08 (blocked on the role primitive + Postgres BLK-001). The core D1 adversary classification remains escalated to the human."
   - status: "mitigated"
     severity: "CRITICAL"
     note: "Fail-open coordinator auth — fixed to fail-closed per request with explicit HOS_DEV_OPEN, and (2026-06-30) a boot guard now refuses to START an unconfigured non-local deploy instead of silently serving 503s (HOS-2026-001-11)."
@@ -76,7 +76,7 @@ epics:
       - { id: "HOS-2026-001-08", title: "Real auth, roles, and org isolation", owner: "CTO", status: "in_progress", priority: "HIGH" }
       - { id: "HOS-2026-001-09", title: "External notification channels (WhatsApp/SMS/email/Telegram)", owner: "DEV", status: "todo", priority: "HIGH" }
       - { id: "HOS-2026-001-10", title: "Geocoding + maps (real location factor)", owner: "DEV", status: "todo", priority: "MEDIUM" }
-      - { id: "HOS-2026-001-11", title: "Harden access: fail-closed gate + abuse protection", owner: "DEV", status: "in_progress", priority: "CRITICAL" }
+      - { id: "HOS-2026-001-11", title: "Harden access: fail-closed gate + abuse protection", owner: "DEV", status: "in_progress", priority: "CRITICAL", note: "EOD 2026-07-06: closed the public search re-identification oracle (HOS-2026-008-D4 ship-now). searchPublic no longer matches on fullName/city — case-number-only lookup (full number or 6-char code, min 6 chars so no prefix browsing). Added a plain-language promise to both search UIs ('only someone who already has the case number can confirm this person is here'). 4 new hermetic tests pin the closed oracle; 92/92 pass; clean build:web. Residual: registry list endpoints still serve first-name least-PII projections publicly — that is the enforced-tiering half (HOS-2026-001-08), blocked on roles + Postgres." }
       - { id: "HOS-2026-001-12", title: "Notification honesty (queued-not-sent) + family-reach path", owner: "DEV", status: "in_progress", priority: "HIGH" }
       - { id: "HOS-2026-001-13", title: "Matching trust hardening (Board D1 conditions)", owner: "DEV", status: "in_progress", priority: "HIGH" }
 
@@ -182,7 +182,8 @@ epics:
 - [x] Run the board on HOS-2026-008 (operating threat model / adversarial-state posture) — 2026-07-02, see judge_decision.yaml
 - [ ] Get the human's binding answer to HOS-2026-008-D1: is the Venezuelan state in scope as an adversary against this data? (4th review to name it; Board recommends answering YES in writing). Unblocks the D3 public-search/auth escalation below and HOS-2026-007's deferred public feed.
 - [ ] Decide HOS-2026-008-D2 key custody/jurisdiction (needs human + ideally legal) before any field encryption can count as a state-adversary control
-- [ ] Schedule the HOS-2026-008 SHIP-NOW pile (needs no creds/political answer): (1) close/coarsen the live public search existence oracle, (2) event-log payload minimization + retention TTL, (3) write the data-minimization field-classification doc — pending a quick human OK to do interim hardening
+- [x] HOS-2026-008 SHIP-NOW (1): close the live public search existence oracle — DONE 2026-07-06 (case-number-only lookup + plain-language promise; see docs/decision-log/2026-07-01-HOS-008-threat-model-operating-posture/ship-now-delivery.md)
+- [ ] HOS-2026-008 SHIP-NOW remaining (needs no creds/political answer): (2) event-log payload minimization + retention TTL (D3), (3) write the data-minimization field-classification doc (D2), (4) enforced tiered visibility on the registry LISTINGS is the blocked half (HOS-2026-001-08, roles + Postgres)
 - [ ] Run the board on HOS-2026-009 (unaccompanied-minor check-in) — sequence behind the HOS-2026-008 posture landing per its own notes
 - [ ] Get human sign-off on the D3 (auth/public-search) and D1 (cloud-AI DPA) escalations
 - [ ] Provision Tier-1 dependencies (coordinator token, DB, one AI key) — EXTERNAL_DEPENDENCIES.md
