@@ -45,9 +45,9 @@ active_blockers:
 
 # Risk Summary (raised by the Board, HOS-2026-002)
 risks:
-  - status: "open"
+  - status: "partially mitigated"
     severity: "CRITICAL"
-    note: "Open public name+city search enables re-identification of people in hiding — needs a Venezuela-2026 threat-model sign-off (Board D3). (Search-oracle narrowing is in-flight as PR #33, not yet merged.)"
+    note: "Public search was a full-name existence oracle (search.ts matched the query against each record's FULL name + city), letting an unauthenticated caller confirm a specific named person is present. SHIPPED 2026-07-06 (HOS-2026-008-D4 ship-now): public search is now a case-number-only lookup — a bare name or city returns nothing; only a caller who already holds the case number (or its 6-char code) can confirm a case, and only the least-PII projection. Plain-language promise surfaced in both search UIs. Residual coarser surface: the /api/missing and /api/found registry LISTINGS still expose first-name-only least-PII projections (no surname) to the public; enforcing tiered visibility on those is HOS-2026-001-08 (blocked on the role primitive + Postgres BLK-001). The core D1 adversary classification remains escalated to the human."
   - status: "mitigated"
     severity: "HIGH"
     note: "Public 'Fallecida' leak — the unauthenticated /api/found list and public search published each found person's raw condition, so a family could read a bare 'deceased' status before any coordinator reached them (the exact Board HOS-2026-002-D4 / family-reach dignity failure). Fixed 2026-07-07 at the projection chokepoint: toPublicFound now withholds the deceased condition (surfaced as the undisclosed 'unknown' band); the true condition stays server-side for coordinators and is disclosed only through the human family-reach obligation. Regression tests pin it. Distinct from the search-oracle work (PR #33) and the D2 docs (PR #30/#32) — this closes the death-disclosure exposure those PRs only named."
@@ -79,7 +79,7 @@ epics:
       - { id: "HOS-2026-001-08", title: "Real auth, roles, and org isolation", owner: "CTO", status: "in_progress", priority: "HIGH" }
       - { id: "HOS-2026-001-09", title: "External notification channels (WhatsApp/SMS/email/Telegram)", owner: "DEV", status: "todo", priority: "HIGH" }
       - { id: "HOS-2026-001-10", title: "Geocoding + maps (real location factor)", owner: "DEV", status: "todo", priority: "MEDIUM" }
-      - { id: "HOS-2026-001-11", title: "Harden access: fail-closed gate + abuse protection", owner: "DEV", status: "in_progress", priority: "CRITICAL" }
+      - { id: "HOS-2026-001-11", title: "Harden access: fail-closed gate + abuse protection", owner: "DEV", status: "in_progress", priority: "CRITICAL", note: "EOD 2026-07-06: closed the public search re-identification oracle (HOS-2026-008-D4 ship-now). searchPublic no longer matches on fullName/city — case-number-only lookup (full number or 6-char code, min 6 chars so no prefix browsing). Added a plain-language promise to both search UIs ('only someone who already has the case number can confirm this person is here'). 4 new hermetic tests pin the closed oracle; 92/92 pass; clean build:web. Residual: registry list endpoints still serve first-name least-PII projections publicly — that is the enforced-tiering half (HOS-2026-001-08), blocked on roles + Postgres." }
       - { id: "HOS-2026-001-12", title: "Notification honesty (queued-not-sent) + family-reach path", owner: "DEV", status: "in_progress", priority: "HIGH", note: "EOD 2026-07-07: closed a live Board-D4 dignity leak — the public /api/found list and public search were publishing the raw 'deceased' condition to unauthenticated callers, so a family could read a bare 'Fallecida' before a coordinator spoke to them. Fix withholds the sensitive condition in toPublicFound (the single public-projection chokepoint covering both surfaces); mirrors services/familyReach.ts isSensitiveOutcome without importing the service layer into the pure domain module. +4 regression tests (projections.test.ts), 92/92 pass, clean build:web." }
       - { id: "HOS-2026-001-13", title: "Matching trust hardening (Board D1 conditions)", owner: "DEV", status: "in_progress", priority: "HIGH" }
 
@@ -191,7 +191,7 @@ epics:
 - [ ] Decide HOS-2026-008-D2 key custody/jurisdiction (needs human + ideally legal) before any field encryption can count as a state-adversary control
 - [x] Write the HOS-2026-008 SHIP-NOW specs (2026-07-03, docs/security/HOS-2026-008-data-minimization-and-posture.md): D2 field-classification (PRIMARY), D3 event-log/retention plan, D4 tiered-visibility spec + oracle-narrowing design, D5 reachability plan
 - [x] HOS-2026-008 D3 event-log CODE landed 2026-07-04 (PR #31): free-text notes no longer persisted in events.payload (noteProvided:boolean); retention TTL + query-access policy documented; historical prune deferred to Postgres (HOS-2026-008-02)
-- [ ] Confirm interim OK to land the D4b oracle-narrowing CODE (case-number match + drop public `condition` + plain-language promise) — the one-line human confirm the judge asked for; changes core family-facing search UX (HOS-2026-008-03, CRITICAL, currently blocked on this confirm)
+- [x] HOS-2026-008 SHIP-NOW D4b: close the live public search existence oracle — DONE 2026-07-06 (PR #33, human-confirmed 2026-07-07; case-number-only lookup + plain-language promise; see docs/decision-log/2026-07-01-HOS-008-threat-model-operating-posture/ship-now-delivery.md). Residual coarse first-name registry listing remains the enforced-tiering half (HOS-2026-001-08).
 - [ ] Run the board on HOS-2026-009 (unaccompanied-minor check-in) — sequence behind the HOS-2026-008 posture landing per its own notes
 - [ ] Get human sign-off on the D3 (auth/public-search) and D1 (cloud-AI DPA) escalations
 - [ ] Provision Tier-1 dependencies (coordinator token, DB, one AI key) — EXTERNAL_DEPENDENCIES.md

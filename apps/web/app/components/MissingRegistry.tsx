@@ -224,6 +224,9 @@ export function MissingRegistry() {
               {t("form.search", L)}
             </button>
           </div>
+          <p className="text-[12px] font-bold leading-[16px] text-[var(--hos-muted)]">
+            {t("search.promise", L)}
+          </p>
         </section>
 
         {searchData || searching || searchError ? (
