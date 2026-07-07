@@ -57,7 +57,7 @@ const es: Dict = {
   "form.submit.found": "Crear reporte de encontrado",
   "form.cancel": "Cancelar",
   "form.search": "Buscar",
-  "form.searchPlaceholder": "Nombre, ciudad o número de caso",
+  "form.searchPlaceholder": "Número de caso (p. ej. MP-VE-A1B2C3)",
 
   "result.caseCreated": "Reporte creado",
   "result.caseNumber": "Número de caso",
@@ -76,6 +76,7 @@ const es: Dict = {
   "search.noResults": "Sin resultados.",
   "search.missingTitle": "Reportes de desaparecidos",
   "search.foundTitle": "Reportes de encontrados",
+  "search.promise": "Solo quien ya tiene el número de caso puede confirmar que esta persona está aquí. Buscar por nombre o ciudad ya no muestra resultados.",
 };
 
 const en: Dict = {
@@ -126,7 +127,7 @@ const en: Dict = {
   "form.submit.found": "Create found report",
   "form.cancel": "Cancel",
   "form.search": "Search",
-  "form.searchPlaceholder": "Name, city, or case number",
+  "form.searchPlaceholder": "Case number (e.g. MP-VE-A1B2C3)",
 
   "result.caseCreated": "Report created",
   "result.caseNumber": "Case number",
@@ -145,6 +146,7 @@ const en: Dict = {
   "search.noResults": "No results.",
   "search.missingTitle": "Missing reports",
   "search.foundTitle": "Found reports",
+  "search.promise": "Only someone who already has the case number can confirm this person is here. Searching by name or city no longer returns results.",
 };
 
 const DICTS: Record<Locale, Dict> = { es, en };
