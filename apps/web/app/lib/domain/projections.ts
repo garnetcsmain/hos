@@ -49,6 +49,20 @@ export function toPublicMissing(report: MissingReport): PublicMissing {
   };
 }
 
+// A grave outcome must never be learned from a bare status word on an anonymous
+// public surface. "deceased" is the sensitive outcome (mirrors
+// services/familyReach.ts isSensitiveOutcome / Board HOS-2026-002-D4): a family
+// must hear it from a coordinator, in person where possible — never by reading
+// "Fallecida" on the public found list or search before anyone has spoken to
+// them. The true condition stays server-side for authorized coordinator views
+// and is disclosed through the human family-reach obligation; publicly it is
+// withheld, surfaced as the undisclosed "unknown" band. Kept in step with
+// isSensitiveOutcome by hand — projections is a pure domain module and must not
+// import the service layer's repository/db chain.
+function publicCondition(condition: Condition): Condition {
+  return condition === "deceased" ? "unknown" : condition;
+}
+
 export function toPublicFound(report: FoundReport): PublicFound {
   return {
     id: report.id,
@@ -56,7 +70,7 @@ export function toPublicFound(report: FoundReport): PublicFound {
     ageBand: ageBand(report.age),
     sex: report.sex,
     city: report.city,
-    condition: report.condition,
+    condition: publicCondition(report.condition),
     status: report.status,
     createdAt: report.createdAt,
   };

@@ -47,7 +47,10 @@ active_blockers:
 risks:
   - status: "open"
     severity: "CRITICAL"
-    note: "Open public name+city search enables re-identification of people in hiding — needs a Venezuela-2026 threat-model sign-off (Board D3)."
+    note: "Open public name+city search enables re-identification of people in hiding — needs a Venezuela-2026 threat-model sign-off (Board D3). (Search-oracle narrowing is in-flight as PR #33, not yet merged.)"
+  - status: "mitigated"
+    severity: "HIGH"
+    note: "Public 'Fallecida' leak — the unauthenticated /api/found list and public search published each found person's raw condition, so a family could read a bare 'deceased' status before any coordinator reached them (the exact Board HOS-2026-002-D4 / family-reach dignity failure). Fixed 2026-07-07 at the projection chokepoint: toPublicFound now withholds the deceased condition (surfaced as the undisclosed 'unknown' band); the true condition stays server-side for coordinators and is disclosed only through the human family-reach obligation. Regression tests pin it. Distinct from the search-oracle work (PR #33) and the D2 docs (PR #30/#32) — this closes the death-disclosure exposure those PRs only named."
   - status: "mitigated"
     severity: "CRITICAL"
     note: "Fail-open coordinator auth — fixed to fail-closed per request with explicit HOS_DEV_OPEN, and (2026-06-30) a boot guard now refuses to START an unconfigured non-local deploy instead of silently serving 503s (HOS-2026-001-11)."
@@ -77,7 +80,7 @@ epics:
       - { id: "HOS-2026-001-09", title: "External notification channels (WhatsApp/SMS/email/Telegram)", owner: "DEV", status: "todo", priority: "HIGH" }
       - { id: "HOS-2026-001-10", title: "Geocoding + maps (real location factor)", owner: "DEV", status: "todo", priority: "MEDIUM" }
       - { id: "HOS-2026-001-11", title: "Harden access: fail-closed gate + abuse protection", owner: "DEV", status: "in_progress", priority: "CRITICAL" }
-      - { id: "HOS-2026-001-12", title: "Notification honesty (queued-not-sent) + family-reach path", owner: "DEV", status: "in_progress", priority: "HIGH" }
+      - { id: "HOS-2026-001-12", title: "Notification honesty (queued-not-sent) + family-reach path", owner: "DEV", status: "in_progress", priority: "HIGH", note: "EOD 2026-07-07: closed a live Board-D4 dignity leak — the public /api/found list and public search were publishing the raw 'deceased' condition to unauthenticated callers, so a family could read a bare 'Fallecida' before a coordinator spoke to them. Fix withholds the sensitive condition in toPublicFound (the single public-projection chokepoint covering both surfaces); mirrors services/familyReach.ts isSensitiveOutcome without importing the service layer into the pure domain module. +4 regression tests (projections.test.ts), 92/92 pass, clean build:web." }
       - { id: "HOS-2026-001-13", title: "Matching trust hardening (Board D1 conditions)", owner: "DEV", status: "in_progress", priority: "HIGH" }
 
   - epic_id: "HOS-2026-006"
