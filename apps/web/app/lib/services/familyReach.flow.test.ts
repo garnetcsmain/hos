@@ -150,6 +150,35 @@ test("an unreachable attempt is tracked and leaves the case matched", async () =
   assert.ok(types.includes("family.reach_attempted"));
 });
 
+test("the durable event log keeps attribution but not the free-text note (Board HOS-2026-008-D3)", async () => {
+  const { candidate } = await seedPair("D");
+  const { notificationId } = await confirm(candidate.id);
+
+  // A coordinator note that carries re-contact PII (a phone number) must never
+  // land in the permanent, append-only event store.
+  const secret = "llamar al +58 412 555 1942, escondida en casa de su tia";
+  await recordFamilyReach({
+    notificationId: notificationId!,
+    outcome: "reached",
+    coordinatorOrg: "Cruz Roja",
+    note: secret,
+  });
+
+  const reached = (await eventsForEntities([notificationId!])).find(
+    (e) => e.type === "family.reached",
+  );
+  assert.ok(reached, "the receipt event is written");
+  // Attribution survives...
+  assert.equal(reached!.actor, "coordinator:Cruz Roja");
+  assert.equal(reached!.payload.noteProvided, true, "records THAT a note was taken");
+  // ...but the free-text content does not.
+  assert.equal(reached!.payload.note, undefined, "no free-text note in the durable log");
+  assert.ok(
+    !JSON.stringify(reached!.payload).includes("+58"),
+    "no re-contact PII anywhere in the event payload",
+  );
+});
+
 test("recordFamilyReach rejects a notification that is not an obligation", async () => {
   await insertNotification({
     id: "NT-NOTOBLIG",
