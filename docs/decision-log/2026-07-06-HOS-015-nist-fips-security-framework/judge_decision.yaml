@@ -1,0 +1,214 @@
+decision_id: "HOS-2026-015"
+phase: "judge_synthesis"
+date: "2026-07-08"
+judge: "Judge Agent (synthesized by Executive Orchestrator from 5 full board reviews)"
+board_inputs_considered: [contrarian, expansionist, principals, researcher, user]
+
+verdict: "GREEN_LIGHT"
+approved_option: "B-nist-fips-as-vocabulary-and-hygiene-floor"
+confidence: 0.82
+
+rationale: >
+  The board converges: adopt Option B. This is not a new security direction — it is a
+  re-framing plus completion of decisions HOS already reasoned to independently (the
+  HOS-2026-008 ship-now pile), wrapped in a vocabulary external parties recognize, plus a
+  small number of genuinely net-new, low-cost items. Because it introduces no new political
+  question (HOS-008-D1, state-in-scope, is already answered YES) and no new external
+  dependency for its core, it clears the strategic-review bar and may proceed to the tactical
+  work it authorizes. Option A (status quo, no framework) is rejected by every reviewer as a
+  nearly-free opportunity missed: it leaves HOS illegible to the funders and partner agencies
+  that reach more families, and answers the human principal's explicit request with "we do
+  security, just not in your terms." Option C (full compliance program: FIPS 140-3 validated
+  modules, full 800-53 baseline, formal audit) is rejected as firmly — it is the exact
+  Option-C "build the bunker ahead of the mission" pattern the board already ring-fenced in
+  HOS-2026-007 and HOS-2026-008-D5, it certifies against a model that is not our worst case
+  (a validated module does not defeat a legal order served on the foreign host), and it would
+  displace the unfinished Phase-0 reunification mission. The single most important
+  cross-reviewer finding is one the proposal already half-states and the board makes binding:
+  the *legibility* this move creates is a bigger megaphone for the security story than ad-hoc
+  security ever was, and the apex threat — lawful compulsion of the Supabase/Vercel host — is
+  untouched by anything in this packet. The controls that actually hold there (collect less,
+  don't retain a free-text who-helped-whom ledger, key custody outside the compellable
+  jurisdiction) are HOS-008's, not NIST's. Therefore the framework is approved as a
+  complement to — never a substitute for — those controls, and that sentence must live inside
+  every artifact HOS shows the outside world, not just in this decision file. Three smaller
+  reshapes ride along: the one genuinely-open hole in the packet (the Postgres TLS
+  peer-authentication defect) is promoted to the lead code action; "coordinator AAL2" is split
+  into the honest MFA-now / attribution-with-HOS-001-08 halves so we never report an identity
+  assurance the code has not reached; and the outward-facing posture is cross-mapped to ISO
+  27001 / the ICRC data-protection canon, because the humanitarian partners whose doors this is
+  meant to open speak those, not US-federal NIST/FIPS.
+
+decisions:
+  - id: "HOS-2026-015-D1"
+    title: "Adopt NIST/FIPS as vocabulary + hygiene floor (Option B), decline 140-3 validation and full 800-53 compliance"
+    verdict: "GREEN_LIGHT"
+    confidence: 0.86
+    rationale: >
+      Unanimous direction. Principals confirms the internal logic holds and the
+      FIPS-approved-algorithm vs FIPS-140-3-validated-module distinction is the load-bearing,
+      correctly-drawn line (a coding standard at near-zero cost vs a procurement/ops burden
+      that buys ~nothing against our threat model). Researcher independently confirms the same
+      distinction and that declining 140-3 leaves no real gap for any plausible HOS adversary.
+      Expansionist supplies the affirmative case: a recognized posture is a passport that lets
+      partner agencies onboard onto a shared instance, multiplying reach — the upside is real
+      and cheap because the underlying work is done anyway. Adopt CSF 2.0 as the index over the
+      existing decision-log, FIPS 199 (C:HIGH, I:HIGH, A:MODERATE) as the one-page
+      categorization, the NIST Privacy Framework framing over the already-decided
+      minimization/retention work, the SP 800-63 identity targets, and 800-53 strictly as a
+      reference namer for the ~20 controls HOS actually implements.
+    conditions:
+      - "Keep the vocabulary THIN (Principals/Occam): CSF as an index, FIPS 199 as one page, the crypto rule as a paragraph in AGENTS.md sec 3, 800-53 as a reference list only. Do NOT author a compliance binder or drift the 800-53 reference into a control-by-control self-assessment. Every hour spent past 'legible' is the mission-displacement risk the board rejected in Option C."
+      - "DECLINE FIPS 140-3 validated-module / 'FIPS mode' and full 800-53/800-171 compliance in the record, not just in intent, scoped as revisitable only on a specific funder/government written mandate (then as that partner's line item)."
+
+  - id: "HOS-2026-015-D2"
+    title: "The honesty guardrail: NIST/FIPS is a complement to, not a substitute for, the controls that hold against host compulsion"
+    verdict: "GREEN_LIGHT (binding condition — the hinge of the whole decision)"
+    confidence: 0.88
+    rationale: >
+      Contrarian Flaw 1, Principals (Trust-and-honesty ALIGNED only-if), and User friction 2
+      are the same finding from three directions: a named framework is a louder claim than
+      ad-hoc security, and the apex threat is untouched by it. The proposal itself names this
+      (risk #2) and offers success_criterion #5 as the mitigation. The board makes that
+      mitigation binding and structural rather than aspirational. This is the direct descendant
+      of the HOS-008 ruling that 'a protection we claim but do not deliver is the same failure
+      as a delivery we claim but do not make, applied to safety.' The User makes the stakes
+      concrete: if 'NIST-secure' ever reaches a frightened family as a promise of safety against
+      the state, and someone is exposed anyway, the betrayal is total.
+    conditions:
+      - "The complement-not-substitute statement is a TEMPLATE-LEVEL gate: no artifact HOS shows externally (the CSF index, the FIPS 199 categorization, the 800-53 control-reference list) may omit the one-sentence limit — 'NIST/FIPS alignment is HOS's hygiene floor and shared vocabulary; it does NOT defend against legal compulsion of the host, which is addressed only by data minimization, non-retention, and key custody outside the compellable jurisdiction.' In the proposal file is necessary but NOT sufficient."
+      - "The framework name stays OUT of user-facing copy entirely (User friction 2). What a family is told must be true and plain (minimization, closed oracle, coordinator MFA), never 'we are NIST-secure' — a phrase that could lie to the person with the most at stake."
+
+  - id: "HOS-2026-015-D3"
+    title: "Fix the Postgres TLS peer-authentication defect — the one genuinely-open hole in the packet"
+    verdict: "GREEN_LIGHT (promote to the LEAD code action; tactical hygiene, ship-now)"
+    confidence: 0.85
+    rationale: >
+      Contrarian Flaw 3 and Researcher both verified this against the code and found it real
+      and slightly worse than the proposal states: db/backends/postgres.ts sslConfig() returns
+      { rejectUnauthorized: false } not only on the hosted default (line 28) but ALSO when an
+      operator explicitly sets HOS_PG_SSL=require (line 24) — the comment literally says 'don't
+      hard-fail verification.' So the responsible operator who asks for 'require' still gets TLS
+      with no peer authentication, MITM-able against the Supabase pooler. It is latent only
+      because no DATABASE_URL is deployed yet (BLK-001). This is the single concrete
+      vulnerability in the whole framework packet and the only net-new item that closes an
+      actually-open hole (the crypto rule locks in an already-good state; MFA is gated on
+      attribution work). It is a tactical security fix and does not itself require the strategic
+      wrapper — it goes straight to work.
+    conditions:
+      - "Pin the Supabase root CA and set rejectUnauthorized: true for all remote/hosted SSL modes (require and the hosted default); keep ssl:false only for verified localhost/loopback. Ship as its own small, focused PR."
+      - "Add a regression/config test asserting that a hosted connection string does NOT yield rejectUnauthorized:false, so the defect cannot silently return."
+
+  - id: "HOS-2026-015-D4"
+    title: "Identity assurance: split 'coordinator AAL2' into MFA-now vs per-person-attribution (HOS-001-08); adopt the crypto rule with enforcement in mind"
+    verdict: "RESHAPE"
+    confidence: 0.80
+    rationale: >
+      Contrarian Flaw 2, Principals logic-check #3, and Researcher concur: the proposal
+      conflates 'enable Supabase TOTP' (cheap, real, ship-now) with 'achieve AAL2 with
+      per-person attribution' (the actual point of AAL2), which requires retiring the shared
+      HOS_COORDINATOR_TOKEN (auth.ts:22-46) and is HOS-2026-001-08 work, still in progress and
+      partially blocked. Reporting 'coordinators at AAL2' while the shared break-glass token
+      still works and actions still read coordinator:<org> rather than coordinator:<person>
+      would overstate identity assurance in exactly the audit log an investigation relies on.
+      Separately, the AGENTS.md sec 3 approved-algorithm rule is correct and near-free (audit
+      found zero current violations — ids.ts:5 randomUUID and auth.ts:15 timingSafeEqual
+      verified as the only crypto sites), but a written rule with no enforcement is latent debt.
+    conditions:
+      - "Split the item: (a) 'enable Supabase MFA/TOTP for coordinators' — ship-now, real, low-cost; (b) 'per-person attribution / retire shared token to break-glass' — sequenced WITH HOS-2026-001-08, and AAL2 is NOT reported as achieved until both (a) and (b) hold."
+      - "Add the SP 800-131A approved-algorithm rule to AGENTS.md sec 3 (approved: AES-256-GCM, SHA-256/512, HMAC-SHA-256, HKDF/PBKDF2, Ed25519/ECDSA-P256, crypto.randomUUID/getRandomValues; banned: MD5, SHA-1, 3DES, RC4, AES-ECB, Math.random for security). Prefer a lightweight lint/CI check; if not feasible now, state explicitly in the rule that enforcement is review-only so the gap is visible, not silent."
+      - "Bake PIN throttling + a non-exportable device key into the HOS-2026-010 build when it lands (800-63B); not net-new work here, but carried as a named 800-63 requirement on that epic."
+
+  - id: "HOS-2026-015-D5"
+    title: "Outward-facing legibility: cross-map to ISO 27001 / ICRC data-protection canon, not NIST/FIPS alone"
+    verdict: "RESHAPE"
+    confidence: 0.74
+    rationale: >
+      Researcher's substantive correction, supported by Expansionist's resource-bottleneck
+      note: the proposal assumes 'funders, ICRC/UNHCR/OCHA, and legal counsel already speak
+      NIST/FIPS.' Partially contradicted. Humanitarian partners predominantly evaluate against
+      ISO/IEC 27001 (+27701) and the data-protection canon of the sector — the ICRC Handbook on
+      Data Protection in Humanitarian Action, UNHCR's data-protection policy, and the OCHA/IASC
+      data-responsibility guidelines — which are GDPR-lineage, not US-federal. NIST/FIPS is most
+      legible to US funders and US-critical-infrastructure-adjacent partners. NIST/FIPS remains
+      the better ENGINEERING vocabulary (800-63 identity, the algorithm suite) and should be
+      adopted as such; but the PARTNERSHIP-legibility claim should be carried by a cross-map to
+      ISO 27001 / ICRC, authored cheaply now while the document is fresh rather than retrofitted.
+      The magnitude is uncertain (it depends on an unknown funder/partner pipeline), so this is a
+      reshape, not a blocker.
+    conditions:
+      - "The outward-facing security artifact must cross-map the posture to ISO 27001 (and name the ICRC Handbook on Data Protection in Humanitarian Action as the governing DP frame) alongside the CSF/FIPS-199/800-53 mapping. NIST/FIPS internal, ISO/ICRC outward — mapped once, now."
+      - "Before leaning on the passport, identify whether the concrete near-term funder/partner is US-based (NIST is the right passport) or EU/UN-based (ISO/ICRC is). Do not publish a NIST-only passport if the doors are ISO-shaped. Carry as an open input, not a build blocker."
+
+  - id: "HOS-2026-015-D6"
+    title: "Detect maturity + incident-response runbook: the honestly-weakest function"
+    verdict: "GREEN_LIGHT (as named, honestly-scoped actions — not claimed as in-flight coverage)"
+    confidence: 0.78
+    rationale: >
+      The crosswalk's own assessment (sec 2) is that HOS is strong on Govern/Identify and
+      weakest on Detect — no active detection, no Sentry wired (EXTERNAL_DEPENDENCIES #13),
+      only after-the-fact forensic reconstruction from the append-only events table. Contrarian
+      edge-case 3 and Principals both warn that naming CSF functions without closing the Detect
+      gap is paperwork masquerading as coverage. The board accepts the two RESPOND/DETECT items
+      as REAL follow-on actions (one concrete IR runbook: who revokes tokens, rotates keys,
+      notifies affected people; plus access-anomaly + error monitoring when a Sentry DSN exists),
+      and requires that the framework artifact state plainly that Detect is today's weakest
+      function rather than implying coverage.
+    conditions:
+      - "The IR runbook (revoke / rotate / notify) is a ship-now docs deliverable, no external dependency — write it as part of this epic."
+      - "Detect/monitoring (Sentry access-anomaly + error alerting) is carried as a real action BLOCKED on a Sentry DSN (EXTERNAL_DEPENDENCIES #13), labeled blocked — NOT tagged as implemented in the CSF index."
+
+ships_now_no_external_dependency:
+  - "D3: fix the Postgres TLS peer-authentication defect (pin Supabase CA, rejectUnauthorized:true for hosted modes) + regression test. LEAD code action."
+  - "D4: add the SP 800-131A approved-algorithm rule to AGENTS.md sec 3."
+  - "D2: author the CSF 2.0 index + FIPS 199 categorization artifact WITH the binding complement-not-substitute statement in the template, cross-mapped to ISO 27001 / ICRC (D5)."
+  - "D4: enable Supabase coordinator MFA/TOTP (config; the attribution half is sequenced with HOS-001-08)."
+  - "D6: write one concrete incident-response runbook (revoke / rotate / notify)."
+  - "Re-label and confirm-complete the already-shipped HOS-008 pile (D2 field-classification docs/DATA_MINIMIZATION.md, D3 event-log retention, D4 search-oracle closure) under the Privacy Framework / CSF outcomes they satisfy."
+
+blocked_or_escalated:
+  - "Field-level encryption WITH real key custody: algorithm settled (AES-256-GCM) but GATED on the HOS-2026-008-D2 human key-custody/jurisdiction decision (ideally with counsel). Until answered, encryption is a leak/stolen-dump control only and MUST be labeled as such — never a state-adversary control. Escalation, not a build item here."
+  - "Org-scoped Postgres RLS + case-table org_id: blocked on Postgres landing (HOS-2026-001-07 / BLK-001) AND the HOS-2026-011-D4 human policy decision (is reunification case/PII data a shared cross-org pool or org-partitioned?). Tagged in the framework only; this proposal does not unblock it."
+  - "Per-person coordinator attribution (retire shared token to break-glass): sequenced with HOS-2026-001-08; AAL2 not claimed complete until it lands (D4)."
+  - "Detect/monitoring (Sentry): blocked on a Sentry DSN (EXTERNAL_DEPENDENCIES #13) (D6)."
+  - "Which outward framework (NIST vs ISO) the concrete near-term funder/partner requires: open input pending the funder/partner pipeline (D5)."
+
+next_gate: >
+  Re-review after the ship-now pile lands: confirm (1) the postgres.ts TLS defect is fixed with
+  a regression test and no hosted path yields rejectUnauthorized:false; (2) AGENTS.md sec 3
+  carries the approved-algorithm rule; (3) the CSF/FIPS-199 artifact exists WITH the binding
+  complement-not-substitute statement in-template and an ISO 27001 / ICRC cross-map; (4) the IR
+  runbook exists; (5) coordinator MFA is enabled, with the attribution half honestly marked
+  sequenced-with-HOS-001-08 and AAL2 NOT reported as achieved; and (6) Phase 0 did not regress
+  (clean build:web + tests green). Field encryption, org-scoped RLS, and Detect/monitoring remain
+  gated on their respective human decisions and external dependencies and are re-decided as their
+  own gates when those unblock. The epic must NOT be marked complete while the HOS-008-D2 and
+  HOS-011-D4 human decisions it depends on are open.
+
+escalate_to_human:
+  - "FRAMING CHOICE (the one direct ask): approve Option B — NIST/FIPS as vocabulary + hygiene floor, declining FIPS 140-3 validation and full 800-53 compliance — vs Option A (status quo) vs Option C (full compliance program). The board's recommendation is B, GREEN_LIGHT."
+  - "KEY CUSTODY / JURISDICTION (inherited from HOS-2026-008-D2, still owed): where the field-encryption decryption key lives and whether host legal-compulsion reaches it. Has a legal dimension, ideally counsel. Until answered, field encryption is a leak control only and is labeled as such; this epic cannot be marked complete while it is open."
+  - "CASE/PII ORG-PARTITIONING (inherited from HOS-2026-011-D4, still owed): whether reunification case/PII data is a deliberately shared cross-org pool or must be org-partitioned. Gates the case-table half of any RLS work AND the Expansionist's shared-instance upside; this epic only tags RLS in the framework, it does not unblock it."
+  - "OUTWARD FRAMEWORK (new, low-stakes): is the near-term target funder/partner US-based (NIST is the right passport) or EU/UN-based (ISO 27001 / ICRC is)? Informs how the outward artifact is shaped; not a build blocker."
+
+overall: >
+  GREEN_LIGHT on Option B: adopt NIST/FIPS as a shared vocabulary and a hygiene floor, decline
+  the compliance theater (FIPS 140-3 validation, full 800-53 certification) as wrong for a small
+  NGO under a host-compulsion threat model, and complete the already-blessed HOS-008 minimization/
+  retention/oracle work under recognized labels. The decision is approved because it introduces no
+  new political question (state-in-scope already answered YES) and no new external dependency for
+  its core, and because it converts security work HOS already does into something funders and
+  partner agencies can read — the passport the Expansionist rightly values. Four reshapes make it
+  honest: (1) the complement-not-substitute statement is a binding, template-level gate on every
+  outward artifact, because a named framework is a louder claim than ad-hoc security and the apex
+  threat — host compulsion — is untouched by it (the controls that hold there are minimization,
+  non-retention, and off-host key custody, not NIST's); (2) the Postgres TLS peer-authentication
+  defect, the one genuinely-open hole in the packet, is promoted to the lead code action and shipped
+  with a regression test; (3) 'coordinator AAL2' is split into MFA-now vs per-person-attribution
+  (sequenced with HOS-001-08) so we never report an identity assurance the code has not reached; and
+  (4) the outward posture is cross-mapped to ISO 27001 / the ICRC data-protection canon, which is
+  what humanitarian partners actually speak. The framework name stays out of user-facing copy; what
+  a frightened family is told stays true and plain. Field encryption with real key custody, org-scoped
+  RLS, and Detect/monitoring are real and correct but genuinely blocked on the HOS-008-D2 and
+  HOS-011-D4 human decisions and on external dependencies — they are tagged honestly as escalations/
+  blocked, and this epic is not complete while those two human decisions remain open.
