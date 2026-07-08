@@ -3,8 +3,8 @@ title: "Adopt a NIST/FIPS-aligned security & identity framework — as a shared 
 category: "strategic"   # security-model change → mandatory board review (AGENTIC_GOVERNANCE.md)
 proposer: "Claude (drafted at human principal's request, 2026-07-06)"
 date: "2026-07-06"
-status: "DRAFT — intake, awaiting board review"
-board_status: "not yet reviewed — board/ to be produced by the 5-agent process; no judge decision yet"
+status: "BOARD-REVIEWED — GREEN_LIGHT on Option B (2026-07-08); ship-now pile authorized, two inherited human decisions (HOS-008-D2 key custody, HOS-011-D4 case-table org-partitioning) still owed and gate epic completion"
+board_status: "Full 5-persona board run 2026-07-08 (contrarian/expansionist/principals/researcher/user in board/); Judge verdict GREEN_LIGHT on Option B — see judge_decision.yaml. Four reshapes: (D2) complement-not-substitute honesty statement is a binding template-level gate on every outward artifact; (D3) the postgres.ts TLS peer-auth defect promoted to LEAD code action; (D4) 'coordinator AAL2' split into MFA-now vs per-person-attribution (sequenced with HOS-001-08); (D5) cross-map the outward posture to ISO 27001 / ICRC data-protection canon, which humanitarian partners actually speak, not NIST/FIPS alone."
 attachments:
   - "nist-fips-crosswalk.md — the full HOS⇄NIST/FIPS mapping this proposal summarizes"
 
