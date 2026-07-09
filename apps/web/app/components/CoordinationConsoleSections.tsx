@@ -267,17 +267,21 @@ export function BoardList({
   visibleSites,
   visibleOffers,
   pagedNeeds,
+  pagedSites,
   orgs,
   onReload,
   onShowMore,
+  onShowMoreSites,
 }: {
   visibleNeeds: NeedView[];
   visibleSites: SiteView[];
   visibleOffers: OfferView[];
   pagedNeeds: NeedView[];
+  pagedSites: SiteView[];
   orgs: Org[];
   onReload: () => void;
   onShowMore: () => void;
+  onShowMoreSites: () => void;
 }) {
   return (
     <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-[18px] max-[1100px]:grid-cols-1">
@@ -311,7 +315,16 @@ export function BoardList({
             <span className="font-data text-[12px] font-bold text-[var(--hos-muted)]">{visibleSites.length}</span>
           </div>
           <div className="flex flex-col gap-[12px]">
-            {visibleSites.map((v) => <SiteCard key={v.site.id} view={v} onChanged={onReload} />)}
+            {pagedSites.map((v) => <SiteCard key={v.site.id} view={v} onChanged={onReload} />)}
+            {visibleSites.length > pagedSites.length ? (
+              <button
+                type="button"
+                onClick={onShowMoreSites}
+                className="h-[38px] rounded-[6px] border border-[var(--hos-border)] bg-white text-[13px] font-extrabold text-[var(--hos-blue)] transition hover:bg-[#F4F8F5]"
+              >
+                Mostrar más ({visibleSites.length - pagedSites.length} restantes)
+              </button>
+            ) : null}
           </div>
         </section>
 

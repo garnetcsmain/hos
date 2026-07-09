@@ -68,8 +68,11 @@ function formatAgo(from: number, now: number): string {
 // hidden, so it never yanks the board out from under someone mid-entry.
 const AUTO_REFRESH_MS = 45_000;
 
-// How many need cards to render per "Mostrar más" page.
+// How many cards to render per "Mostrar más" page. Both columns page: the
+// imported board carries ~1000 needs and ~150 sites, and one unpaged column is
+// enough to make the whole page scroll effectively forever (HOS-2026-007-09).
 const NEEDS_PAGE = 60;
+const SITES_PAGE = 30;
 
 const URGENCY_RANK: Record<Urgency, number> = { critical: 0, high: 1, normal: 2, low: 3 };
 
@@ -90,6 +93,7 @@ export function CoordinationConsole() {
   // The imported board carries ~1000 real need reports; render them in pages so
   // the list stays responsive. Resets when any filter changes.
   const [needsShown, setNeedsShown] = useState(NEEDS_PAGE);
+  const [sitesShown, setSitesShown] = useState(SITES_PAGE);
   // Preset filters (apply to list AND map): one need category, one site
   // category, and a critical-only toggle. null = todos. Every setter goes
   // through pickFilter so the pagination window resets with the filter.
@@ -100,6 +104,7 @@ export function CoordinationConsole() {
   const pickFilter = (apply: () => void) => {
     apply();
     setNeedsShown(NEEDS_PAGE);
+    setSitesShown(SITES_PAGE);
   };
 
   useEffect(() => {
@@ -206,6 +211,7 @@ export function CoordinationConsole() {
   const visibleNeeds = district ? sortedNeeds.filter((v) => v.need.district === district) : sortedNeeds;
   const pagedNeeds = visibleNeeds.slice(0, needsShown);
   const visibleSites = district ? allSites.filter((v) => v.site.district === district) : allSites;
+  const pagedSites = visibleSites.slice(0, sitesShown);
   const visibleOffers = district ? allOffers.filter((v) => v.offer.district === district) : allOffers;
 
   const openCreate = () => {
@@ -364,6 +370,7 @@ export function CoordinationConsole() {
                 onSelect={(d) => {
                   setDistrict(d);
                   setNeedsShown(NEEDS_PAGE);
+                  setSitesShown(SITES_PAGE);
                   if (d) setView("list");
                 }}
               />
@@ -376,6 +383,7 @@ export function CoordinationConsole() {
                   onClear={() => {
                     setDistrict(null);
                     setNeedsShown(NEEDS_PAGE);
+                    setSitesShown(SITES_PAGE);
                   }}
                 />
                 <BoardList
@@ -383,9 +391,11 @@ export function CoordinationConsole() {
                   visibleSites={visibleSites}
                   visibleOffers={visibleOffers}
                   pagedNeeds={pagedNeeds}
+                  pagedSites={pagedSites}
                   orgs={orgs}
                   onReload={reload}
                   onShowMore={() => setNeedsShown((n) => n + NEEDS_PAGE)}
+                  onShowMoreSites={() => setSitesShown((n) => n + SITES_PAGE)}
                 />
               </>
             )}
