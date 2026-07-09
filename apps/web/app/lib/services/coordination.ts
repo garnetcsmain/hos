@@ -327,7 +327,10 @@ export async function transitionNeed(input: NeedTransitionInput, by = "unattribu
       entityId: need.id,
       type: eventType,
       actor,
-      payload: { from: need.status, to: status, note: input.note, by },
+      // Attribution only in the durable log; the free-text note can carry
+      // re-contact detail and is kept out of the append-only event store
+      // (Board HOS-2026-008-D3). `by` records who acted (HOS-2026-001-08 Phase 1).
+      payload: { from: need.status, to: status, noteProvided: input.note.length > 0, by },
     });
   });
   return { ...need, status, claimedByOrgId, updatedAt: nowIso() };

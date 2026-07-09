@@ -1,4 +1,4 @@
-# HOS-2026-015 — Protection and safety incidents (PROPOSAL, awaiting board)
+# HOS-2026-016 — Protection and safety incidents (PROPOSAL, awaiting board)
 #
 # Raised by the human principal 2026-07-03: "me acabo de dar cuenta que no
 # tenemos nada acerca de seguridad. que pasa cuando se encuentran niños,
@@ -8,7 +8,7 @@
 # single most dangerous class of information this system could hold, and the
 # board + human must shape it before any code exists.
 
-id: "HOS-2026-015"
+id: "HOS-2026-016"
 title: "Protection incidents: unaccompanied children, sexual violence, state/police abuse, trafficking"
 status: "DRAFT — needs full board run + human (ideally legal/protection-professional) input"
 raised_by: "Human principal, 2026-07-03"

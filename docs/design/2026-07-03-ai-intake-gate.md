@@ -54,9 +54,9 @@ gate — coordinators are trusted, gated by auth, and already attributed.
    - Text describes a standing aid point (acopio/refugio/…) → **site**.
    - Text describes a PROTECTION incident (child alone, sexual violence,
      police/state abuse, trafficking) → **protection** → RESTRICTED
-     quarantine visible only to the protection capability (HOS-2026-015),
+     quarantine visible only to the protection capability (HOS-2026-016),
      never the board, never any public surface, and — pending the
-     HOS-2026-015-D4 human/legal answer — stored as type + district +
+     HOS-2026-016-D4 human/legal answer — stored as type + district +
      referral pointer only, no narrative retention.
 3. **AI assist, pluggable and optional** (same seam as HOS-2026-001 matching):
    when an AI key is configured, a model may (a) refine rule-classifier output,

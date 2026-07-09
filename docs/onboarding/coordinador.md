@@ -94,6 +94,6 @@ detalles. Regla general: **refiera a especialistas; escriba lo mínimo.**
 
 ¿Por qué tan estricto? Los datos de protección son los más peligrosos que un
 sistema puede guardar: mal manejados, dañan exactamente a quienes queremos
-proteger. Hay una propuesta formal en revisión (HOS-2026-015) para definir
+proteger. Hay una propuesta formal en revisión (HOS-2026-016) para definir
 qué puede registrar HOS de forma segura; hasta que se apruebe, aplica esta
 guía.
