@@ -14,6 +14,7 @@ import {
   hasAnyCredential,
   refreshCoordinatorSession,
 } from "@/app/lib/client/coordinatorSession";
+import { usePulseTheme } from "@/app/lib/client/pulseTheme";
 import { SUPABASE_TOKEN_KEY } from "@/app/lib/client/supabase";
 import type { CoordinationView } from "@/app/lib/domain/coordinationViews";
 
@@ -27,6 +28,7 @@ export function PulseConsole() {
   const [reloadKey, setReloadKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [theme, toggleTheme] = usePulseTheme();
 
   useEffect(() => {
     let active = true;
@@ -74,10 +76,13 @@ export function PulseConsole() {
     <AppShell
       title="Pulso de la respuesta"
       subtitle="Las conexiones entre ayuda y necesidades, en casi tiempo real · solo coordinadores"
+      headerTheme={theme}
     >
       {board === null && !error && !denied ? (
-        <div className="flex flex-1 items-start bg-white px-[36px] py-[30px]">
-          <p className="text-[14px] font-normal text-[var(--hos-muted)]">Cargando el pulso…</p>
+        <div className="flex flex-1 items-start px-[36px] py-[30px]" style={{ background: theme === "dark" ? "#000" : "#fff" }}>
+          <p className="text-[14px] font-normal" style={{ color: theme === "dark" ? "#9A9A9A" : "var(--hos-muted)" }}>
+            Cargando el pulso…
+          </p>
         </div>
       ) : denied ? (
         <div className="flex-1 px-[28px] py-[28px]">
@@ -113,6 +118,8 @@ export function PulseConsole() {
           lastUpdated={lastUpdated}
           refreshing={refreshing}
           onReload={() => setReloadKey((k) => k + 1)}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
       ) : null}
     </AppShell>

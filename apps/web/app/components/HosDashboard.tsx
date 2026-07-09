@@ -89,6 +89,7 @@ export function Header({
   trustLayer,
   onToggleTrustLayer,
   onOpenFamily,
+  headerTheme = "light",
 }: {
   title?: string;
   subtitle?: string;
@@ -99,14 +100,18 @@ export function Header({
   trustLayer?: boolean;
   onToggleTrustLayer?: () => void;
   onOpenFamily?: () => void;
+  // Dark variant for screens whose body is a dark canvas (e.g. /pulso in dark
+  // mode), so the header doesn't reintroduce a bright strip above it.
+  headerTheme?: "light" | "dark";
 }) {
+  const dark = headerTheme === "dark";
   return (
-    <header className="flex min-h-[96px] shrink-0 items-center justify-between border-b border-[var(--hos-border)] bg-white px-[28px] max-[900px]:h-auto max-[900px]:flex-col max-[900px]:items-start max-[900px]:gap-[18px] max-[900px]:px-[18px] max-[900px]:py-[18px]">
+    <header className={`flex min-h-[96px] shrink-0 items-center justify-between border-b px-[28px] max-[900px]:h-auto max-[900px]:flex-col max-[900px]:items-start max-[900px]:gap-[18px] max-[900px]:px-[18px] max-[900px]:py-[18px] ${dark ? "border-[#1E1E1E] bg-black" : "border-[var(--hos-border)] bg-white"}`}>
       <div>
-        <h1 className="text-[28px] font-extrabold leading-none tracking-normal text-[var(--hos-text)] max-[900px]:text-[24px] max-[900px]:leading-[28px]">
+        <h1 className={`text-[28px] font-extrabold leading-none tracking-normal max-[900px]:text-[24px] max-[900px]:leading-[28px] ${dark ? "text-white" : "text-[var(--hos-text)]"}`}>
           {title}
         </h1>
-        <p className="mt-[12px] text-[14px] font-bold leading-none text-[var(--hos-muted)] max-[900px]:leading-[18px]">{subtitle}</p>
+        <p className={`mt-[12px] text-[14px] font-bold leading-none max-[900px]:leading-[18px] ${dark ? "text-[#9A9A9A]" : "text-[var(--hos-muted)]"}`}>{subtitle}</p>
       </div>
       <div className="flex items-center gap-[14px] max-[900px]:w-full max-[900px]:flex-wrap">
         <button type="button" className="flex h-[29px] items-center rounded-full bg-[#FFEBD5] px-[12px] text-[12px] font-extrabold text-[#7A3D00]">
@@ -326,6 +331,7 @@ export function AppShell({
   onOpenFamily,
   modalKind = null,
   onCloseModal,
+  headerTheme = "light",
   children,
 }: {
   title: string;
@@ -338,16 +344,20 @@ export function AppShell({
   onOpenFamily?: () => void;
   modalKind?: ModalKind;
   onCloseModal?: () => void;
+  // Threads a dark header + dark content column for screens with a dark canvas
+  // (e.g. /pulso in dark mode), so no bright strip leaks around the body.
+  headerTheme?: "light" | "dark";
   children: React.ReactNode;
 }) {
+  const dark = headerTheme === "dark";
   return (
     <main className="min-h-screen bg-[var(--hos-bg)]">
       <PwaRegistration />
       <div className="min-h-screen w-full border border-[#B9C7C0] bg-[var(--hos-bg)] max-[900px]:border-0">
         <div className="flex min-h-screen max-[900px]:flex-col">
           <Sidebar />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <Header title={title} subtitle={subtitle} trustLayer={trustLayer} onToggleTrustLayer={onToggleTrustLayer} onOpenFamily={onOpenFamily} />
+          <div className={`flex min-w-0 flex-1 flex-col ${dark ? "bg-black" : ""}`}>
+            <Header title={title} subtitle={subtitle} trustLayer={trustLayer} onToggleTrustLayer={onToggleTrustLayer} onOpenFamily={onOpenFamily} headerTheme={headerTheme} />
             {children}
           </div>
         </div>
