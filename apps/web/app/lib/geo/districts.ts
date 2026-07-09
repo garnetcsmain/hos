@@ -1,9 +1,10 @@
-// District-level geography for the coordination map. NEEDS are deliberately
-// district-only — never precise addresses (targeting risk, Board HOS-2026-007: a
-// live needs board must not become a targeting map). These are approximate
-// district CENTROIDS, so a need marker points at the district, not any exact
-// spot. Sites imported from public maps (caracasayuda.com) may carry their own
-// public lat/lng and don't use this table.
+// District-level geography for the coordination map. `district` is the coarse
+// rollup key on every record; these approximate CENTROIDS place the district
+// badges. Precise per-record positions are allowed inside the coordinator-
+// gated console (human D1 answer 2026-07-03) — but only when the record's pin
+// agrees with its text-derived district (lib/coordination/classify.ts, which
+// also keeps these names in sync with the nightly caracasayuda sync). Public
+// surfaces only ever see district grain.
 
 export interface LatLng {
   lat: number;
@@ -11,9 +12,10 @@ export interface LatLng {
 }
 
 // Approximate centroids for the affected region: the La Guaira coast, Caracas
-// (Libertador + metro Miranda) and the near valleys. Used both by the map and
-// by the caracasayuda import (scripts/), which assigns each report to its
-// nearest centroid — keep names and coordinates in sync with that script.
+// (Libertador + metro Miranda) and the near valleys. Used by the map and by
+// the caracasayuda sync classifier (lib/coordination/classify.ts), which
+// matches district names in report text and falls back to the nearest
+// centroid for in-corridor pins.
 export const DISTRICT_CENTROIDS: Record<string, LatLng> = {
   // La Guaira (Vargas) coast, west to east
   Carayaca: { lat: 10.539, lng: -67.121 },
@@ -55,6 +57,50 @@ export const DISTRICT_CENTROIDS: Record<string, LatLng> = {
   "Caracas Este": { lat: 10.492, lng: -66.835 },
 };
 
+// Curated district choices for forms (human direction 2026-07-03: "Distrito
+// should become a list"). Ordered for a coordinator scanning it: coast west to
+// east, then Caracas, then metro Miranda, then the coarse fallbacks. Excludes
+// the alias spellings above ("Maiquetia") — those exist only so imported text
+// still matches.
+export const DISTRICT_OPTIONS: readonly string[] = [
+  // La Guaira coast
+  "Carayaca",
+  "Catia La Mar",
+  "Maiquetía",
+  "La Guaira",
+  "Macuto",
+  "Caraballeda",
+  "Naiguatá",
+  // Caracas — Libertador
+  "Catia",
+  "23 de Enero",
+  "El Junquito",
+  "Antímano",
+  "Caricuao",
+  "La Vega",
+  "El Paraíso",
+  "El Valle",
+  "Coche",
+  "Caracas Centro",
+  "Sabana Grande",
+  // Caracas — metro Miranda
+  "Chacao",
+  "Baruta",
+  "El Hatillo",
+  "Petare",
+  "La Dolorita",
+  "Caucagüita",
+  "Guarenas",
+  "Guatire",
+  "Los Teques",
+  "San Antonio de los Altos",
+  "Charallave",
+  "Santa Teresa del Tuy",
+  // Coarse fallbacks
+  "Caracas",
+  "Otra región",
+];
+
 // Where to frame the map when there are no known districts to fit to.
 export const REGION_CENTER: LatLng = { lat: 10.53, lng: -66.93 };
 export const REGION_ZOOM = 11;
@@ -90,8 +136,3 @@ export function centroidFor(district: string, index = 0): LatLng {
     lng: REGION_CENTER.lng + ring * Math.sin(angle),
   };
 }
-
-// A generic geographic reference the coordinator can open — the region, not any
-// specific site.
-export const REGION_MAPS_LINK =
-  "https://www.google.com/maps/place/La+Guaira,+Venezuela/@10.56,-66.95,11z";

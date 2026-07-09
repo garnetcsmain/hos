@@ -5,9 +5,9 @@
 // keeps the SSR-safe chrome (frame, legend, grain note, region link).
 
 import dynamic from "next/dynamic";
-import { ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { Maximize2 } from "lucide-react";
 import { Term } from "@/app/components/Term";
-import { REGION_MAPS_LINK } from "@/app/lib/geo/districts";
 import { SITE_CATEGORY_LABEL, SITE_PIN } from "@/app/components/CoordinationParts";
 import type { CoordinationView } from "@/app/lib/domain/coordinationViews";
 import type { SiteCategory } from "@/app/lib/domain/coordination";
@@ -38,12 +38,14 @@ export function CoordinationMap({
 }: {
   board: CoordinationView;
   activeDistrict: string | null;
+  /** Called from the district popup's explicit "Ver en lista" action (never
+   *  from a bare marker click — human feedback 2026-07-03). */
   onSelect: (district: string | null) => void;
 }) {
   return (
     <section className="flex flex-col gap-[10px]">
       <div className="overflow-hidden rounded-[8px] border border-[var(--hos-border)]">
-        <LeafletMap board={board} activeDistrict={activeDistrict} onSelect={onSelect} />
+        <LeafletMap board={board} activeDistrict={activeDistrict} onShowList={onSelect} />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-[10px]">
@@ -56,14 +58,14 @@ export function CoordinationMap({
           ))}
           <span className="text-[11px] font-bold text-[var(--hos-muted)]">· el número = necesidades abiertas</span>
         </div>
-        <a
-          href={REGION_MAPS_LINK}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex shrink-0 items-center gap-[4px] text-[11px] font-extrabold text-[var(--hos-blue)] hover:underline"
+        {/* Full-screen ops view (desktop only) — replaced the old Google Maps
+            region link, which showed none of our data (human direction 2026-07-03). */}
+        <Link
+          href="/coordination/mapa"
+          className="inline-flex shrink-0 items-center gap-[4px] text-[11px] font-extrabold text-[var(--hos-blue)] hover:underline max-[900px]:hidden"
         >
-          Ver mapa completo <ExternalLink className="h-[12px] w-[12px]" />
-        </a>
+          Pantalla completa <Maximize2 className="h-[12px] w-[12px]" />
+        </Link>
       </div>
 
       <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[4px]">
@@ -81,10 +83,10 @@ export function CoordinationMap({
       </div>
 
       <p className="text-[11px] font-bold leading-[15px] text-[var(--hos-muted)]">
-        Las necesidades se agrupan por <Term k="distrito">distrito</Term>, sin ubicaciones exactas (por
-        seguridad). Los puntos de ayuda provienen de mapas públicos (caracasayuda.com) y sí muestran su
-        ubicación. Acerque el mapa con la rueda del ratón o los botones +/− y toque un marcador para ver
-        el detalle.
+        Los círculos numerados agrupan las necesidades por <Term k="distrito">distrito</Term>; los
+        puntos pequeños son reportes con ubicación exacta (los que no la traen quedan en su distrito).
+        Los puntos de ayuda provienen inicialmente de mapas públicos (caracasayuda.com); pronto se
+        registrarán directamente en HOS. Toque un marcador para ver el detalle.
       </p>
     </section>
   );

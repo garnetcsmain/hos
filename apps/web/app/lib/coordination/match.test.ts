@@ -14,6 +14,8 @@ function need(over: Partial<Need> = {}): Need {
     orgId: "ORG-1",
     siteId: null,
     district: "La Guaira",
+    lat: null,
+    lng: null,
     category: "water",
     quantity: 100,
     unit: "L",
@@ -21,6 +23,8 @@ function need(over: Partial<Need> = {}): Need {
     status: "open",
     claimedByOrgId: null,
     notes: "",
+    sourceId: null,
+    syncedAt: null,
     ...over,
   };
 }
