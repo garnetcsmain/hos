@@ -115,18 +115,32 @@ CREATE TABLE IF NOT EXISTS sites (
   org_id        TEXT NOT NULL REFERENCES orgs(id),
   district      TEXT NOT NULL DEFAULT '',   -- coarse rollup key
   category      TEXT NOT NULL DEFAULT 'otro', -- acopio|refugio|medico|internet|mascotas|otro
-  lat           DOUBLE PRECISION,           -- only for publicly-listed aid points
-  lng           DOUBLE PRECISION,           -- (else NULL — needs never get coords)
+  lat           DOUBLE PRECISION,           -- precise position when known
+  lng           DOUBLE PRECISION,           -- (coordinator-gated display, D1 2026-07-03)
   beds_total    INTEGER NOT NULL DEFAULT 0,
   beds_free     INTEGER NOT NULL DEFAULT 0,
   status        TEXT NOT NULL DEFAULT 'active',
-  notes         TEXT NOT NULL DEFAULT ''
+  notes         TEXT NOT NULL DEFAULT '',
+  source_id     TEXT,                       -- caracasayuda.com record id (provenance)
+  synced_at     TEXT,                       -- last reconciled with source; local edits after this win
+  announcement  TEXT NOT NULL DEFAULT '',   -- site broadcast ("hoy entregan comida 2-5pm")
+  announcement_until TEXT,                  -- ISO expiry; announcement hides after this
+  radius_m      INTEGER,                    -- coverage radius in meters (NULL = a point, not an area)
+  created_by_user_id TEXT,                  -- the responsable: whoever created the site owns it (Supabase user id)
+  created_by_email   TEXT                   -- their email, for display/audit
 );
 
 -- Additive migrations for databases created before these columns existed.
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'otro';
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS source_id TEXT;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS synced_at TEXT;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS announcement TEXT NOT NULL DEFAULT '';
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS announcement_until TEXT;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS radius_m INTEGER;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS created_by_user_id TEXT;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS created_by_email TEXT;
 
 CREATE TABLE IF NOT EXISTS needs (
   id            TEXT PRIMARY KEY,
@@ -135,13 +149,47 @@ CREATE TABLE IF NOT EXISTS needs (
   org_id        TEXT NOT NULL REFERENCES orgs(id),
   site_id       TEXT REFERENCES sites(id),
   district      TEXT NOT NULL DEFAULT '',
+  lat           DOUBLE PRECISION,           -- precise position when the source pin is trusted
+  lng           DOUBLE PRECISION,           -- (coordinator-gated display, D1 2026-07-03)
   category      TEXT NOT NULL DEFAULT 'other',
   quantity      INTEGER NOT NULL DEFAULT 1,
   unit          TEXT NOT NULL DEFAULT '',
   urgency       TEXT NOT NULL DEFAULT 'normal',
   status        TEXT NOT NULL DEFAULT 'open',
   claimed_by_org_id TEXT REFERENCES orgs(id),
-  notes         TEXT NOT NULL DEFAULT ''
+  notes         TEXT NOT NULL DEFAULT '',
+  source_id     TEXT,
+  synced_at     TEXT
+);
+
+ALTER TABLE needs ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE needs ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+ALTER TABLE needs ADD COLUMN IF NOT EXISTS source_id TEXT;
+ALTER TABLE needs ADD COLUMN IF NOT EXISTS synced_at TEXT;
+
+-- User <-> org membership (HOS-2026-011-D3 prerequisite). user_id is the
+-- Supabase auth user id; capability_bundle names a bundle of capabilities at a
+-- scope (capabilities-on-scoped-resources model), not a flat role. Provisioned
+-- now so org-scoped authorization is not a later retrofit; UNUSED until real
+-- per-user auth (HOS-2026-001-08) activates it.
+CREATE TABLE IF NOT EXISTS org_memberships (
+  user_id       TEXT NOT NULL,
+  org_id        TEXT NOT NULL REFERENCES orgs(id),
+  capability_bundle TEXT NOT NULL DEFAULT 'member',
+  created_at    TEXT NOT NULL,
+  expires_at    TEXT,                       -- NULL = indefinite; a responsible party may grant time-boxed delegated access
+  PRIMARY KEY (user_id, org_id)
+);
+ALTER TABLE org_memberships ADD COLUMN IF NOT EXISTS expires_at TEXT;
+
+-- Peer-delegated site coordination (HOS-2026-011 site:<id> scope). See schema.ts.
+CREATE TABLE IF NOT EXISTS site_grants (
+  site_id       TEXT NOT NULL REFERENCES sites(id),
+  email         TEXT NOT NULL,
+  granted_by    TEXT NOT NULL DEFAULT '',
+  created_at    TEXT NOT NULL,
+  expires_at    TEXT,
+  PRIMARY KEY (site_id, email)
 );
 
 CREATE TABLE IF NOT EXISTS offers (
@@ -191,4 +239,6 @@ CREATE INDEX IF NOT EXISTS idx_needs_status ON needs(status);
 CREATE INDEX IF NOT EXISTS idx_needs_district ON needs(district);
 CREATE INDEX IF NOT EXISTS idx_offers_category ON offers(category);
 CREATE INDEX IF NOT EXISTS idx_embeddings_entity ON match_embeddings(entity_type, entity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sites_source ON sites(source_id) WHERE source_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_needs_source ON needs(source_id) WHERE source_id IS NOT NULL;
 `;

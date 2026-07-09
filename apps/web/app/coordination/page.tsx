@@ -1,5 +1,5 @@
-import { CoordinationConsole } from "@/app/components/CoordinationConsole";
+import { CoordinationEntry } from "@/app/components/CoordinationEntry";
 
 export default function CoordinationPage() {
-  return <CoordinationConsole />;
+  return <CoordinationEntry />;
 }

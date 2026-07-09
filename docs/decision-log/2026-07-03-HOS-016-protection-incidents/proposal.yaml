@@ -1,0 +1,61 @@
+# HOS-2026-016 — Protection and safety incidents (PROPOSAL, awaiting board)
+#
+# Raised by the human principal 2026-07-03: "me acabo de dar cuenta que no
+# tenemos nada acerca de seguridad. que pasa cuando se encuentran niños,
+# violan, o abuso policial, ese tipo de reportes? se necesita seguridad."
+#
+# This proposal deliberately does NOT ship a feature. Protection data is the
+# single most dangerous class of information this system could hold, and the
+# board + human must shape it before any code exists.
+
+id: "HOS-2026-016"
+title: "Protection incidents: unaccompanied children, sexual violence, state/police abuse, trafficking"
+status: "DRAFT — needs full board run + human (ideally legal/protection-professional) input"
+raised_by: "Human principal, 2026-07-03"
+sequenced_behind:
+  - "HOS-2026-008 D2 minimization posture landing (field classification doc)"
+  - "HOS-2026-009 (unaccompanied-minor check-in) board run — the child half overlaps"
+  - "HOS-2026-001-08 real per-user auth (no protection capability can exist on a shared token)"
+
+why_this_is_not_a_board_feature: >
+  The coordination board is a logistics tool with ~wide coordinator
+  visibility. Protection incidents are the opposite shape: minimum necessary
+  people, maximum necessary care. Three hard constraints, in order:
+  (1) SURVIVOR SAFETY AND CONSENT — humanitarian protection standards (GBV
+  Guiding Principles, Child Protection Minimum Standards) put the survivor's
+  consent, confidentiality and referral to SPECIALIZED services above any
+  data-collection interest; generalist volunteers must not collect narratives.
+  (2) THE PERPETRATOR MAY BE THE STATE — under the binding D1 answer
+  (latent adversary, human_answer_D1.yaml) a police-abuse ledger hosted on
+  subpoenable foreign infrastructure is evidence AGAINST the adversary held
+  where the adversary can reach it, and a target list of complainants.
+  (3) RE-IDENTIFICATION — HOS-2026-008-D3 showed the events table already
+  correlates people, places and times; protection records would be the most
+  harmful possible payload for that correlation engine.
+
+decisions_requested:
+  - id: "D1"
+    q: "Scope: which incident types does HOS acknowledge at all? (child found alone; sexual/gender-based violence; police/state abuse; trafficking/disappearance-with-suspected-crime)"
+  - id: "D2"
+    q: "Data model: propose REFERRAL-FIRST — HOS records only (a) incident TYPE, (b) coarse district, (c) that a referral to a named specialized org happened, (d) follow-up state. NO narratives, NO victim/perpetrator identities on the coordination side. Is even that too much for some types (see D4)?"
+  - id: "D3"
+    q: "Access: a 'protection.refer' capability (HOS-2026-011 bundle), coordinator-only until real auth; who reviews, who can read the tally?"
+  - id: "D4"
+    q: "State/police abuse specifically: should HOS hold ANY per-incident record while hosted on compellable infra, or only anonymous aggregate counts (or nothing)? ESCALATE — human + legal; the board must not decide this alone."
+  - id: "D5"
+    q: "Referral directory: a vetted list of specialized services (child protection, SGBV, human-rights documentation orgs) with contact info — public-safe, aid-point-like. Build as site/org data now?"
+
+recommended_interim_posture: >
+  Ships TODAY as guidance, not code (docs/onboarding/coordinador.md §7):
+  children found alone route to the reunification flow that already exists
+  and already carries the 008-D2 PII obligations; SGBV and police-abuse
+  reports are REFERRED OUT and explicitly NOT typed into HOS — not in need
+  notes, not in avisos, not in the event log. The intake-gate design
+  (2026-07-03-ai-intake-gate.md) gains a protection classification whose
+  route is a RESTRICTED quarantine visible only to the protection capability,
+  never the board, never any public surface.
+
+explicit_non_goals:
+  - "HOS does not become a case-management system for protection (Primero and specialized tools exist; HOS refers)."
+  - "No evidence-collection features for abuse documentation on current infrastructure."
+  - "Nothing in this epic may weaken the D1-derived rule: no PII on public surfaces."

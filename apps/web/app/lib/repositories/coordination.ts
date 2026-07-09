@@ -45,8 +45,8 @@ export async function countOrgs(): Promise<number> {
 
 const insertSiteStmt = lazyStatement(
   `INSERT INTO sites
-     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes, source_id, synced_at, announcement, announcement_until, radius_m, created_by_user_id, created_by_email)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 export async function insertSite(site: Site): Promise<void> {
@@ -64,7 +64,79 @@ export async function insertSite(site: Site): Promise<void> {
     site.bedsFree,
     site.status,
     site.notes,
+    site.sourceId,
+    site.syncedAt,
+    site.announcement,
+    site.announcementUntil,
+    site.radiusM,
+    site.createdByUserId,
+    site.createdByEmail,
   );
+}
+
+/** Sites a user owns (created) or holds an active delegated grant on (matched by
+ *  their verified email) — the contributor's "mis sitios" and the manage check. */
+export async function listSitesManagedBy(userId: string, email: string): Promise<Site[]> {
+  const rows = await db
+    .prepare(
+      `SELECT s.* FROM sites s
+       WHERE s.created_by_user_id = ?
+          OR s.id IN (
+            SELECT g.site_id FROM site_grants g
+            WHERE g.email = ? AND (g.expires_at IS NULL OR g.expires_at > ?)
+          )
+       ORDER BY s.updated_at DESC`,
+    )
+    .all(userId, email, nowIso());
+  return rows.map(mapSite);
+}
+
+/** True if this email holds an active (non-expired) delegated grant on the site. */
+export async function hasActiveSiteGrant(siteId: string, email: string): Promise<boolean> {
+  const row = (await db
+    .prepare(
+      `SELECT 1 AS ok FROM site_grants
+       WHERE site_id = ? AND email = ? AND (expires_at IS NULL OR expires_at > ?)`,
+    )
+    .get(siteId, email, nowIso())) as { ok: number } | undefined;
+  return Boolean(row?.ok);
+}
+
+// --- Site grants (peer delegation) ----------------------------------------
+
+export interface SiteGrant {
+  siteId: string;
+  email: string;
+  grantedBy: string;
+  createdAt: string;
+  expiresAt: string | null;
+}
+
+export async function upsertSiteGrant(grant: SiteGrant): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO site_grants (site_id, email, granted_by, created_at, expires_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(site_id, email) DO UPDATE SET granted_by = excluded.granted_by, expires_at = excluded.expires_at`,
+    )
+    .run(grant.siteId, grant.email, grant.grantedBy, grant.createdAt, grant.expiresAt);
+}
+
+export async function revokeSiteGrant(siteId: string, email: string): Promise<void> {
+  await db.prepare(`DELETE FROM site_grants WHERE site_id = ? AND email = ?`).run(siteId, email);
+}
+
+export async function listSiteGrants(siteId: string): Promise<SiteGrant[]> {
+  const rows = (await db
+    .prepare(`SELECT * FROM site_grants WHERE site_id = ? ORDER BY created_at ASC`)
+    .all(siteId)) as Array<Record<string, unknown>>;
+  return rows.map((r) => ({
+    siteId: String(r.site_id),
+    email: String(r.email ?? ""),
+    grantedBy: String(r.granted_by ?? ""),
+    createdAt: String(r.created_at),
+    expiresAt: r.expires_at == null ? null : String(r.expires_at),
+  }));
 }
 
 export async function getSite(id: string): Promise<Site | null> {
@@ -88,12 +160,26 @@ export async function updateSiteCapacity(
   ).run(fields.bedsTotal, fields.bedsFree, fields.status, fields.notes, nowIso(), id);
 }
 
+/** Set or clear (empty message) a site's broadcast. Bumps updated_at: an
+ *  announcement is a live signal from the site, so freshness reads honest —
+ *  and the bump marks the row locally-modified, which protects it from the
+ *  nightly source sync (local edits win). */
+export async function updateSiteAnnouncement(
+  id: string,
+  announcement: string,
+  announcementUntil: string | null,
+): Promise<void> {
+  await db.prepare(
+    `UPDATE sites SET announcement = ?, announcement_until = ?, updated_at = ? WHERE id = ?`,
+  ).run(announcement, announcementUntil, nowIso(), id);
+}
+
 // --- Needs ----------------------------------------------------------------
 
 const insertNeedStmt = lazyStatement(
   `INSERT INTO needs
-     (id, created_at, updated_at, org_id, site_id, district, category, quantity, unit, urgency, status, claimed_by_org_id, notes)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, created_at, updated_at, org_id, site_id, district, lat, lng, category, quantity, unit, urgency, status, claimed_by_org_id, notes, source_id, synced_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 export async function insertNeed(need: Need): Promise<void> {
@@ -104,6 +190,8 @@ export async function insertNeed(need: Need): Promise<void> {
     need.orgId,
     need.siteId,
     need.district,
+    need.lat,
+    need.lng,
     need.category,
     need.quantity,
     need.unit,
@@ -111,6 +199,8 @@ export async function insertNeed(need: Need): Promise<void> {
     need.status,
     need.claimedByOrgId,
     need.notes,
+    need.sourceId,
+    need.syncedAt,
   );
 }
 

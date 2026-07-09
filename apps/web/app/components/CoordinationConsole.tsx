@@ -2,35 +2,66 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Boxes, HelpCircle, List, Map as MapIcon, Plus, RefreshCw, X } from "lucide-react";
+import {
+  HelpCircle,
+  List,
+  Map as MapIcon,
+  Plus,
+  RefreshCw,
+} from "lucide-react";
 import { AppShell } from "@/app/components/HosDashboard";
-import { Term } from "@/app/components/Term";
 import { CoordinationMap } from "@/app/components/CoordinationMap";
 import {
   startCoordinationTour,
   useCoordinationTourFirstRun,
 } from "@/app/components/CoordinationTour";
 import {
-  AddOrgForm,
-  AddSiteForm,
-  CATEGORY_LABEL,
-  NeedCard,
-  OfferCard,
-  PostNeedForm,
-  PostOfferForm,
-  SITE_CATEGORY_LABEL,
-  SiteCard,
-} from "@/app/components/CoordinationParts";
-import { FilterChip, Metric, Panel, formatAgo } from "@/app/components/CoordinationConsoleBits";
+  BoardFilters,
+  BoardList,
+  CoordinatorBrief,
+  CreateRecordFlow,
+  DistrictFilterPill,
+  type CreateKind,
+} from "@/app/components/CoordinationConsoleSections";
 import { getCoordinationBoard } from "@/app/lib/client/coordination";
 import { ApiError, COORDINATOR_TOKEN_KEY } from "@/app/lib/client/api";
 import {
-  hasAnyCredential,
-  refreshCoordinatorSession,
-} from "@/app/lib/client/coordinatorSession";
-import { SUPABASE_TOKEN_KEY } from "@/app/lib/client/supabase";
+  getBrowserSupabase,
+  isSupabaseConfiguredClient,
+  SUPABASE_TOKEN_KEY,
+} from "@/app/lib/client/supabase";
 import type { CoordinationView } from "@/app/lib/domain/coordinationViews";
 import type { NeedCategory, SiteCategory, Urgency } from "@/app/lib/domain/coordination";
+
+/** Refresh the mirrored Supabase access token before a request so a coordinator
+ *  isn't 401'd after ~1h just because a tab stayed open (supabase-js refreshes
+ *  the session under the hood; we mirror the fresh token for the Bearer header). */
+async function refreshCoordinatorSession(): Promise<void> {
+  if (!isSupabaseConfiguredClient() || typeof window === "undefined") return;
+  const supabase = getBrowserSupabase();
+  const token = (await supabase?.auth.getSession())?.data.session?.access_token;
+  if (token) window.localStorage.setItem(SUPABASE_TOKEN_KEY, token);
+}
+
+function hasAnyCredential(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    !!window.localStorage.getItem(SUPABASE_TOKEN_KEY) ||
+    !!window.localStorage.getItem(COORDINATOR_TOKEN_KEY)
+  );
+}
+
+/** Compact "updated N ago" label so a coordinator can trust how live the board
+ *  is — stale needs/capacity in an active incident are a real operational risk. */
+function formatAgo(from: number, now: number): string {
+  const s = Math.max(0, Math.round((now - from) / 1000));
+  if (s < 5) return "ahora mismo";
+  if (s < 60) return `hace ${s} s`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.round(m / 60);
+  return `hace ${h} h`;
+}
 
 // Live board: refetch on this cadence so an open console tracks the incident
 // without a manual reload. Paused while a create form is open or the tab is
@@ -38,17 +69,12 @@ import type { NeedCategory, SiteCategory, Urgency } from "@/app/lib/domain/coord
 const AUTO_REFRESH_MS = 45_000;
 
 // How many cards to render per "Mostrar más" page. Both columns page: the
-// imported board carries ~1000 needs and ~150 sites, and one unpaged column
-// is enough to make the whole page scroll effectively forever.
+// imported board carries ~1000 needs and ~150 sites, and one unpaged column is
+// enough to make the whole page scroll effectively forever (HOS-2026-007-09).
 const NEEDS_PAGE = 60;
 const SITES_PAGE = 30;
 
 const URGENCY_RANK: Record<Urgency, number> = { critical: 0, high: 1, normal: 2, low: 3 };
-
-// Filter chips (caracasayuda-style presets, plus urgency). Need categories in
-// triage order; site categories skip the "otro" catch-all (nothing uses it).
-const NEED_FILTERS = Object.keys(CATEGORY_LABEL) as NeedCategory[];
-const SITE_FILTERS: SiteCategory[] = ["acopio", "refugio", "medico", "internet", "mascotas"];
 
 export function CoordinationConsole() {
   const router = useRouter();
@@ -56,7 +82,9 @@ export function CoordinationConsole() {
   const [error, setError] = useState("");
   const [denied, setDenied] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  const [creating, setCreating] = useState(false);
+  // null = board; "menu" = pick a record type; a CreateKind = that form only.
+  const [createKind, setCreateKind] = useState<"menu" | CreateKind | null>(null);
+  const creating = createKind !== null;
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [nowTick, setNowTick] = useState(() => Date.now());
@@ -188,8 +216,24 @@ export function CoordinationConsole() {
 
   const openCreate = () => {
     setView("list");
-    setCreating((v) => !v);
+    setCreateKind((k) => (k ? null : "menu"));
   };
+
+  // After a successful create, return to the board so the new record is
+  // immediately visible in context.
+  const onCreated = () => {
+    reload();
+    setCreateKind(null);
+  };
+
+  const activeSites = useMemo(
+    () =>
+      (board?.sites ?? [])
+        .filter((v) => v.site.status === "active")
+        .map((v) => v.site)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [board],
+  );
 
   return (
     <AppShell
@@ -225,28 +269,17 @@ export function CoordinationConsole() {
           </div>
         ) : board ? (
           <>
-            <section className="flex items-start gap-[12px] rounded-[8px] border border-[var(--hos-border)] bg-white p-[14px]">
-              <span className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full bg-[#EEF6F2]">
-                <Boxes className="h-5 w-5 text-[var(--hos-green)]" strokeWidth={2.2} />
-              </span>
-              <p className="text-[12px] font-bold leading-[17px] text-[var(--hos-muted)]">
-                Solo coordinadores · no es pública. Ubicaciones por <Term k="distrito">distrito</Term>. Un suministro
-                se marca <span className="font-extrabold"><Term k="recibido">recibido</Term></span> solo cuando el sitio
-                lo confirma, nunca automático. Las sugerencias son solo una guía: decide una persona.
-              </p>
-            </section>
-
-            <div data-tour="metrics" className="grid grid-cols-4 gap-[12px] max-[760px]:grid-cols-2">
-              <Metric value={metrics.open} label="necesidades abiertas" color="text-[var(--hos-warn)]" />
-              <Metric value={metrics.critical} label="críticas" color="text-[var(--hos-red)]" />
-              <Metric value={metrics.beds} label="camas libres" color="text-[var(--hos-green)]" />
-              <Metric value={metrics.sites} label="sitios" color="text-[var(--hos-blue)]" />
-            </div>
+            {!creating ? <CoordinatorBrief metrics={metrics} /> : null}
 
             <div className="flex items-center justify-between gap-[12px] max-[620px]:flex-col max-[620px]:items-stretch">
               <div className="flex items-center gap-[14px]">
-                <h2 className="text-[16px] font-extrabold text-[var(--hos-text)]">Panel de coordinación</h2>
-                <div data-tour="view-toggle" className="flex items-center gap-[2px] rounded-[8px] border border-[var(--hos-border)] bg-white p-[3px]">
+                <h2 className="text-[16px] font-extrabold text-[var(--hos-text)]">
+                  {creating ? "Nuevo registro" : "Panel de coordinación"}
+                </h2>
+                <div
+                  data-tour="view-toggle"
+                  className={`flex items-center gap-[2px] rounded-[8px] border border-[var(--hos-border)] bg-white p-[3px] ${creating ? "hidden" : ""}`}
+                >
                   <button
                     type="button"
                     onClick={() => setView("list")}
@@ -267,7 +300,7 @@ export function CoordinationConsole() {
                 <button
                   type="button"
                   onClick={openHelp}
-                  className="inline-flex h-[30px] items-center gap-[5px] rounded-[6px] px-[8px] text-[12px] font-extrabold text-[var(--hos-muted)] transition hover:text-[var(--hos-text)]"
+                  className={`inline-flex h-[30px] items-center gap-[5px] rounded-[6px] px-[8px] text-[12px] font-extrabold text-[var(--hos-muted)] transition hover:text-[var(--hos-text)] ${creating ? "hidden" : ""}`}
                 >
                   <HelpCircle className="h-[15px] w-[15px]" strokeWidth={2.2} />
                   <span className="max-[620px]:hidden">¿Cómo funciona?</span>
@@ -303,56 +336,34 @@ export function CoordinationConsole() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-[8px]">
-              <div className="flex flex-wrap items-center gap-[6px]">
-                <span className="w-[110px] shrink-0 text-[11px] font-extrabold uppercase tracking-wide text-[var(--hos-muted)]">
-                  Necesidades
-                </span>
-                <FilterChip
-                  label="Todas"
-                  active={needCat === null && !criticalOnly}
-                  onClick={() =>
-                    pickFilter(() => {
-                      setNeedCat(null);
-                      setCriticalOnly(false);
-                    })
-                  }
-                />
-                {NEED_FILTERS.map((c) => (
-                  <FilterChip
-                    key={c}
-                    label={CATEGORY_LABEL[c]}
-                    active={needCat === c}
-                    onClick={() => pickFilter(() => setNeedCat(needCat === c ? null : c))}
-                  />
-                ))}
-                <FilterChip
-                  label="Solo críticas"
-                  active={criticalOnly}
-                  onClick={() => pickFilter(() => setCriticalOnly((v) => !v))}
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-[6px]">
-                <span className="w-[110px] shrink-0 text-[11px] font-extrabold uppercase tracking-wide text-[var(--hos-muted)]">
-                  Puntos de ayuda
-                </span>
-                <FilterChip
-                  label="Todos"
-                  active={siteCat === null}
-                  onClick={() => pickFilter(() => setSiteCat(null))}
-                />
-                {SITE_FILTERS.map((c) => (
-                  <FilterChip
-                    key={c}
-                    label={SITE_CATEGORY_LABEL[c]}
-                    active={siteCat === c}
-                    onClick={() => pickFilter(() => setSiteCat(siteCat === c ? null : c))}
-                  />
-                ))}
-              </div>
-            </div>
+            {!creating ? (
+              <BoardFilters
+                needCat={needCat}
+                siteCat={siteCat}
+                criticalOnly={criticalOnly}
+                onResetNeeds={() =>
+                  pickFilter(() => {
+                    setNeedCat(null);
+                    setCriticalOnly(false);
+                  })
+                }
+                onToggleNeed={(c) => pickFilter(() => setNeedCat(needCat === c ? null : c))}
+                onToggleCritical={() => pickFilter(() => setCriticalOnly((v) => !v))}
+                onResetSites={() => pickFilter(() => setSiteCat(null))}
+                onToggleSite={(c) => pickFilter(() => setSiteCat(siteCat === c ? null : c))}
+              />
+            ) : null}
 
-            {view === "map" && filteredBoard ? (
+            {creating && createKind ? (
+              <CreateRecordFlow
+                createKind={createKind}
+                setCreateKind={setCreateKind}
+                orgs={orgs}
+                activeSites={activeSites}
+                onCreated={onCreated}
+                onClose={() => setCreateKind(null)}
+              />
+            ) : view === "map" && filteredBoard ? (
               <CoordinationMap
                 board={filteredBoard}
                 activeDistrict={district}
@@ -365,89 +376,27 @@ export function CoordinationConsole() {
               />
             ) : (
               <>
-                {creating ? (
-                  <div className="grid grid-cols-2 gap-[12px] max-[900px]:grid-cols-1">
-                    <Panel title="Publicar necesidad"><PostNeedForm orgs={orgs} onChanged={reload} /></Panel>
-                    <Panel title="Publicar suministro"><PostOfferForm orgs={orgs} onChanged={reload} /></Panel>
-                    <Panel title="Agregar sitio"><AddSiteForm orgs={orgs} onChanged={reload} /></Panel>
-                    <Panel title="Registrar organización"><AddOrgForm onChanged={reload} /></Panel>
-                  </div>
-                ) : null}
-
-                {district ? (
-                  <div>
-                    <span className="inline-flex items-center gap-[8px] rounded-full bg-[#EEF2EF] px-[12px] py-[6px] text-[12px] font-extrabold text-[var(--hos-text)]">
-                      Distrito: {district}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDistrict(null);
-                          setNeedsShown(NEEDS_PAGE);
-                          setSitesShown(SITES_PAGE);
-                        }}
-                        aria-label="Quitar filtro de distrito"
-                      >
-                        <X className="h-[13px] w-[13px]" strokeWidth={2.6} />
-                      </button>
-                    </span>
-                  </div>
-                ) : null}
-
-                <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-[18px] max-[1100px]:grid-cols-1">
-                  <section data-tour="needs">
-                    <div className="mb-[10px] flex items-center justify-between">
-                      <h3 className="text-[13px] font-extrabold text-[var(--hos-text)]">Necesidades</h3>
-                      <span className="font-data text-[12px] font-bold text-[var(--hos-muted)]">{visibleNeeds.length}</span>
-                    </div>
-                    <div className="flex flex-col gap-[12px]">
-                      {visibleNeeds.length === 0 ? (
-                        <p className="text-[13px] font-bold text-[var(--hos-muted)]">No hay necesidades registradas.</p>
-                      ) : (
-                        pagedNeeds.map((v) => <NeedCard key={v.need.id} view={v} orgs={orgs} onChanged={reload} />)
-                      )}
-                      {visibleNeeds.length > pagedNeeds.length ? (
-                        <button
-                          type="button"
-                          onClick={() => setNeedsShown((n) => n + NEEDS_PAGE)}
-                          className="h-[38px] rounded-[6px] border border-[var(--hos-border)] bg-white text-[13px] font-extrabold text-[var(--hos-blue)] transition hover:bg-[#F4F8F5]"
-                        >
-                          Mostrar más ({visibleNeeds.length - pagedNeeds.length} restantes)
-                        </button>
-                      ) : null}
-                    </div>
-                  </section>
-
-                  <div className="flex flex-col gap-[18px]">
-                    <section>
-                      <div className="mb-[10px] flex items-center justify-between">
-                        <h3 className="text-[13px] font-extrabold text-[var(--hos-text)]">Sitios y capacidad</h3>
-                        <span className="font-data text-[12px] font-bold text-[var(--hos-muted)]">{visibleSites.length}</span>
-                      </div>
-                      <div className="flex flex-col gap-[12px]">
-                        {pagedSites.map((v) => <SiteCard key={v.site.id} view={v} onChanged={reload} />)}
-                        {visibleSites.length > pagedSites.length ? (
-                          <button
-                            type="button"
-                            onClick={() => setSitesShown((n) => n + SITES_PAGE)}
-                            className="h-[38px] rounded-[6px] border border-[var(--hos-border)] bg-white text-[13px] font-extrabold text-[var(--hos-blue)] transition hover:bg-[#F4F8F5]"
-                          >
-                            Mostrar más ({visibleSites.length - pagedSites.length} restantes)
-                          </button>
-                        ) : null}
-                      </div>
-                    </section>
-
-                    <section>
-                      <div className="mb-[10px] flex items-center justify-between">
-                        <h3 className="text-[13px] font-extrabold text-[var(--hos-text)]">Suministros ofrecidos</h3>
-                        <span className="font-data text-[12px] font-bold text-[var(--hos-muted)]">{visibleOffers.length}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-[10px] max-[520px]:grid-cols-1">
-                        {visibleOffers.map((v) => <OfferCard key={v.offer.id} view={v} />)}
-                      </div>
-                    </section>
-                  </div>
-                </div>
+                <DistrictFilterPill
+                  district={district}
+                  visibleNeedsCount={visibleNeeds.length}
+                  visibleSitesCount={visibleSites.length}
+                  onClear={() => {
+                    setDistrict(null);
+                    setNeedsShown(NEEDS_PAGE);
+                    setSitesShown(SITES_PAGE);
+                  }}
+                />
+                <BoardList
+                  visibleNeeds={visibleNeeds}
+                  visibleSites={visibleSites}
+                  visibleOffers={visibleOffers}
+                  pagedNeeds={pagedNeeds}
+                  pagedSites={pagedSites}
+                  orgs={orgs}
+                  onReload={reload}
+                  onShowMore={() => setNeedsShown((n) => n + NEEDS_PAGE)}
+                  onShowMoreSites={() => setSitesShown((n) => n + SITES_PAGE)}
+                />
               </>
             )}
           </>

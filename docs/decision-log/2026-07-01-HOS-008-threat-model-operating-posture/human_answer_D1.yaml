@@ -1,0 +1,49 @@
+# HOS-2026-008-D1 — Human answer (binding input)
+# The Judge escalated D1 to the human principal (judge_decision.yaml:46-66).
+# This file records the answer verbatim and its operational interpretation.
+# It is the binding constraint downstream gates are measured against.
+
+id: "HOS-2026-008-D1"
+answered_on: "2026-07-03"
+answered_by: "Human principal (Freddy Sulbaran)"
+channel: "Direct instruction in working session"
+
+verbatim_answer: >
+  "HOS-2026-008-D1 — is the Venezuelan state in scope as an adversary?
+  they are definitely not helping. but are not taking a fully adversary
+  stand yet."
+
+binding_interpretation:
+  in_scope: true
+  posture: "LATENT ADVERSARY — non-cooperative today, not yet actively targeting this data; escalation is plausible and must be cheap to respond to."
+  reading: >
+    The state IS in scope as an adversary whose access to HOS data could
+    endanger the people in it — the human confirms non-cooperation and does
+    not rule out escalation. But the human explicitly declines the "fully
+    adversarial now" framing, so the operating posture is Option-B-as-reshaped
+    (minimize now, stay escalation-ready), NOT Option C (full bunker now).
+    This is between the board's recommended flat YES and a NO: the YES-side
+    consequences that are cheap and irreversible-if-skipped still apply; the
+    YES-side consequences that are expensive infrastructure do not trigger yet.
+
+consequences:
+  now_binding:
+    - "Data minimization (D2) and event-log retention/minimization (D3) remain PRIMARY, ship-now controls — they hold under both latent and active postures and are the cheap-now/expensive-later items."
+    - "The live unauthenticated public search oracle (D4) must still be closed/coarsened — it leaks under a latent adversary too (insiders, informants, scraping)."
+    - "No PII or precise-location data in any PUBLIC surface. The deferred public/aggregated feed (HOS-2026-007 gate) may only ever ship coarse aggregates, and its gate now has its D1 input: it can be re-reviewed on that basis instead of stalling on an unanswered question."
+    - "Field-level encryption may still only be labeled a state-adversary control if key custody is separated from ciphertext custody (D2 condition, unchanged — that decision remains open and needs legal/custody design)."
+  not_triggered_yet:
+    - "Full censorship-resilience infrastructure (D5 heavy items: mirrors, offline-first, anti-blocking) stays a later gate, opened only if blocking/interference is observed."
+    - "Jurisdiction migration of the hosting stack is not forced now, but new architecture decisions must not make it harder (no new controls whose custody is inseparable from the current host)."
+  explicitly_permitted_under_this_posture:
+    - "AUTHENTICATED, coordinator-gated surfaces may show precise need/site locations where operationally necessary (human direction 2026-07-03: responders need to know exactly where the need is). The protection boundary is the auth gate + minimized retention, not coordinate coarsening on internal tools. Public surfaces stay coarse."
+  escalation_triggers:
+    - "Credible report of state use of HOS data against a person in it"
+    - "Network-level blocking or interference with the deployed app"
+    - "Legal compulsion attempt against the host (Vercel/Supabase) or an operator"
+    - "On any trigger: re-run the HOS-2026-008 board with posture upgraded to ACTIVE; the D5 gate and jurisdiction question reopen immediately."
+
+unblocks:
+  - "HOS-2026-007 deferred public-feed gate re-review (still requires real auth HOS-2026-001-08 for anything interactive)"
+  - "HOS-2026-008 D3 public-search/auth escalation work"
+  - "HOS-2026-009 minor check-in board run (was sequenced behind the 008 posture landing)"
