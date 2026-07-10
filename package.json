@@ -14,6 +14,7 @@
     "dev:web": "npm run dev -w @hos/web",
     "build:web": "npm run build -w @hos/web",
     "lint:web": "npm run lint -w @hos/web",
+    "check:crypto": "node tools/checks/approved-crypto.mjs",
     "hos": "tsx tools/hos-cli/src/index.ts"
   },
   "repository": {
