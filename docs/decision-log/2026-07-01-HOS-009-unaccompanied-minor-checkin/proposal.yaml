@@ -3,8 +3,8 @@ title: "Unaccompanied-minor check-in and missing-child soft alert (non-biometric
 category: "strategic"
 proposer: "Executive Orchestrator (drafted at human principal's request, 2026-07-01)"
 date: "2026-07-01"
-status: "DRAFT — awaiting Board review"
-board_status: "pending"
+status: "RESHAPE — board reviewed 2026-07-11; awaiting human + child-protection specialist + legal sign-off before any build"
+board_status: "reviewed 2026-07-11 (contrarian, principals, researcher, user, expansionist + judge_decision.yaml). Verdict RESHAPE: Option A reshaped and recommended, Option B DECLINED this cycle (reconsideration requires a new gate + specialist + legal). NOT authorized to build — escalated to human for the Option-A-vs-B answer plus child-protection specialist and legal sign-off. Key reshapes: drop the stored reference photo (minimization violation, wrong purpose); separation-of-duties so the presence record is never authored solely by the self-declared guardian; make the absence signal usable (consecutive-window escalation + one-tap acknowledge + a required check-OUT state) or it dies of alarm fatigue; keep v1 to the volunteer roll-call spine (defer self-check-in geofence + QR wristband to later gates); render every state honestly (seen-at-time not 'safe', needs-a-look not 'missing'). Run the field-by-field minimization check against docs/DATA_MINIMIZATION.md before any code (HOS-008 posture has now landed)."
 
 summary: >
   Propose a way to catch a missing unaccompanied minor quickly — a real,
