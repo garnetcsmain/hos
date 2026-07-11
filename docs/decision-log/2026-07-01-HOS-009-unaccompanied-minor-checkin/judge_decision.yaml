@@ -1,0 +1,200 @@
+decision_id: "HOS-2026-009"
+title: "Unaccompanied-minor check-in and missing-child soft alert (non-biometric, non-tracking by default)"
+phase: "judge_synthesis"
+date: "2026-07-11"
+judge: "Judge Agent (synthesized by Executive Orchestrator from 5 full board reviews)"
+board_inputs_considered: [contrarian, principals, researcher, user, expansionist]
+
+verdict: "RESHAPE"
+approved_option: "A-non-biometric-checkin (RESHAPED — see conditions); Option B DECLINED this cycle; Option C rejected"
+authorization: "NOT cleared to build. This is a strategic and highly sensitive decision touching the most vulnerable population the system would hold. The board RESHAPE converges, but a build requires an explicit human answer PLUS child-protection specialist and legal sign-off (see escalate_to_human). The board's role here is to hand the human a shaped, de-risked Option A and a clear list of what must be true before any code — not to authorize the build itself."
+confidence: 0.76
+
+rationale: >
+  The board converges cleanly and unusually: the problem is real and documented (Researcher:
+  unaccompanied/separated children are a recognized trafficking-risk group in displacement, and
+  the Venezuela/Latin-America migration context specifically), the non-biometric direction is the
+  one the sector itself chose (CPIMS+/Primero avoid biometrics in the core UASC workflow; the
+  Rohingya biometric case is the standing cautionary tale), and Option B — face-ID plus continuous
+  GPS — is declined by direct precedent, not merely on caution: it would build the exact
+  protection-dataset-becomes-targeting-dataset artifact HOS already ring-fenced in HOS-2026-006 and
+  HOS-2026-008, pointed at children. So the good idea (notice a missing child faster) survives and
+  the dangerous mechanism is set aside for its own stricter, separately-gated review. But every
+  reviewer independently lands on the same three reshapes, and they are what turn a plausible
+  proposal into a safe one. First, Option A as WRITTEN is not yet minimal enough: the stored
+  "optional reference photo" is the highest-reidentification field in the record, serves the feature's
+  stated purpose (absence detection) not at all (Researcher: photos in comparables serve TRACING,
+  which HOS-2026-001 already owns), and is reasoned about as if it weren't there in the proposal's
+  own worst-case-breach description (Principals: a data-minimization VIOLATION and a non-sequitur).
+  It must be dropped from v1 or gated separately. Second, the trust anchor is a self-declared adult
+  the system cannot vet, and the highest-risk trafficking pattern is precisely the adult who presents
+  AS the guardian — against whom a tidy check-in log is not protection but laundering (Contrarian
+  Flaw 2). The closable-today gap is not a vetting system (impossible under the interim shared-auth
+  layer) but a separation-of-duties invariant: the presence record must not be authorable SOLELY by
+  the self-declared guardian (Principals Logic Check #3). Third, the absence alert is a low-specificity
+  signal in exactly the chaotic conditions it is built for; without consecutive-window escalation, a
+  one-tap acknowledge, and a check-OUT/resolution path, it drowns in false positives and coordinators
+  tune it out within days — the alarm-fatigue failure (Researcher: Joint Commission / ISA-18.2;
+  Contrarian Flaw 3; User friction 2 and the missing check-out state). Underneath all three sits the
+  honesty principle the whole tree runs on: a present check-in means "someone recorded this child as
+  here," never "this child is safe" — and it must render that way (HOS-2026-007's stale-reads-as-stale,
+  applied to a child's life). The Expansionist adds the one genuinely strategic note and, notably,
+  argues it toward RESTRAINT: the moat here is trust — a child dataset agencies can hold BECAUSE it
+  collects almost nothing — and the honest middle step (a non-biometric QR wristband to kill the
+  manual-entry friction the User flags as fatal) is worth NAMING for a later gate but must not be
+  built now and must not become a smuggling route toward more collection. Finally, the proposal's own
+  sequencing note is now actionable, not deferred: HOS-2026-008's minimization posture HAS landed
+  (docs/security/HOS-2026-008-data-minimization-and-posture.md + docs/DATA_MINIMIZATION.md), so every
+  field of the minor record must be bucketed against that ledger BEFORE any code, not "someday."
+
+decisions:
+  - id: "HOS-2026-009-D1"
+    title: "Decline Option B (biometric face-ID + continuous GPS) this cycle — and nail the coffin shut against grief-driven reopening"
+    verdict: "KILL (this cycle) — reconsideration requires a NEW, separately-gated strategic decision"
+    confidence: 0.9
+    rationale: >
+      Unanimous and precedent-backed. Option B builds a searchable, real-time-located roster of
+      specifically the most vulnerable children in the response — the single highest-value asset a
+      trafficker or hostile state could want, and a direct repeat of the HOS-2026-006 Rohingya harm
+      under the HOS-2026-008 latent-state-adversary posture the human already ratified. The Contrarian
+      names the predictable failure mode: the first time a child goes missing and Option A didn't
+      prevent it, the room will demand "we should have had the face-ID and GPS." That emotional logic
+      is how biometric child databases get built after a tragedy. The board pre-commits against it.
+    conditions:
+      - "Option B is DECLINED this cycle and recorded as considered-and-declined (not silently dropped)."
+      - "Any future move toward biometric identifiers OR continuous/periodic/geofenced location tracking OR stored location history for any individual is a NEW strategic decision requiring a child-protection specialist AND legal counsel — NOT an extension of this approval, NOT a coordinator toggle, NOT a 'phase 2' of HOS-2026-009. This speed-bump is deliberate and survives future urgency."
+
+  - id: "HOS-2026-009-D2"
+    title: "Drop the stored reference photo from v1 scope (data-minimization violation; wrong purpose)"
+    verdict: "RESHAPE (binding)"
+    confidence: 0.82
+    rationale: >
+      Principals flags it a data-minimization VIOLATION and a non-sequitur (the proposal stores the
+      photo while describing worst-case breach as if it weren't there). Researcher shows the photo's
+      justification in every comparable (RapidFTR/RFL) is TRACING — finding a lost child's family —
+      which HOS-2026-001 reunification already owns; it does nothing for absence detection, this
+      feature's stated purpose. Contrarian: it is the single worst field a breach or host-compulsion
+      could expose (a visual targeting kit for a named vulnerable child). Removing it also avoids
+      HOS's first image-storage-of-a-vulnerable-person obligation, which has no defined handling posture.
+    conditions:
+      - "No stored reference photo in v1. Human visual confirmation is done by the present responsible adult, not by a stored image."
+      - "If a stored photo is ever wanted, it belongs to the HOS-2026-001 reunification module (tracing purpose) behind its own gate and its own image-handling posture — NOT bolted onto the check-in record. A child-protection specialist decides whether a stored photo is required at all."
+      - "Every field of the minor record is bucketed against docs/DATA_MINIMIZATION.md + docs/security/HOS-2026-008-data-minimization-and-posture.md BEFORE any implementation. This check is now due, not deferred (HOS-008 posture has landed)."
+
+  - id: "HOS-2026-009-D3"
+    title: "Separation-of-duties on the presence record — close the attribution-vs-trust gap the guardian problem opens"
+    verdict: "RESHAPE (binding, and the honest answer to the proposal's Principals question)"
+    confidence: 0.72
+    rationale: >
+      The proposal asks whether it needs a minimum answer to "who vets the responsible adult" before
+      shipping. The board's answer: yes, but the achievable minimum is NOT vetting (impossible under
+      the interim self-declared-identity auth layer) — it is separation of duties. Attribution
+      (append-only, who-asserted-this) is real and good; trustworthiness of the attributed actor is
+      absent. The gap is closable-as-far-as-possible today by requiring that the record vouching for a
+      child's presence not be authorable SOLELY by the self-declared guardian: an assigned site
+      caseworker/volunteer must be able to author or co-sign it, so the system is never wholly trusting
+      the one person it most needs independence from. This does not solve guardian-is-trafficker (nothing
+      here does), but it stops the feature from LAUNDERING it with a clean self-authored log.
+    conditions:
+      - "The presence/check-in record for a child must be authorable (or co-signable) by an assigned site actor structurally independent of the claimed guardian; the claimed guardian is never the sole author of the record that vouches for them."
+      - "On a shared device, check-in attribution is honestly labeled at the level it actually holds (shelter-level, not person-level) until the HOS-2026-010-R2 per-person session handoff exists; the UI must NOT render 'a specific named adult vouched' when only a shared session was used."
+      - "Coordinator-facing copy states plainly: a present check-in means someone recorded this child as here; it does not mean the child is safe and does not verify who the responsible adult is."
+
+  - id: "HOS-2026-009-D4"
+    title: "Make the absence signal usable — or it's alarm-fatigue paperwork"
+    verdict: "RESHAPE (binding)"
+    confidence: 0.75
+    rationale: >
+      Researcher (alarm-fatigue: Joint Commission, ISA-18.2), Contrarian Flaw 3, and User frictions
+      2 and the missing check-OUT state all converge: a one-missed-window alert in a chaotic shelter
+      is dominated by "the adult got busy," and coordinators learn to ignore all alerts — including the
+      one real one — within days. The single most important missing element is a resolution/check-OUT
+      path: kids leave for good reasons constantly (reunited, transferred, aged out); without a one-tap
+      honest close, every legitimate departure becomes a permanent nagging alert that trains coordinators
+      to tune the system out. Researcher's deeper caution stands in the record: electronic per-child
+      absence-alerting has NO established sector precedent as a primary safeguarding control (the sector
+      uses human case management + IDTR) — so this mechanism ships, if it ships, as provisional and
+      instrumented, the same posture the board took toward HOS-2026-012's unvalidated designs.
+    conditions:
+      - "Alert on N CONSECUTIVE missed windows (per-site configurable), not a single miss; a one-tap 'seen — child present' acknowledgement clears a false alarm before it reaches the coordinator."
+      - "A one-tap check-OUT / resolution state (reunited / transferred / other) is REQUIRED, not optional — the feature is incomplete without it."
+      - "Roll-call ergonomics: a single offline-first batch check-in screen for a coordinator's assigned children (one interaction for the count, not N taps), per the User review — friction is the difference between this being used and being a paper-clipboard loser."
+      - "If built, instrument the false-alert rate from day one; treat the mechanism as provisional/pilot until the real missed-check-in base rate is measured. State in the record that it lacks close sector precedent."
+
+  - id: "HOS-2026-009-D5"
+    title: "Defer the self-check-in geofence and the QR wristband to later gates; keep v1 to the volunteer roll-call spine"
+    verdict: "RESHAPE"
+    confidence: 0.78
+    rationale: >
+      Occam (Principals) and the User both cut the phone-based self-check-in from v1: a frightened
+      minor on a dying phone with no data is the wrong user, and the district-boundary check — though
+      cleverly minimal (checked once, then discarded) — is the location-adjacent surface HOS-2026-008/010/012
+      have repeatedly reshaped, and is not on the critical path to absence detection. The Expansionist
+      names the honest middle step — a non-biometric QR wristband encoding only the system ID — as the
+      real fix for the User's fatal manual-entry friction, but it carries its own safeguarding concern
+      (a visible marker can itself signal 'unaccompanied minor'), a physical-supply dependency, and thin
+      precedent (Researcher). So it is NAMED for a later gate, not built, and requires child-protection
+      sign-off before reconsideration. It must never be used to argue toward more collection.
+    conditions:
+      - "v1 = minimal record (ID + nickname + age band + assigned site) + attributed batch check-in + consecutive-window absence alert + check-out. No stored photo, no self-check-in geofence, no wristband."
+      - "The QR-wristband middle step is recorded as a candidate for a separate later gate requiring child-protection review; it is NOT authorized here."
+
+  - id: "HOS-2026-009-D6"
+    title: "Access boundary and the 'child hiding from their guardian' case"
+    verdict: "RESHAPE / carry as open input"
+    confidence: 0.66
+    rationale: >
+      User's missing piece: some unaccompanied minors are unaccompanied because they fled an abusive
+      adult; a presence system that lets that adult (or a proxy) learn the child is at Site X re-exposes
+      the person the system is meant to protect. Coordinator-only visibility helps but does not answer
+      WHO may ask 'is this child here.' Principals questions whether the ordinary coordinator gate is a
+      strong enough boundary for the single most sensitive list in the system, leaning toward a stricter
+      gate — which depends on the HOS-2026-011 capability model landing. And the proposal must connect
+      to a next step: the alert notices a missing child and then must lead somewhere human (never an
+      automated police call — rightly out of scope), documented in coordinador onboarding.
+    conditions:
+      - "Define, with the child-protection specialist, who is permitted to query a child's presence, and support a protected-record state that does not itself visibly flag 'this child is hiding.'"
+      - "Whether this dataset needs a STRICTER gate than the coordination board is carried as an open input pending HOS-2026-011 capabilities; default to the tighter boundary if in doubt."
+      - "The 'alert fired and the child is genuinely gone — what now' human next-step is documented in docs/onboarding/coordinador.md (which already carries a protection section), not left as a dead-end alert."
+
+ships_now_no_external_dependency:
+  - "NOTHING ships as code from this decision yet. This epic is NOT authorized to build (see authorization / escalate_to_human)."
+  - "What CAN be done now with no external dependency and no human policy answer: (1) run the field-by-field minimization check of the reshaped minor-record against docs/DATA_MINIMIZATION.md (D2); (2) fold the D1 Option-B decline + reconsideration-requires-new-gate rule into the epic record so it survives future urgency; (3) note the interim do-not-collect guidance already live in docs/onboarding/coordinador.md as the current honest answer while this stays gated."
+
+blocked_or_escalated:
+  - "BUILD AUTHORIZATION: escalated. Requires an explicit human answer (Option A default vs press toward Option B despite its risk) PLUS child-protection specialist AND legal counsel — the same escalation pattern required for HOS-2026-006 and HOS-2026-008. A board of AI agents must not authorize collecting a named roster of vulnerable children on its own."
+  - "Stricter access gate for this dataset: depends on the HOS-2026-011 capability model landing (RLS/roles blocked on Postgres BLK-001)."
+  - "Per-person (not shelter-level) check-in attribution on shared devices: depends on the HOS-2026-010-R2 session-handoff identity work."
+  - "Interoperability-as-referral-pointer to Primero/CPIMS+ (Expansionist): depends on a partnership pipeline HOS does not yet have — carry as aspirational, not a build item."
+
+next_gate: >
+  This decision does not schedule a build gate; it schedules a HUMAN gate. Before HOS-2026-009 may
+  create any task or write any code: (1) the human principal answers Option A (reshaped) as the default
+  and explicitly declines Option B pending a separate specialist review; (2) a child-protection
+  specialist reviews the reshaped Option A — especially the stored-photo question (D2), the
+  guardian-is-trafficker / separation-of-duties limit (D3), and the 'child hiding from their guardian'
+  access case (D6); (3) legal counsel confirms holding minors' records is permissible in the deployment
+  jurisdiction. Only then does the CTO create tasks, and only for the D1–D6 reshaped scope. If built,
+  the absence mechanism is provisional and instrumented until its false-alert base rate is measured
+  (D4). The epic must NOT be marked beyond 'board-cleared, awaiting human + specialist + legal' until
+  those three sign-offs exist.
+
+escalate_to_human:
+  - "THE CORE ASK (the proposal's own escalation): is Option A's reshaped non-biometric design the intended direction, or does the human principal want to press toward Option B (biometric + continuous GPS) despite the trafficking-target-dataset risk it creates? The board's strong recommendation: Option A (reshaped), decline Option B. This is not an agent default to make."
+  - "CHILD-PROTECTION SPECIALIST sign-off on the reshaped Option A before any build — the board has no child-protection specialist and says so; specific items: stored-photo necessity (D2), separation-of-duties as the achievable trust floor (D3), the hiding-from-guardian access case (D6), and whether electronic absence-alerting is appropriate at all given no established sector precedent (D4/Researcher)."
+  - "LEGAL sign-off that holding unaccompanied-minor records is permissible in the deployment jurisdiction and under the HOS-2026-008 host-compulsion posture."
+
+overall: >
+  RESHAPE, not a build authorization. The board converges: the risk is real, the non-biometric
+  direction matches the sector's own choice, and Option B is declined by precedent and pre-committed
+  against reopening under grief. But Option A must be reshaped before it is safe — drop the stored photo
+  (a minimization violation serving the wrong purpose), require separation of duties so the presence
+  record is never authored solely by the self-declared guardian, make the absence signal usable
+  (consecutive-window escalation, one-tap acknowledge, and a required check-OUT state) or it dies of
+  alarm fatigue, keep v1 to the volunteer roll-call spine (defer the self-check-in geofence and the QR
+  wristband to later gates), and render every presence state honestly (seen-at-time, never 'safe';
+  needs-a-look, never 'missing'). Underneath it all: this is the single most sensitive dataset HOS would
+  ever hold, and a board of AI agents must not authorize collecting a named roster of vulnerable children.
+  The verdict hands the human a de-risked Option A and a hard gate: no code until the human answers the
+  Option-A-vs-B question and a child-protection specialist and legal counsel sign off. Until then the
+  honest current answer is the do-not-collect guidance already live in the coordinator onboarding.
