@@ -1,0 +1,205 @@
+decision_id: "HOS-2026-014"
+title: "Site stewardship: how a person claims responsibility for a site, what it requires, and how they stay accountable for keeping it fresh"
+phase: "judge_synthesis"
+date: "2026-07-12"
+judge: "Judge Agent (synthesized by Executive Orchestrator from 5 full board reviews)"
+board_inputs_considered: [contrarian, expansionist, principals, researcher, user]
+companion_review: "HOS-2026-013 (public presentation UX) — reviewed in the same sitting; 014 is the freshness SUPPLY behind 013's pulse board. See that judge_decision.yaml."
+
+verdict: "RESHAPE"
+approved_option: "A-stewardship-with-remote-path (RESHAPED — see conditions), phased interim -> enforced. Option B (field-training-only) rejected as the sole path (field training survives as one verification path inside A). Option C (crowd-liveness-only) rejected as the do-nothing baseline the proposal exists to fix."
+authorization: >
+  SPLIT authorization. CLEARED TO BUILD NOW (tactical, behind the EXISTING coordinator gate, no new external
+  dependency): the HONEST HALF of the interim slice — the 'sitios vencidos' triage list, the honest decaying
+  freshness badge, attributed liveness ACTIONS in the append-only audit, and a coordinator-vouched steward
+  record SHAPED as the future site:<id> grant with a trust-tier flag on every write. WITHHELD from the interim
+  and reshaped before any build: the self-request claim queue, automatic lapse, the remote self-confirm loop,
+  and — critically — any rendering of a NAMED 'responsable' or 'confirmado por el responsable' as though it
+  denotes verified accountability. The enforced version (capability-checked writes, RLS) stays blocked on the
+  unchanged 010/011/Postgres chain + human/legal sign-off. The board is unanimous (5/5 RESHAPE) that the
+  interim may ship STALENESS HONESTY now but must NOT ship OWNERSHIP REASSURANCE until there is a verified
+  identity to pin it to.
+confidence: 0.81
+
+rationale: >
+  All five reviewers land on RESHAPE, and they converge on the same fault line: this proposal's honest, useful
+  half (an honest decaying freshness badge and a worked 'sitios vencidos' triage list) needs no new privilege
+  and no unverified name and should ship today, while its risky half grants REMOTE WRITE AUTHORITY OVER WHERE
+  FAMILIES ARE SENT, verifies it with a call to a number the adversary already knows, and then dresses an
+  unverified name in a green 'confirmado por el responsable' badge that the system's own honesty layer vouches
+  for. The Contrarian walks the fake-remote-steward attack end to end and finds the one preventive step
+  (out-of-band verification) is structurally broken: the coordinator calls the site's PUBLICLY LISTED phone,
+  a number the adversary knew before requesting, so the check verifies the PHONE, not the CLAIMANT — and under
+  the 150-site queue the proposal exists to relieve, the coordinator's incentive points at granting (each grant
+  retires a stale card), so the check collapses to rubber-stamp. Audit and revocation are post-hoc; by then the
+  poison — a real shelter marked 'cerrado' (denial of aid) or an adversary address marked 'operativo' (an
+  Operacion Tun Tun honeypot for a population with a named fatal precedent) — has already been served to
+  families, with the freshness badge certifying it. The Researcher grounds this: 'the org vouches / an existing
+  steward confirms' are the exact elite-capture / gatekeeper vectors documented in Somalia (intermediaries
+  intercepting aid) and across community-targeting literature — coordinator approval stops FABRICATED claims,
+  not CAPTURED ones. The second shared finding is the interim's honesty inversion (Contrarian Flaw 2, Principals
+  Logic Check #1, User friction 4, Researcher via Ushahidi's verified/unverified experience): under the shared
+  coordinator token there is no real auth and no identity substrate, so 'attributed' means attributed to a token
+  anyone holding it can write — yet the value sold to coordinators is 'data is fresh because someone SPECIFIC is
+  on the hook.' Rendering 'Responsable: Juan, confirmo hace 2h' makes a coordinator trust that site MORE than an
+  honestly-anonymous stale card, and that increment is unearned — the same manufactured-confidence pattern the
+  board flagged in HOS-2026-009. Principals resolves the proposal's own open question precisely: attributed-honor-
+  system is better than anonymous-but-gated IF AND ONLY IF the attribution claims only what it can back (a
+  coordinator-VOUCHED entry, identity unverified) with the caveat at EQUAL visual weight as the name; without
+  that condition it is worse than anonymous because it manufactures unearned identity-confidence. Ushahidi's
+  lesson is that the 'unverified' label works only when it is LOUD — a caveat sentence loses to a green badge.
+  Third, auto-lapse is wrong on principle and dangerous in this population: Principals flags it as an automated
+  role-affecting action inferring neglect from silence, when the proposal itself cites Tun Tun — a steward may
+  go silent because the adversary reached them, and the system would respond by declaring them negligent and
+  reopening their site. The Contrarian adds that 'sin responsable' publishes a list of ripe targets, is farmable
+  (claim -> go silent -> lapse -> re-claim, each cycle a fresh weak verification and a fresh poison window), and
+  systematically transfers control from the present-but-offline FIELD steward (on 3G, the intended user) to the
+  absent-but-online REMOTE actor. The User loosens the numbers with evidence: the strawman SLAs (24h/24h/48h)
+  are 3-20x faster than real CCCM cadence (weekly-to-quarterly), so they will paint everything 'vencido', strip
+  stewardship from the busiest real sites, and re-run the HOS-2026-009 cry-wolf failure — reframe as trust-decay,
+  not a report card, and instrument the numbers in pilot rather than hard-code them. Fourth, D4's name-suppression
+  is necessary but incomplete: the targetable asset is the person's ROUTINE, and a public 'confirmado por el
+  responsable hace 2h' appearing daily at 08:00 publishes a single steward's presence pattern-of-life even with
+  the name perfectly suppressed (Contrarian Flaw 4, User missing-piece 3) — plus name-leak surfaces the proposal
+  never closes (the audit trail's readership, aviso authorship grain, and the companion 013 'Ver como'). Fifth,
+  two structural must-do-now items: a trust-tier flag ('honor' vs 'verified') on EVERY interim write, because
+  append-only auditability makes it impossible to reconstruct later which era an attribution came from
+  (Principals — prevent-now-or-never), and modeling the record as the site:<id> grant shape so enforcement is a
+  fill-in, not a migration. The Expansionist keeps the strategic frame honest: this is the first instance of a
+  general, scope-parametric stewardship-grant primitive that later generalizes to district/category stewards —
+  design the grant so scope is a VALUE not a hard-coded 'site', but build NONE of the tiers now, and flag that a
+  cross-org reputation graph may itself cut against the HOS-2026-008 non-retention control (a targeting artifact
+  of named people) and needs Contrarian + legal before it is ever more than a note. Underneath everything, the
+  companion join the User names: HOS-013's map is only safe to show a family if HOS-014 guarantees a pin never
+  reads fresher than its steward actually knows — which is exactly why the remote self-confirm loop, which
+  manufactures confident-wrong data, cannot ship until it forces a fresh source and offers a no-penalty
+  'no pude confirmar.'
+
+decisions:
+  - id: "HOS-2026-014-D1"
+    title: "Ship the honest interim half now (triage + decaying badge + attributed actions + trust-tier flag + grant-shaped record)"
+    verdict: "GREEN (build now, behind the existing coordinator gate)"
+    confidence: 0.85
+    rationale: >
+      This is the genuinely good, honest idea in the proposal and it needs no new privilege and no unverified
+      name (Contrarian: 'I'd ship it today'). The 'sitios vencidos' triage list is the coordinator's real, missing
+      tool (User: HIGH value for Carla); the honest decaying badge already implements 'stale reads as stale';
+      attributed ACTIONS in the audit give later forensics. It reuses existing substrate (audited
+      updateSiteCapacity, freshness badges, three-tier auth, provisioned site_grants schema) so the marginal cost
+      of doing it RIGHT (grant-shaped record + trust-tier flag) is near zero — there is no engineering excuse to
+      ship the un-reshaped version.
+    conditions:
+      - "The steward record is modeled as the future site:<id> GRANT shape (grantee ref + scope-as-a-VALUE + sla + status), per HOS-2026-011-D5, so enforcement is a fill-in not a migration; scope is parametric (not hard-coded 'site') so district/category stewards are a later scope value, not a new system (Expansionist)."
+      - "A trust-tier flag ('honor' | 'verified') is stamped on EVERY interim write — non-negotiable, because append-only auditability makes it impossible to reconstruct the era later (Principals: prevent-now-or-never). Name the re-verification backlog as a known cost of the interim (each honor-era steward must re-bind when HOS-2026-010 identity lands)."
+      - "Minimize the record: bias to a HANDLE the coordinator can recognize, not a legal name; treat the mandatory contact channel (phone/WhatsApp) as the crown-jewel PII in a compellable DB and justify storing it at all vs coordinator-held out-of-band (Principals — minimization is the control that holds against the host, not access rules)."
+
+  - id: "HOS-2026-014-D2"
+    title: "Withhold ownership-reassurance rendering until a verified identity exists — interim ships staleness honesty, not a named accountable owner"
+    verdict: "RESHAPE (binding; this is the answer to the proposal's own D5 Principals question)"
+    confidence: 0.82
+    rationale: >
+      Under interim shared-token auth, rendering a named 'responsable' and 'confirmado por el responsable' as
+      accountability manufactures unearned trust (Contrarian Flaw 2; Principals Logic Check #1). Attributed-honor-
+      system beats anonymous-but-gated ONLY if the attribution claims exactly what it can back, with the caveat at
+      equal weight as the name (Ushahidi: the unverified tag works only when loud). On a genuinely shared shelter
+      phone, 'Wilmer confirmo' is false; 'alguien en el refugio confirmo' is true (User friction 4).
+    conditions:
+      - "Interim UI renders confirmation as 'confirmado (identidad no verificada)' / a timestamp / 'atribucion por confianza, sin verificar' — NOT a verified-person attribution. A caveat must ride at equal visual weight as any name, never as fine print beside a green badge."
+      - "Shared-device attribution is credited at SITE/SHIFT grain, not by name, until per-person session handoff (HOS-2026-010-R2) exists."
+      - "Micro-training (D1) centers what 'confirmar' ASSERTS and the remote-vs-onsite honesty rule, shown every time — not logistics."
+
+  - id: "HOS-2026-014-D3"
+    title: "Lapse is a coordinator ACTION, not an automatic timer; SLAs are trust-decay, not a report card"
+    verdict: "RESHAPE (binding)"
+    confidence: 0.8
+    rationale: >
+      Automatic lapse infers neglect from silence and, in this population, risks labeling a DETAINED or displaced
+      steward (Tun Tun, cited in-proposal) as negligent — an automated role-affecting action against a person that
+      violates 'people decide' (Principals Logic Check #2). It also publishes a ripe-target list, is farmable, and
+      transfers control from the offline field steward to the online remote actor (Contrarian Flaw 5). The strawman
+      SLAs are 3-20x faster than real camp-management cadence and will paint everything 'vencido' and re-run the
+      HOS-2026-009 cry-wolf failure (User; Researcher: CCCM refreshes monthly/quarterly with weekly site-monitoring).
+    conditions:
+      - "Lapse DEGRADES THE BADGE first ('responsable inactivo / sin confirmar +Nd') and only a COORDINATOR ACTION off the triage list releases the grant to 'claimable' — no silent timer strips a steward. Distinguish 'offline' from 'neglectful' where possible; a queued-but-unsynced confirmation is not neglect; rate-limit re-claims on the same site by the same actor and surface claim/lapse churn to coordinators as a SUSPICION signal."
+      - "SLAs are LOOSE, category-tuned, instrumented DEFAULTS validated after 2-4 weeks of real steward data (~7-10 silent days for release, not 3 windows) — trust-decay ('after this long, stop trusting the number'), never a performance demerit. Do NOT hard-code the strawman numbers into automation."
+      - "Split the one-tap 'confirmar operativo' (survives a real shift) from the bed-count chore (own separate freshness) so an easy confirm can never launder a stale number ('operativo confirmado hace 3h · camas: dato de hace 2 dias')."
+
+  - id: "HOS-2026-014-D4"
+    title: "Remote path and self-request queue: bind a claimant-controlled factor, add separation-of-duties on high-harm writes, and defer the self-request queue from the interim"
+    verdict: "RESHAPE (binding) + HOLD the remote self-confirm loop and the self-request queue from the interim"
+    confidence: 0.78
+    rationale: >
+      Calling a publicly-listed number verifies the phone, not the claimant, and collapses to rubber-stamp under
+      load (Contrarian Flaw 1); 'org vouches / existing steward confirms' are the elite-capture vector (Researcher/
+      Somalia). The remote path also structurally produces confirmations-WITHOUT-knowledge — a diaspora steward
+      relays a WhatsApp claim rendered as a first-hand 'confirmado hace 2h' — which the proposal's own honesty
+      constraint (3) says is worse than a stale badge (Contrarian Flaw 3; User friction 3: a family walks to a
+      dark closed shelter on a five-day-old confirmation). Principals' Occam removes the cheapest attack path from
+      the interim entirely: drop the self-request queue; coordinator-initiated grants plus a coordinator out-of-band
+      check already keep 'remote first-class' without standing up a public 'claim this site' button before real auth
+      exists to defend it.
+    conditions:
+      - "DEFER the self-request claim queue from the INTERIM. Remote stays first-class as a verification path INSIDE coordinator-initiated grants. When self-request is built (enforced phase), out-of-band verification must bind a CLAIMANT-CONTROLLED factor — e.g. a coordinator-initiated callout to the public number that delivers a one-time code the claimant must return, or a co-sign by an already-VERIFIED steward — never 'someone answers' or 'the org vouches.'"
+      - "Separation-of-duties on high-harm writes: a fresh/unverified steward's 'cerrado' (denial of aid) or 'operativo' (honeypot) must require a SECOND confirmation (another steward or a coordinator) before it changes what families are routed toward (the HOS-2026-009 pattern)."
+      - "HOLD the remote self-confirm loop until a remote 'confirmar' (a) requires an asserted FRESH source ('confirmado con el sitio hoy', logged), (b) is rendered PROVENANCE-DISTINCT from an on-site observation ('confirmado remotamente / reportado', a lower trust grade), and (c) offers a first-class, no-penalty 'no pude confirmar' state — the honest-uncertainty state whose absence makes the lapse timer actively incentivize lying (User missing-piece 1)."
+      - "Make a skipped verification VISIBLE and STICKY: a claim the coordinator has not actually called on shows 'afiliacion sin verificar' on the site until completed, so a skipped check cannot quietly mature into trust (User friction 5)."
+
+  - id: "HOS-2026-014-D5"
+    title: "Steward safety: close the leak surfaces beyond the name, and coarsen public confirmation timing so cadence can't be assembled into a routine"
+    verdict: "RESHAPE (binding) — D4-safety of the proposal is the correct control, extended"
+    confidence: 0.79
+    rationale: >
+      'Coordinator-visible only' names the right control (Principals confirms it is internally consistent with
+      auditability — attribution and public-visibility are orthogonal; Researcher confirms it matches CCCM/CHS
+      practice), but it is written as a NAME-suppression control while the targetable asset is the person's ROUTINE.
+      A public 'confirmado por el responsable hace 2h' daily is a presence pattern-of-life on a single-steward site
+      even with the name suppressed (Contrarian Flaw 4; User). And the name itself leaks through surfaces D4 never
+      closes: the audit trail's readership, aviso authorship grain, and the companion 013 'Ver como.'
+    conditions:
+      - "Public/volunteer surfaces show a staleness BAND ('confirmado en las ultimas 24h') or a coarse freshness signal, NOT a precise 'hace 2h', and drop the 'por el responsable' clause — coarsen public confirmation timing so the confirmation cadence cannot be assembled into a presence schedule. Solve this timing-coarsening ONCE, shared with the HOS-2026-013 public feed's timing requirement."
+      - "State explicitly: the append-only steward audit / per-site history is COORDINATOR-ONLY (the contributor self-signup tier must NOT read it); aviso authorship is ROLE-grain (never a steward handle); any HOS-2026-013 'Ver como' path is TESTED to strip steward identity. Treat any leak of steward name OR presence cadence as a SECURITY bug, not a UX bug."
+      - "Declining public credit must cost nothing AND the set-of-decliners flag must not itself become a coordinator-visible signal of who fears exposure."
+
+ships_now_no_external_dependency:
+  - "Tactical interim build (coordinator gate, no new dependency), per D1: the 'sitios vencidos' triage list; the honest decaying freshness badge; attributed liveness ACTIONS in the audit; a coordinator-vouched, grant-shaped, scope-parametric steward record with a trust-tier flag on every write; the split confirm-open-vs-bed-count action; staleness-band public confirmation timing (shared with 013); coordinator-only audit + role-grain aviso authorship."
+  - "Design-once, gate-neutral: model the grant so scope is a VALUE (site:<id> today) and the SLA keys off the scope category — a one-paragraph 'future scopes' note (district/category stewards anticipated, none built here) in the decision log."
+
+blocked_or_escalated:
+  - "ENFORCED stewardship (capability-checked writes, RLS, verified per-user identity): blocked on the unchanged 010/011/Postgres chain — Postgres (BLK-001 / HOS-2026-001-07), real auth (HOS-2026-001-08), the HOS-2026-011 capability model (human sign-off), the HOS-2026-010-D2 device-key+PIN identity substrate (human/legal sign-off)."
+  - "Self-request claim queue + remote self-confirm loop: HELD from the interim (D4); ship only in the enforced phase with a claimant-controlled verification factor, separation-of-duties on high-harm writes, provenance-distinct remote confirms, and the no-penalty uncertainty state."
+  - "Steward nudges: need a notification channel (BLK-003); until then the 'sitios vencidos' coordinator triage list IS the nudge."
+  - "District/category stewardship + cross-org steward reputation graph (Expansionist tiers): NOT built this cycle. Flag for Contrarian + legal: a portable reputation record of named people who steward aid sites may itself be a targeting artifact that HOS-2026-008 non-retention would forbid — resolve before it is ever more than a note."
+
+next_gate: >
+  This decision authorizes the honest interim slice now and defers the risky half. The CTO may create tasks for
+  the D1 tactical slice immediately, each carrying its D2/D3/D4/D5 conditions (grant-shaped record + trust-tier
+  flag; staleness-honesty-only rendering; coordinator-driven lapse; deferred self-request queue; coarsened public
+  timing + closed leak surfaces). The SLA numbers ship as loose instrumented defaults and are tuned after 2-4
+  weeks of real steward data. The enforced version (self-serve remote claiming, capability-checked writes, RLS)
+  rides the 010/011/Postgres enforcement chain whenever that is signed off; when it lands, the interim honor-era
+  stewards run a re-verification campaign to bind to real identity. The cross-org reputation graph does not
+  proceed past a note until the Contrarian and legal weigh its retention cost against HOS-2026-008.
+
+escalate_to_human:
+  - "No NEW human policy question is created by the honest interim slice — it ships under the already-established shared-token/MET_WITH_WATCH caveat. The enforced version's dependencies (HOS-2026-010 identity, HOS-2026-011 capabilities, Postgres) are the SAME human/legal sign-offs those decisions already escalated; this decision adds no new one for the interim."
+  - "Flag (not yet a decision): whether a cross-org steward reputation graph is compatible with the HOS-2026-008 non-retention posture — carry to the human + legal only if/when that tier is ever proposed."
+
+overall: >
+  RESHAPE, with a clean split the whole board shares: ship the staleness honesty now, withhold the ownership
+  reassurance until there is a verified identity to pin it to, and never let 'confirmed by the keeper, 2h ago,
+  daily' become the schedule that gets the keeper found. The honest half — an honest decaying badge and a worked
+  'sitios vencidos' triage list, on a grant-shaped record with a trust-tier flag — needs no new privilege and no
+  unverified name, and builds now behind the coordinator gate. The risky half grants remote write authority over
+  where families are sent, verifies it with a call to a number the adversary already knows, dresses an unverified
+  name in a green badge the honesty layer then vouches for, auto-lapses a steward who may have been detained, and
+  publishes a single keeper's presence cadence under a suppressed name. So: bind a claimant-controlled factor and
+  add separation-of-duties before any remote write reroutes families; render honor-system attribution as exactly
+  what it is; make lapse a coordinator decision off an honest badge, not a silent timer; loosen the SLAs to
+  trust-decay defaults tuned in a pilot; split the easy confirm from the bed-count chore; coarsen public timing to
+  a staleness band and close the audit/aviso/Ver-como name leaks; and give every honest steward a no-penalty way
+  to say 'no lo se.' Model the grant scope-parametrically so district and category stewards are cheap later, but
+  build none of them now, and keep every steward's identity AND routine coordinator-visible only — Operacion Tun
+  Tun makes the named keeper of an aid site a targetable role, and no upside survives one leaked name or one
+  published routine. Finally, the companion obligation: this proposal is the freshness engine of HOS-2026-013's
+  map and pulse — a pin is only safe to show a family if it never reads fresher than its steward actually knows,
+  which is exactly why the remote self-confirm loop waits for its fresh-source guardrail.

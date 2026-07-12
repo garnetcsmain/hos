@@ -1,0 +1,46 @@
+# User Review: HOS-2026-014
+
+## My Recommendation
+🟡 RESHAPE — Ship the coordinator half now (named steward field + "sitios vencidos" triage + honest staleness); it genuinely changes the coordinator's day. But three parts of the accountability loop break on contact with a real shift and a real diaspora steward, and one of them manufactures the exact false hope that gets someone hurt. Reshape: (1) split one-tap "still open" from bed-count entry; (2) reframe the SLAs as trust-decay, not a report card, and loosen auto-lapse so it doesn't strip stewards from the busiest real sites; (3) do NOT ship the remote self-confirm loop until it forces a fresh source and offers a no-penalty "couldn't verify." Do those and it's a GREEN.
+
+## User Scenario
+
+**I am Wilmer, 26, night volunteer at a refugio in Cagua.** One shared Android for the whole shelter, logged in under the house coordinator token, 40% battery, weak wifi. It's 11pm, shift change. My replacement is late, there are 30-odd people bedding down, a kid is crying, someone needs meds, and the phone is in the office on a charger across the room. **Will I open an app and type today's available bed count in the next 24 hours?** Honestly — only if a coordinator calls me. Mid-shift I am keeping people alive, not updating a database.
+
+**I am also Andreína, 39, in Bogotá.** My cousin volunteers at an acopio in Petare; that's how I "know" the site. I claimed it remotely last month — a coordinator called the site's listed phone, someone confirmed I help, I got the grant. **Now every few days the app wants me to confirm the site.** My real information is whatever my cousin last told me on WhatsApp — sometimes today, sometimes five days ago.
+
+**And Carla, the coordinator** (from HOS-009), accountable for sending families to sites that are actually open, staring at 150 cards.
+
+## Does This Solve It?
+
+- **Pain addressed:** PARTIAL. For Carla the triage view is a real, immediate win — "sitios vencidos, stalest first, with a name or 'sin responsable'" is exactly the tool she lacks. For Wilmer the update rhythm assumes an interaction that won't happen on a bad night. For Andreína the remote loop lets her keep confirming *without any mechanism that guarantees she still knows the truth* — which is the dangerous part.
+- **Ease of use:** HIGH for Carla's triage list. LOW for Wilmer's bed-count-every-24h. Deceptively easy for Andreína — one tap to "confirmar" whether or not she actually verified.
+- **Would I use it:** Carla — YES. Wilmer — the one-tap "sigue abierto," MAYBE; typing a bed count, NO. Andreína — YES, and that's the problem: it's *too* easy to confirm on stale knowledge.
+
+## Friction Points
+
+1. **"Beds every 24h" conflates two updates with opposite difficulty.** "Is this shelter still open" is a one-tap answer Wilmer can give from muscle memory. "How many beds are free tonight" is a counting chore that rots first and gets faked or skipped. Rendering a confirmed-open site as if its *number* is also fresh is a lie by adjacency. → **Split them.** One prominent tap: "confirmar operativo" (survives the shift). Bed count is a separate, optional field with its OWN freshness — the card shows "operativo (confirmado hace 3h) · camas: dato de hace 2 días." Never let an easy confirm launder a stale number.
+
+2. **The strawman SLAs will paint everything "vencido" and re-run the HOS-009 cry-wolf failure.** A refugio run by exhausted volunteers *will* miss 24h routinely — not from neglect, from triage. If the board is then a wall of red and stewards auto-lapse after 3 missed windows (3 days), you strip stewardship from exactly the busiest, most real sites and hand Carla back her wall. → Treat the SLA as **"after this long, stop trusting the number"** (honest decay, which the freshness badge already does well) — NOT a performance target the steward is failing. Loosen auto-lapse to *silent* days generous enough to survive a bad week (7–10, category-tuned), and make lapse mean "needs re-confirming / claimable," never a demerit. The proposal's own risk note says these numbers must be validated in a pilot, not chosen in a document — agreed; ship them as loose defaults and instrument them.
+
+3. **A remote steward can pass verification honestly and then confirm a site she no longer knows.** This is the one that hurts someone. Verification checks affiliation ONCE at claim time; every future remote "confirmar" is then trusted with no requirement that Andreína actually spoke to the ground *today*. She confirms an acopio from a five-day-old WhatsApp; it quietly closed on day three; a family walks there at night on the strength of "confirmado hace 2 h." That is worse than a stale badge — and the proposal's own honesty constraint (D1-3) says so. → Remote confirms must **assert a fresh source** ("confirmado con el sitio hoy" as a required, logged step) and/or be **visually distinguished** as remote-confirmed (a lower trust grade than an on-site confirm), and the micro-training must hammer "only confirm what you verified today." Crucially, give her an easy, **no-penalty "no pude confirmar"** — so the honest action (I don't know right now) doesn't cost her the role and doesn't pressure her to fake-confirm to avoid lapsing. Without that escape hatch, the lapse timer actively incentivizes lying.
+
+4. **Shared-phone honor-system attribution is a fiction the UI must not dress up.** Three volunteers touch one phone under one token. "Wilmer confirmó" is not true; "alguien en el refugio confirmó" is. → Interim, credit at **site/shift grain, not by name**, and say plainly "atribución por confianza, sin verificar" — the same MET_WITH_WATCH caveat the proposal already commits to. This is the identical point I raised in HOS-009 #3; don't render honor-system taps as verified identity.
+
+5. **The verify-by-phone step is exactly the friction a busy coordinator skips — and skipping it silently becomes an auto-grant.** Carla at 11pm with a queue of remote claims will batch them and wave through the ones that "look fine." → Make the *unverified* state visible and sticky: a claim Carla hasn't actually called on shows "afiliación sin verificar" on the site until she completes it, so a skipped check can't quietly mature into trust. (The attack-path rigor is the Contrarian's lane; this is just the human reality of who does or doesn't make the call.)
+
+## Per-sub-decision
+- **D1 (who/requirements)** — GREEN in shape; the 5-min micro-training must center "what 'confirmar' asserts" and the remote-vs-onsite honesty rule, not logistics.
+- **D2 (claim flow)** — RESHAPE: keep no-auto-grant; make "afiliación sin verificar" visible until the out-of-band check is truly done.
+- **D3 (accountability loop)** — RESHAPE: SLAs as decay not report card; looser, instrumented auto-lapse; split confirm-open from bed-count.
+- **D4 (steward safety)** — GREEN and load-bearing: coordinator-only identity is correct under Tun Tun. One flag below.
+- **D5 (interim vs enforced)** — SHIP the interim coordinator slice (triage + named field + honest lapse). HOLD the remote self-confirm loop until #3's guardrails exist. Interim honor-system risks teaching that "confirmar" is a cheap button — counter it with copy that says what confirming asserts, every time.
+
+## Missing Piece
+
+- **A first-class "no lo sé / no pude confirmar" state.** The whole design has "confirm" and "go stale," with lapse as the punishment for staleness. That pressures every steward — remote ones most — toward confirming on thin knowledge to avoid the red badge. The honest-uncertainty state is missing and it is the single most important addition for keeping the data true.
+- **What a family sees must survive an *honest* stale steward.** If Andreína correctly says "no sé," the public/coordinator surface needs to degrade gracefully to "sin confirmar recientemente" — not vanish, not go falsely green. This is the join with HOS-013: that proposal's map is only safe to show Marisol if *this* proposal guarantees a pin never reads fresher than its steward actually knows.
+- **A safety flag beyond names.** D4 protects the steward's *name*, correctly. But "confirmado por el responsable del sitio hace 2h" on a public surface still discloses that a specific human is physically tied to that acopio — a targeter learns which sites have an active keeper. Consider whether public surfaces need the "por el responsable" clause at all, or just "confirmado hace 2h." Even role-grain presence is a signal in this threat model; treat any leak of it as a security bug, per the proposal's own framing.
+
+## Confidence Score
+**0.83** — why not higher: I'm very confident about the shift-reality friction (bed-count rot, cry-wolf SLAs) — it's the same manual-entry-under-load failure I've now watched break twice, and the most reliable prediction I can make. I'm confident the remote loop manufactures confident-wrong data without a fresh-source requirement. Less confident about the exact lapse windows — those genuinely need the pilot the proposal promises. And I can't assess whether the verify-by-phone step actually stops a determined fake claimant (the adversary may answer the phone); that's the Contrarian's walk-through, and my reshape assumes their verification holds — if it doesn't, the remote path needs more than honesty guardrails, it needs a stronger gate.
