@@ -1,0 +1,181 @@
+decision_id: "HOS-2026-013"
+title: "Public presentation & everyday UX: live pulse board (Brain Board), personalized dashboards, 12-year-old onboarding bar, and a Ver-como audience switcher"
+phase: "judge_synthesis"
+date: "2026-07-12"
+judge: "Judge Agent (synthesized by Executive Orchestrator from 5 full board reviews)"
+board_inputs_considered: [contrarian, expansionist, principals, researcher, user]
+companion_review: "HOS-2026-014 (site stewardship) — reviewed in the same sitting; the two interlock (014 supplies the freshness 013 displays). See that judge_decision.yaml."
+
+verdict: "RESHAPE"
+approved_option: "A-gated-first-then-public (RESHAPED — see conditions). Option C (public-realtime-now) rejected. Option B (static-comms-only) rejected as an END STATE but its one honest element — a static, retrospective public snapshot — is adopted as the pre-gate public surface."
+authorization: >
+  SPLIT authorization, by sub-decision. CLEARED TO BUILD NOW (tactical, behind the EXISTING coordinator
+  gate or on no-PII local-only surfaces, no new external dependency, no strategic gate touched):
+  D5 console ergonomics, D3 onboarding-to-a-useful-screen, D2 personal dashboards (Mi tablero),
+  the D1 COORDINATOR-GATED pulse board (already prototyped at /pulso), and D4 Ver-como as an interim
+  public-vs-coordinator preview — each subject to its binding conditions below. NOT AUTHORIZED and held
+  behind the standing HOS-2026-007 public-feed gate: the D1 PUBLIC pulse board / public aggregate feed,
+  including any animated "labeled demo" on the public landing. The board is unanimous that the honest,
+  high-value two-thirds of this proposal needs none of the risk, and that the risk lives entirely in the
+  public animated feed.
+confidence: 0.8
+
+rationale: >
+  The board converges cleanly: four reviewers land on RESHAPE and the fifth (Expansionist) gives a
+  GREEN that is itself loud about NOT shipping the public variant early, so the convergence is effectively
+  five-for-five on the same split. That split is unusually clean because the proposal bundles two different
+  things. The first is a set of information-first, no-PII, no-gate improvements — console ergonomics (D5),
+  onboarding to a useful pre-filtered screen (D3), personal saved/shareable views (D2), a coordinator-gated
+  situational-awareness board (D1a), and a leak-audit preview (D4) — which every reviewer, including the
+  User speaking for the actual crisis persona, agrees are the real product and the real adoption driver for
+  the person who needs water. These are tactical, buildable now, and mostly already prototyped. The second
+  is the public animated aggregate feed (D1b), which is where all the danger concentrates and where the
+  proposal's own mitigations are each one level too shallow. The Researcher's decisive finding, backed by
+  the strongest available precedent, is that the proposal is defending the wrong threat: k>=5 + 15-minute
+  buckets suppress INDIVIDUAL re-identification (necessary, table-stakes) but do NOT neutralize the
+  AGGREGATE-PATTERN oracle — "which district is weakest right now, and how fast does help arrive" — which is
+  precisely the signal the pulse board is designed to make legible. This is the Strava heatmap failure exactly
+  (PII stripped, points aggregated, yet the aggregate pattern outlined military bases), and the k-anonymity
+  literature confirms it fails against composition/differencing over time and against a patient observer. The
+  Contrarian sharpens it into three concrete leaks that survive the stated defenses (snapshot-differencing
+  reconstructs the per-event stream; suppression-of-sparse-districts is itself the "weakest district" signal;
+  coarsening a timestamp does not hide the posted->assigned INTERVAL, which is operational-tempo intelligence).
+  Under the HOS-2026-008 latent-state-adversary posture the human already ratified, this is the Operacion Tun
+  Tun problem one layer of abstraction up: a feed built to prove the system is alive doubles as a map of where
+  and when it is weakest. So the public flip must be gated not merely on the serializer being PII-free, but on
+  an adversarial PATTERN-inference simulation against the real district data — a data-release-modeling problem,
+  not the ~1 week of engineering the proposal budgets. Two more findings are load-bearing and shared across
+  reviewers. First, the "labeled demo on the public landing" is not the safe interim it is presented as: the
+  Contrarian calls it a governance breach (it pre-decides the gated question and trains the adversary on the
+  real artifact) and the Principals names the precise non-sequitur — the honesty guarantee "animations bind
+  1:1 to a real recorded event" is TRUE of the coordinator board and FALSE of demo mode (synthetic motion, no
+  real event), so demo-mode honesty rests entirely on a "demostracion" label on the lowest-context public
+  surface, and that label does not survive the WhatsApp OG-card / screenshot distribution channel the proposal
+  itself names. The User makes it visceral: a frightened low-literacy person parses MOTION, not a label, and a
+  synthetic "Rescate asignado - Catia" pulse manufactures false hope. Occam (Principals) and the User converge
+  on the fix: the pre-gate public surface is a STATIC, clearly-retrospective snapshot plus honest static totals
+  — which achieves the entire stated trust goal ("system is alive, here's what it does") with no spectacle, no
+  screenshot-stripping risk, and no pressure on the closed gate. Second, "PII-free by construction, enforced by
+  serializer tests" conflates two layers that need two controls (Principals Logic Check #2): field-level PII is
+  "by construction" only via a typed ALLOWLIST projection that structurally cannot hold a name (a denylist/
+  redaction serializer fails open on the next field added), and k-suppression is a query-and-population property
+  a serializer cannot provide at all. Name both layers or minimization is asserted, not built. The Expansionist
+  adds the one genuinely strategic and gate-neutral note: the PII-free feed is the single most valuable artifact
+  in either proposal, so design it ONCE as a versioned, parameterized contract (k/bucket/region/category as
+  declared inputs) even though only the coordinator consumer exists yet — schema discipline that makes an
+  honest, gated syndication future cheap, with zero added build scope and explicitly WITHOUT shipping publicly
+  or treating the landing demo as a soft launch. The User closes the loop back to the companion: the map is the
+  crisis user's real front door, and it is only safe to show her if HOS-2026-014 keeps pin freshness honest.
+
+decisions:
+  - id: "HOS-2026-013-D1"
+    title: "Build the information-first, no-gate pieces now: D5 ergonomics, D3 onboarding, D2 Mi tablero, D1 coordinator-gated pulse board"
+    verdict: "GREEN (build now, behind the existing coordinator gate or as local-only no-PII UI)"
+    confidence: 0.86
+    rationale: >
+      Every reviewer agrees these are the actual product for the actual user, touch no PII and no closed gate,
+      and reuse in-tree substrate (Remotion, keyless Leaflet+Carto, the /pulso prototype) so there is no new
+      dependency and near-zero cost to shipping them without the public feed. The User is explicit that D3 + D2
+      + search + the map — not the pulse board — are what serve the person who needs water; the coordinator
+      pulse board is honest situational awareness by real-event binding. Principals confirms these are
+      information-before-interfaces; the public animated board is the only place that ordering inverts.
+    conditions:
+      - "D3 onboarding: the second choice must be a CATEGORY (agua/comida/refugio/salud) that lands directly on the map centered on the user's district, filtered to that category, nearest-open-first — 'two choices to a useful screen' means the second choice is the category, not a submenu. Carry pictograms (water drop/plate/roof/cross) as primary, text as support, for sub-12-year-old literacy (User)."
+      - "D3 intake minimization (Contrarian Flaw 5, rising to HIGH given the companion feed): lowering friction to DO must not lower friction to inject PII. The 'Necesito ayuda' flow collects the minimum by construction — structured category + district over free-text wherever possible, an in-flow plain-usted nudge ('No escriba nombres ni direcciones exactas'), and the minimization posture applied at INTAKE, not only at publication. Add a success criterion: the onboarding flow does not increase free-text PII intake per need vs the current console."
+      - "D2 Mi tablero: critical/safety banners are a SEPARATE, UNFILTERABLE channel BY CONSTRUCTION — rendered outside the personalizable region, ungated by any district/category filter, never encoded into or suppressible by the shareable URL, and a life-safety banner type that is cross-district by definition (not author-optional-to-tick). Foreground the shareable link / OG card as a first-class product; background the composer (offer it after the user has found what they need once). Store locally, deletable in one tap, no account."
+      - "D1 coordinator pulse board: honest by real-event binding (never synthetic motion in the coordinator view); the static SSR snapshot is an ACCEPTANCE CRITERION, not a mitigation footnote, and continuous animation is opt-in / progressive enhancement gated on prefers-reduced-motion, Save-Data, and the connection API — animation is a reward for capable devices, never a toll on weak ones (User, Researcher: 6x-CPU / 3G baselines)."
+      - "Honest representation of a quiet system: define and review the near-zero frame — the board must neither look dead (undersell) nor dramatize three events into a live nerve center (oversell, the HOS-2026-002-D4 honesty line)."
+
+  - id: "HOS-2026-013-D2"
+    title: "The public pulse board / public aggregate feed stays behind the HOS-2026-007 gate — and the bar is a pattern-inference simulation, not just a PII filter"
+    verdict: "RESHAPE + HOLD (not authorized to serve publicly this cycle)"
+    confidence: 0.82
+    rationale: >
+      The Researcher (Strava precedent; k-anonymity fails against composition and temporal sequence-inference)
+      and the Contrarian (snapshot-differencing, suppression-as-signal, interval leakage) establish that the
+      stated mitigations neutralize identity re-identification but not the aggregate targeting oracle that is
+      the feed's actual payload. Under HOS-2026-008 (state = in-scope latent adversary, host compellable) that
+      oracle is the harm that matters. The public flip therefore cannot be gated on serializer tests alone; it
+      must clear an adversarial simulation on the REAL district geometry. Neither the Researcher nor anyone else
+      can compute the residual risk at HOS's district cardinality from precedent — it must be measured by replay/
+      attack, and until it is, the public wire stays dark.
+    conditions:
+      - "The public D1 variant does not serve real data until: (1) the HOS-2026-007 public-feed gate RE-REVIEW passes with a human threat-model sign-off, (2) real auth (HOS-2026-001-08) per the original 007 condition, AND (3) a written adversarial PATTERN-inference simulation on the real district data demonstrates the release resists snapshot-differencing, suppression-as-signal, and posted->assigned INTERVAL leakage — not merely that names are absent. Cadence/interval data is DROPPED from the public payload, not coarsened; time granularity is defended as a number, not asserted (the proposer must justify 15 minutes, or coarsen further)."
+      - "Prerequisite housekeeping (blocks the re-review from being formally unblocked): the 2026-07-03 HOS-2026-008-D1 human answer (state = latent adversary, in scope; coordinator-gated precise locations permitted; public-feed gate unblocked for re-review) must be written verbatim into the HOS-2026-008 decision log — it currently exists only in-session (Principals 'What I Don't Know'; proposal prerequisites)."
+      - "NO pulse component — animated OR 'labeled demo' — appears on the public landing before the gate passes. If outsiders are to be shown the system works pre-gate, use a STATIC, clearly-retrospective snapshot + honest static totals ('1,021 necesidades, 150 sitios, N confirmadas esta semana'), making no claim of liveness. Synthetic demo motion is confined to authenticated/internal surfaces and, if ever shown, must never mimic aid-arriving-to-you (no district-matched synthetic 'asignado/recibido')."
+
+  - id: "HOS-2026-013-D3"
+    title: "Two-layer minimization: typed allowlist DTO + query-level k-suppression, not 'serializer tests'"
+    verdict: "RESHAPE (binding, applies to any feed the public or a widget ever consumes)"
+    confidence: 0.85
+    rationale: >
+      Principals' logic check is decisive and cheap to honor now: "by construction" (the output type cannot
+      represent a name — an allowlist projection) and "enforced by tests" (a regression net) are different
+      guarantees, and k>=5/timing are not serializer properties at all but query-and-suppression properties.
+      A denylist/redaction serializer is a fail-open leak surface forever; building the allowlist DTO costs the
+      same and removes the debt permanently. This is the single public projection that D1-public, D4, and the
+      companion 014's public "confirmado hace 2h" string all depend on — design it once as the sole public
+      boundary or three surfaces drift and each becomes its own leak.
+    conditions:
+      - "The public projection is a typed ALLOWLIST DTO whose shape structurally cannot hold names/free-text/precise locations; k-suppression happens at the AGGREGATION QUERY (cells with k<5 are never emitted); adversarial/fuzz tests are the regression guard on top. Restate the proposal's 'PII-free by construction, enforced by serializer tests' as these two layers + tests."
+      - "Design the feed serializer as a VERSIONED, documented contract (schema_version; explicit field list; k-threshold and time-bucket as declared parameters in the payload; district/category as parameters, not Venezuela hard-codes), emitted through ONE clean read endpoint (Expansionist, gate-neutral). This is schema discipline only — it adds no build scope, ships nothing publicly, and does NOT pre-announce or pre-empt the 007 gate. A one-paragraph 'future consumers' note (widget, OG cards, syndication — none built here, all downstream of the gate) goes in the decision log."
+
+  - id: "HOS-2026-013-D4"
+    title: "Ver-como is a server-side re-fetch as a genuinely unauthenticated client — a smoke test, never proof"
+    verdict: "RESHAPE (binding invariant) — build the interim public-vs-coordinator preview"
+    confidence: 0.8
+    rationale: >
+      D4's audit value is entirely parasitic on the allowlist serializer of D3 existing as the single public
+      projection (Principals Logic Check #3): the success criterion 'byte-identical to what the audience
+      receives' is met ONLY by a real server-side re-fetch through the actual public endpoint. If Ver-como is
+      a client-side MASK over the coordinator's already-fetched payload (the tempting cheap implementation),
+      the sensitive data — names, free text, precise locations, and the companion 014's steward identity — is
+      already in the browser, the preview is theater, and it becomes a privilege leak plus a FALSE audit that
+      can render 'all clear' while the real anonymous endpoint leaks (Contrarian Flaw 3; the manufactured-
+      confidence failure the board flagged in HOS-2026-009). Pre-HOS-2026-011 the only honest audiences are
+      public-vs-coordinator; it becomes role-aware when capabilities land.
+    conditions:
+      - "Ver-como MUST be implemented as a server-side re-fetch through the true UNAUTHENTICATED client path (not a filtered coordinator payload); 'the preview never has access to any field above the previewed audience' is a tested, binding invariant. Client-side masking is prohibited."
+      - "Its output is recorded as a SMOKE TEST, not proof — the D3 allowlist serializer + query k-suppression are the real controls. 'Ver-como passed' must NOT be admitted as evidence in the 007 gate that the feed is safe."
+
+ships_now_no_external_dependency:
+  - "Tactical build slice (no strategic gate, no new dependency), each with its D1 conditions: D5 console ergonomics; D3 onboarding (category->map second tap, pictograms, intake minimization); D2 Mi tablero (unfilterable safety-banner channel, shareable link/OG card first-class, local-only); D1 coordinator-gated pulse board (snapshot-first acceptance criterion, opt-in animation, honest near-zero frame); D4 Ver-como interim public-vs-coordinator preview (server-side unauthenticated re-fetch invariant)."
+  - "Design-once, gate-neutral: the versioned allowlist feed CONTRACT (D3) shaped now for the eventual public/widget consumer — schema discipline only, nothing served publicly."
+  - "Docs housekeeping that unblocks the dependent gate: write the 2026-07-03 HOS-2026-008-D1 answer into the HOS-2026-008 decision log."
+
+blocked_or_escalated:
+  - "PUBLIC pulse board / public aggregate feed (D2 of this verdict): HELD behind the HOS-2026-007 public-feed gate re-review + human threat-model sign-off + real auth (HOS-2026-001-08) + a NEW bar (adversarial pattern-inference simulation on real district data). Not an agent decision."
+  - "Embeddable widget / WhatsApp-OG-card renderer / allied-org + newsroom syndication (Expansionist upside): NOT built this cycle; all are downstream consumers of the same gated public feed. Reserved by schema discipline, not captured by shipping early."
+  - "Whether a live public feed's PURPOSE actually requires live district-grain data, or whether honest coarse STATIC totals build the same trust (Principals minimization question; Researcher: trust tracks provenance, not motion): carry as an open question the 007 re-review should answer before the k-anonymity machinery is worth building — minimization prefers the coarsest release that meets the purpose."
+
+next_gate: >
+  This decision authorizes a tactical build now and schedules a STRATEGIC gate for the public half. The CTO
+  may create tasks for the D1 tactical slice (D5/D3/D2/D1a/D4-interim) immediately, each carrying its binding
+  conditions. Before ANY public pulse feed serves real data, the HOS-2026-007 public-feed gate re-review runs
+  and must clear: (1) the written HOS-008-D1 answer is in the 008 log; (2) human threat-model sign-off + real
+  auth (HOS-2026-001-08); (3) a written adversarial pattern-inference simulation on real district data beats
+  snapshot-differencing / suppression-as-signal / interval leakage; (4) the two-layer minimization (allowlist
+  DTO + query k-suppression) is built and adversarially tested. Until then the public surface is a static
+  retrospective snapshot only. A moderated usability test with real low-literacy users validates the onboarding
+  flow before any public flip (success criterion; User).
+
+escalate_to_human:
+  - "The HOS-2026-007 public-feed gate re-review decision itself (should a public, animated, live-pulse crisis board exist as a genre under a latent state adversary) remains a human threat-model sign-off, not an agent default. The board's recommendation: keep it gated; require the pattern-inference simulation as a precondition even after sign-off."
+  - "Confirm the 2026-07-03 HOS-2026-008-D1 answer for the record so it can be written into the 008 log (it is currently in-session only); the dependent re-review is not formally unblocked until it is."
+
+overall: >
+  RESHAPE with a clean split. Build the honest, information-first two-thirds now — console ergonomics, an
+  onboarding path whose second tap lands the crisis user on a category map, personal saved/shareable views
+  with an unfilterable safety-banner channel, the coordinator-gated pulse board (snapshot-first, opt-in
+  animation), and a Ver-como preview that is a real server-side unauthenticated re-fetch — none of which needs
+  a gate or a new dependency, and all of which is what actually serves the person who needs water. Keep the
+  public animated feed dark: k>=5 and 15-minute buckets stop identity leaks while passing through district
+  weakness and response cadence, the "labeled demo" respects the letter of the closed gate while pre-deciding
+  it and manufacturing a screenshot that reads as live, and the minimization is asserted (serializer tests)
+  where it must be built (allowlist DTO + query-level k-suppression). The public flip is a strategic gate:
+  it waits for the 007 re-review, human sign-off, real auth, and — newly and non-negotiably — an adversarial
+  pattern-inference simulation on the real data, because the threat was never "who is at this pin," it was
+  "where and when is the system thin." Design the PII-free feed as a versioned contract once so the honest,
+  gated syndication future is cheap; do not cheat the gate to reach it. And remember the companion: the crisis
+  user's real front door is the map, and it is only safe to show her if HOS-2026-014 keeps every pin's
+  freshness honest.
