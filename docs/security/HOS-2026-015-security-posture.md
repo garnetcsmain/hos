@@ -86,7 +86,7 @@ Detect** — stated plainly here rather than implied as covered.
 | **IDENTIFY (ID)** | Threat model enumerated (HOS-2026-008); field-by-field PII classification published (`docs/DATA_MINIMIZATION.md`, HOS-2026-008-D2). | **Strong** |
 | **PROTECT (PR)** | Fail-closed coordinator gate + boot guard; constant-time token compare; rate limiting; free-text PII redacted before any external AI call; append-only audit; public search reduced to a case-number-only lookup (no name/city oracle); deceased-condition withheld from public projections; **Postgres TLS now verifies the peer** (HOS-2026-015-01). Missing: per-user MFA, org-scoped authorization, field-level encryption. | **Partial — improving** |
 | **DETECT (DE)** | Append-only `events` gives forensic reconstruction after the fact. There is **no active detection** — no anomalous-access alerting, no error/uptime monitoring wired. | **Weak (today's weakest function — see §8)** |
-| **RESPOND (RS)** | `docs/incident-responses/` exists; governance defines an expedited breach path (24h + human). One concrete revoke/rotate/notify runbook is the remaining ship-now item (HOS-2026-015-05). | **Partial** |
+| **RESPOND (RS)** | Concrete revoke/rotate/notify runbook shipped (`docs/incident-responses/HOS-IR-runbook.md`, HOS-2026-015-05); governance defines an expedited breach path (24h + human). Detection lag is the honest weak point feeding it (see DETECT). | **Partial — improving** |
 | **RECOVER (RC)** | Managed backups planned with Postgres; a post-decision-review ritual exists. Restore-test and a stated recovery-time expectation (consistent with A:MODERATE) still to confirm. | **Partial** |
 
 ---
@@ -201,8 +201,8 @@ Named so no reader mistakes a plan for a delivered control:
 - **Detect / monitoring (SI-4)** — access-anomaly + error/uptime alerting. **The weakest CSF
   function today.** *Blocked on a Sentry DSN (EXTERNAL_DEPENDENCIES #13).* Labeled blocked, not
   implemented.
-- **Incident-response runbook** (revoke / rotate / notify) — ship-now docs, no dependency
-  (HOS-2026-015-05).
+- **Incident-response runbook** (revoke / rotate / notify) — **shipped**
+  (`docs/incident-responses/HOS-IR-runbook.md`, HOS-2026-015-05).
 
 This epic is **not complete** while the two inherited human decisions it depends on —
 HOS-2026-008-D2 (key custody) and HOS-2026-011-D4 (case-table org-partitioning) — remain open.
