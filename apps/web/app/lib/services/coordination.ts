@@ -38,6 +38,12 @@ import { appendEvent } from "../repositories/events.ts";
 import { transaction } from "../db/client.ts";
 import { newNeedId, newOfferId, newOrgId, newSiteId } from "../domain/ids.ts";
 import { nowIso } from "../domain/time.ts";
+import {
+  defaultAggregateFeedParams,
+  toPublicAggregateFeed,
+  type PublicAggregateFeed,
+} from "../domain/aggregateFeed.ts";
+import { DISTRICT_OPTIONS } from "../geo/districts.ts";
 import { badRequest, forbidden, notFound } from "../errors.ts";
 import { approxKm } from "../coordination/classify.ts";
 import { freshnessOf } from "../coordination/freshness.ts";
@@ -402,6 +408,25 @@ export async function coordinationView(): Promise<CoordinationView> {
       matches: need.status === "open" ? rankOffersForNeed(need, offers) : [],
     })),
   };
+}
+
+/**
+ * The versioned, PII-free aggregate feed (HOS-2026-013-05 contract, Judge D3).
+ *
+ * This is the SINGLE public projection shape that the (gated) public pulse
+ * board, the Ver-como public preview, and the HOS-2026-014 public "confirmado"
+ * surface all share. It is COORDINATOR-GATED today: no unauthenticated caller
+ * receives it. The public flip stays behind the HOS-2026-007 re-review (human
+ * threat-model sign-off + real auth + an adversarial pattern-inference
+ * simulation on the real district data). Building it now is schema discipline
+ * only — it ships nothing publicly.
+ */
+export async function publicAggregateFeed(kThreshold?: number): Promise<PublicAggregateFeed> {
+  const [sites, needs] = await Promise.all([listSites(), listNeeds()]);
+  // Day-grain retrospective label only — never an interval/cadence (Judge D2).
+  const bucket = nowIso().slice(0, 10);
+  const params = defaultAggregateFeedParams(bucket, DISTRICT_OPTIONS, kThreshold);
+  return toPublicAggregateFeed(needs, sites, params);
 }
 
 // --- Contributor read (self-signup tier) ----------------------------------
