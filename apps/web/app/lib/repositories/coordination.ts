@@ -45,8 +45,8 @@ export async function countOrgs(): Promise<number> {
 
 const insertSiteStmt = lazyStatement(
   `INSERT INTO sites
-     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes, source_id, synced_at, announcement, announcement_until, radius_m, created_by_user_id, created_by_email)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes, source_id, synced_at, announcement, announcement_until, radius_m, created_by_user_id, created_by_email, last_confirmed_at, last_confirmed_by, last_confirmed_trust)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 export async function insertSite(site: Site): Promise<void> {
@@ -71,6 +71,9 @@ export async function insertSite(site: Site): Promise<void> {
     site.radiusM,
     site.createdByUserId,
     site.createdByEmail,
+    site.lastConfirmedAt,
+    site.lastConfirmedBy,
+    site.lastConfirmedTrust,
   );
 }
 
@@ -158,6 +161,20 @@ export async function updateSiteCapacity(
   await db.prepare(
     `UPDATE sites SET beds_total = ?, beds_free = ?, status = ?, notes = ?, updated_at = ? WHERE id = ?`,
   ).run(fields.bedsTotal, fields.bedsFree, fields.status, fields.notes, nowIso(), id);
+}
+
+/** Record an operational-liveness confirmation (HOS-2026-014-01). Deliberately
+ *  does NOT bump updated_at: capacity freshness (updated_at) and confirmation
+ *  freshness (last_confirmed_at) are separate signals and must decay
+ *  independently. Never touched by the nightly source sync (the sync only
+ *  reconciles source-derived fields), so a confirmation survives regardless. */
+export async function setSiteConfirmation(
+  id: string,
+  fields: { at: string; by: string; trust: string },
+): Promise<void> {
+  await db.prepare(
+    `UPDATE sites SET last_confirmed_at = ?, last_confirmed_by = ?, last_confirmed_trust = ? WHERE id = ?`,
+  ).run(fields.at, fields.by, fields.trust, id);
 }
 
 /** Set or clear (empty message) a site's broadcast. Bumps updated_at: an

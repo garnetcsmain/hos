@@ -4,12 +4,16 @@
 
 import type { Need, Offer, Org, Site } from "./coordination.ts";
 import type { OfferMatch } from "../coordination/match.ts";
-import type { Freshness } from "../coordination/freshness.ts";
+import type { ConfirmationFreshness, Freshness } from "../coordination/freshness.ts";
 
 export interface SiteView {
   site: Site;
   org: Org | null;
+  /** Capacity/data freshness (decays from `site.updatedAt`). */
   freshness: Freshness;
+  /** Operational-liveness freshness (decays from `site.lastConfirmedAt`); a
+   *  separate signal from capacity freshness (HOS-2026-014-01). */
+  confirmation: ConfirmationFreshness;
 }
 
 export interface NeedView {

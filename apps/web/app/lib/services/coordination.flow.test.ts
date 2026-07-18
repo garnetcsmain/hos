@@ -155,6 +155,58 @@ test("site announcement: set, display window, clear — all audited", async () =
   assert.equal((setEvent!.payload as { by?: string }).by, "coordinator:test@hos");
 });
 
+test("confirmar operativo: distinct liveness signal, honor-tier, audited, separate from capacity", async () => {
+  const org = await seedOrg("Refugio Confirm");
+  const site = await svc.createSite(
+    { name: "Refugio Confirm", orgId: org.id, district: "Macuto", category: "refugio", lat: null, lng: null, bedsTotal: 20, bedsFree: 5, notes: "" },
+    COORD,
+  );
+  // A brand-new site is unconfirmed — creation is not a confirmation.
+  assert.equal(site.lastConfirmedAt, null);
+  assert.equal(site.lastConfirmedTrust, null);
+
+  const capacityBefore = (await svc.coordinationView()).sites.find((s) => s.site.id === site.id)!;
+
+  const confirmed = await svc.confirmSiteOperational({ siteId: site.id }, COORD);
+  assert.ok(confirmed.lastConfirmedAt, "confirmation timestamp is set");
+  assert.equal(confirmed.lastConfirmedBy, "coordinator:test@hos");
+  // Trust is honest: no verified-identity primitive exists yet, so it is honor.
+  assert.equal(confirmed.lastConfirmedTrust, "honor");
+
+  // The confirmation is a SEPARATE signal: it must not have touched the capacity
+  // (beds) nor the capacity `updatedAt` (the two freshnesses decay independently).
+  assert.equal(confirmed.bedsFree, capacityBefore.site.bedsFree);
+  assert.equal(confirmed.updatedAt, capacityBefore.site.updatedAt);
+
+  // A dedicated, attributed event lands in the audit log with the trust tier.
+  const events = await eventsFor("site", site.id);
+  const ev = events.find((e) => e.type === "site.confirmed_operational");
+  assert.ok(ev, "a site.confirmed_operational event is appended");
+  assert.equal((ev!.payload as { by?: string }).by, "coordinator:test@hos");
+  assert.equal((ev!.payload as { trustTier?: string }).trustTier, "honor");
+
+  // The board view surfaces it as its own freshness field.
+  const view = (await svc.coordinationView()).sites.find((s) => s.site.id === site.id)!;
+  assert.equal(view.confirmation, "fresh");
+});
+
+test("confirmar operativo: a contributor who neither owns nor is delegated the site cannot confirm", async () => {
+  const org = await seedOrg("Org Confirm Authz");
+  const ana = contributor("user-ana-c", "ana-c@ejemplo.com");
+  const beto = contributor("user-beto-c", "beto-c@ejemplo.com");
+  const site = await svc.createSite(
+    { name: "Sitio de Ana C", orgId: org.id, district: "La Guaira", category: "acopio", lat: null, lng: null, bedsTotal: 0, bedsFree: 0, notes: "" },
+    ana,
+  );
+  await assert.rejects(
+    svc.confirmSiteOperational({ siteId: site.id }, beto),
+    /No tiene permiso/,
+  );
+  // The responsable and a coordinator can.
+  await assert.doesNotReject(svc.confirmSiteOperational({ siteId: site.id }, ana));
+  await assert.doesNotReject(svc.confirmSiteOperational({ siteId: site.id }, COORD));
+});
+
 test("duplicate-location guard: same spot + same district rejected; different district allowed", async () => {
   const orgA = await seedOrg("Org A");
   const orgB = await seedOrg("Org B");

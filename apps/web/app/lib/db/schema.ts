@@ -120,7 +120,10 @@ CREATE TABLE IF NOT EXISTS sites (
   announcement_until TEXT,                  -- ISO expiry; announcement hides after this
   radius_m      INTEGER,                    -- coverage radius in meters (NULL = a point, not an area)
   created_by_user_id TEXT,                  -- the responsable: whoever created the site owns it (Supabase user id)
-  created_by_email   TEXT                   -- their email, for display/audit
+  created_by_email   TEXT,                  -- their email, for display/audit
+  last_confirmed_at    TEXT,               -- operational-liveness confirmation, separate from capacity freshness (HOS-2026-014-01)
+  last_confirmed_by    TEXT,               -- audit label of the confirmer (never a fabricated identity)
+  last_confirmed_trust TEXT                -- trust tier: 'honor' | 'verified' (always 'honor' today)
 );
 
 CREATE TABLE IF NOT EXISTS needs (
@@ -225,6 +228,9 @@ export const SQLITE_MIGRATIONS: readonly string[] = [
   `ALTER TABLE sites ADD COLUMN radius_m INTEGER`,
   `ALTER TABLE sites ADD COLUMN created_by_user_id TEXT`,
   `ALTER TABLE sites ADD COLUMN created_by_email TEXT`,
+  `ALTER TABLE sites ADD COLUMN last_confirmed_at TEXT`,
+  `ALTER TABLE sites ADD COLUMN last_confirmed_by TEXT`,
+  `ALTER TABLE sites ADD COLUMN last_confirmed_trust TEXT`,
   `ALTER TABLE needs ADD COLUMN lat REAL`,
   `ALTER TABLE needs ADD COLUMN lng REAL`,
   `ALTER TABLE needs ADD COLUMN source_id TEXT`,

@@ -42,6 +42,16 @@ export interface Org {
 
 export type SiteStatus = "active" | "closed";
 
+/** How much a liveness confirmation can be trusted. Today every confirmation is
+ *  "honor" — self-declared by whoever holds the manage right, with no verified
+ *  identity behind it (no identity primitive exists yet; HOS-2026-011). The tier
+ *  is stamped on EVERY confirmation from day one because the event log and the
+ *  denormalized last-confirmed columns are append-only in spirit: a confirmation
+ *  recorded now without a tier could never be reclassified later (Board
+ *  HOS-2026-014 D2 — prevent-now-or-never). When a verified-identity path lands,
+ *  verified confirmations are distinguishable by VALUE, not by rewriting history. */
+export type SiteTrustTier = "honor" | "verified";
+
 /** What kind of public aid point a site is. Spanish values on purpose — they are
  *  shown verbatim in the UI and match the vocabulary of the field data
  *  (caracasayuda.com import, HOS-2026-007). */
@@ -94,6 +104,19 @@ export interface Site {
    *  (those are coordinator-managed). */
   createdByUserId: string | null;
   createdByEmail: string | null;
+  /** Operational-liveness confirmation — a one-tap "this site is still
+   *  operating", kept SEPARATE from the bed-count/capacity edit (Board
+   *  HOS-2026-014 D1): each carries its own freshness, so "beds updated an hour
+   *  ago" never masquerades as "someone confirmed the place is still open".
+   *  Null = never confirmed since the record was created. This does NOT bump
+   *  `updatedAt`; capacity freshness and confirmation freshness decay
+   *  independently. */
+  lastConfirmedAt: string | null;
+  /** Audit label of whoever confirmed (e.g. "coordinator:token", "user:ana@…").
+   *  Never a fabricated identity. */
+  lastConfirmedBy: string | null;
+  /** Trust tier of that confirmation (see SiteTrustTier). Always "honor" today. */
+  lastConfirmedTrust: SiteTrustTier | null;
 }
 
 /** The announcement to display right now, or null if none/expired. Expiry is

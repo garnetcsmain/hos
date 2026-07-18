@@ -81,6 +81,13 @@ export const siteUpdateSchema = z.object({
   notes: optionalText(2000),
 });
 
+// One-tap operational-liveness confirmation (HOS-2026-014-01). Just the site id:
+// "this place is still operating" carries no other payload, and is kept separate
+// from the capacity edit by construction.
+export const siteConfirmSchema = z.object({
+  siteId: z.string().trim().min(1).max(40),
+});
+
 // Site broadcast ("hoy entregan comida 2-5pm"). Empty message clears it.
 // hoursValid bounds how long it stays visible (max one week — a standing
 // notice belongs in the site notes, not a broadcast).
@@ -126,6 +133,7 @@ export const offerCreateSchema = z.object({
 
 export type SiteCreateInput = z.infer<typeof siteCreateSchema>;
 export type SiteUpdateInput = z.infer<typeof siteUpdateSchema>;
+export type SiteConfirmInput = z.infer<typeof siteConfirmSchema>;
 export type SiteAnnouncementInput = z.infer<typeof siteAnnouncementSchema>;
 export type NeedCreateInput = z.infer<typeof needCreateSchema>;
 export type NeedTransitionInput = z.infer<typeof needTransitionSchema>;
