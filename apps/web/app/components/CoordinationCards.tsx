@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { BedDouble, Check, Clock, Megaphone, Truck, X } from "lucide-react";
+import { Activity, BedDouble, Check, Clock, Megaphone, Truck, X } from "lucide-react";
 import { Term } from "@/app/components/Term";
-import { setSiteAnnouncement, transitionNeed, updateSiteCapacity } from "@/app/lib/client/coordination";
-import type { Freshness } from "@/app/lib/coordination/freshness";
+import { confirmSiteOperational, setSiteAnnouncement, transitionNeed, updateSiteCapacity } from "@/app/lib/client/coordination";
+import type { ConfirmationFreshness, Freshness } from "@/app/lib/coordination/freshness";
 import { activeAnnouncement } from "@/app/lib/domain/coordination";
 import type { Org } from "@/app/lib/domain/coordination";
 import type { NeedView, OfferView, SiteView } from "@/app/lib/domain/coordinationViews";
@@ -42,13 +42,46 @@ export function FreshnessBadge({ freshness }: { freshness: Freshness }) {
   );
 }
 
+// Operational-liveness signal, SEPARATE from capacity freshness (HOS-2026-014-01).
+// "Never confirmed" is its own honest state — not the same as "stale data". When
+// a site HAS been confirmed, the trust caveat rides at equal weight: today every
+// confirmation is honor-system (self-declared), so we never imply verified
+// identity (Board HOS-2026-014 non-negotiable).
+function ConfirmationBadge({
+  confirmation,
+  trust,
+}: {
+  confirmation: ConfirmationFreshness;
+  trust: string | null;
+}) {
+  const map = {
+    never: { label: "Sin confirmar operación", className: "text-[var(--hos-muted)]" },
+    fresh: { label: "Operación confirmada", className: "text-[var(--hos-green)]" },
+    aging: { label: "Confirmar operación (horas)", className: "text-[#7A3D00]" },
+    stale: { label: "Operación sin confirmar +24h", className: "text-[var(--hos-red)]" },
+  } as const;
+  const c = map[confirmation];
+  const confirmed = confirmation !== "never";
+  return (
+    <span className={`inline-flex items-center gap-[4px] text-[11px] font-bold ${c.className}`}>
+      <Activity className="h-[12px] w-[12px]" strokeWidth={2.4} />
+      {c.label}
+      {confirmed ? (
+        <span className="font-bold text-[var(--hos-muted)]">
+          · {trust === "verified" ? "identidad verificada" : "identidad no verificada"}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 function orgName(orgs: Org[], id: string | null): string {
   if (!id) return "—";
   return orgs.find((o) => o.id === id)?.name ?? id;
 }
 
 export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () => void }) {
-  const { site, org, freshness } = view;
+  const { site, org, freshness, confirmation } = view;
   const [editing, setEditing] = useState(false);
   const [total, setTotal] = useState(String(site.bedsTotal));
   const [free, setFree] = useState(String(site.bedsFree));
@@ -101,6 +134,21 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
     }
   }
 
+  // "Confirmar operativo" is a liveness signal, NOT a capacity edit: it records a
+  // dedicated confirmation with its own freshness (HOS-2026-014-01).
+  async function confirmOperational() {
+    setBusy(true);
+    setError("");
+    try {
+      await confirmSiteOperational({ siteId: site.id });
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo confirmar.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const full = site.bedsFree === 0;
   return (
     <div className="rounded-[8px] border border-[var(--hos-border)] bg-white p-[14px]">
@@ -113,7 +161,10 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
             {site.status === "closed" ? <Chip label="Cerrado" className="bg-[#F6DAD5] text-[#8A2A1E]" /> : null}
           </div>
         </div>
-        <FreshnessBadge freshness={freshness} />
+        <div className="flex flex-col items-end gap-[3px]">
+          <FreshnessBadge freshness={freshness} />
+          <ConfirmationBadge confirmation={confirmation} trust={site.lastConfirmedTrust} />
+        </div>
       </div>
       {site.category === "refugio" || site.bedsTotal > 0 ? (
         <div className="mt-[12px] flex items-center gap-[8px]">
@@ -142,7 +193,7 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
       <div className="mt-[10px] flex flex-wrap items-center gap-[12px] border-t border-[#E2E8E4] pt-[8px]">
         {site.status === "active" ? (
           <>
-            <button type="button" disabled={busy} onClick={() => void setStatus("active")} className="text-[12px] font-extrabold text-[var(--hos-green)] hover:underline disabled:opacity-60">Confirmar operativo</button>
+            <button type="button" disabled={busy} onClick={() => void confirmOperational()} className="text-[12px] font-extrabold text-[var(--hos-green)] hover:underline disabled:opacity-60">Confirmar operativo</button>
             <button type="button" disabled={busy} onClick={() => void setStatus("closed")} className="text-[12px] font-extrabold text-[var(--hos-muted)] hover:underline disabled:opacity-60">Marcar cerrado</button>
           </>
         ) : (

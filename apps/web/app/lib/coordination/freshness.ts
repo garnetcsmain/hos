@@ -23,3 +23,17 @@ export function freshnessOf(updatedAt: string, now: string): Freshness {
   if (h >= AGING_HOURS) return "aging";
   return "fresh";
 }
+
+/** Operational-confirmation freshness for a site (HOS-2026-014-01). Distinct
+ *  from capacity freshness: it decays from the LAST liveness confirmation, not
+ *  from the last data edit. "never" is its own honest state — a site nobody has
+ *  confirmed is not "stale", it is unconfirmed, and must read as such. */
+export type ConfirmationFreshness = "never" | Freshness;
+
+export function confirmationFreshnessOf(
+  lastConfirmedAt: string | null,
+  now: string,
+): ConfirmationFreshness {
+  if (!lastConfirmedAt) return "never";
+  return freshnessOf(lastConfirmedAt, now);
+}

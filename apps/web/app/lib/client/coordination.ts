@@ -76,6 +76,11 @@ export const updateSiteCapacity = (payload: {
   notes?: string;
 }) => write("/api/coordination/sites", payload, "PATCH");
 
+// One-tap "confirmar operativo": records an operational-liveness confirmation,
+// separate from the capacity edit (HOS-2026-014-01).
+export const confirmSiteOperational = (payload: { siteId: string }) =>
+  write<{ site: SiteView["site"] }>("/api/coordination/sites/confirm", payload);
+
 // Empty message clears the broadcast.
 export const setSiteAnnouncement = (payload: {
   siteId: string;

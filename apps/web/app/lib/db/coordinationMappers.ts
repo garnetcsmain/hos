@@ -12,6 +12,7 @@ import type {
   Site,
   SiteCategory,
   SiteStatus,
+  SiteTrustTier,
   Urgency,
 } from "@/app/lib/domain/coordination";
 import type { Row } from "./mappers.ts";
@@ -54,6 +55,9 @@ export function mapSite(row: Row): Site {
     radiusM: numOrNull(row.radius_m),
     createdByUserId: strOrNull(row.created_by_user_id),
     createdByEmail: strOrNull(row.created_by_email),
+    lastConfirmedAt: strOrNull(row.last_confirmed_at),
+    lastConfirmedBy: strOrNull(row.last_confirmed_by),
+    lastConfirmedTrust: strOrNull(row.last_confirmed_trust) as SiteTrustTier | null,
   };
 }
 

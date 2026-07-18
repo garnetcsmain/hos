@@ -29,6 +29,7 @@ import {
   listSitesManagedBy,
   revokeSiteGrant,
   setNeedStatus,
+  setSiteConfirmation,
   updateSiteAnnouncement as repoUpdateSiteAnnouncement,
   updateSiteCapacity as repoUpdateSiteCapacity,
   upsertSiteGrant,
@@ -40,15 +41,16 @@ import { newNeedId, newOfferId, newOrgId, newSiteId } from "../domain/ids.ts";
 import { nowIso } from "../domain/time.ts";
 import { badRequest, forbidden, notFound } from "../errors.ts";
 import { approxKm } from "../coordination/classify.ts";
-import { freshnessOf } from "../coordination/freshness.ts";
+import { confirmationFreshnessOf, freshnessOf } from "../coordination/freshness.ts";
 import { rankOffersForNeed } from "../coordination/match.ts";
-import type { Need, Offer, Org, OrgKind, Site } from "@/app/lib/domain/coordination";
+import type { Need, Offer, Org, OrgKind, Site, SiteTrustTier } from "@/app/lib/domain/coordination";
 import type { CoordinationView, SiteView } from "@/app/lib/domain/coordinationViews";
 import type {
   NeedCreateInput,
   NeedTransitionInput,
   OfferCreateInput,
   SiteAnnouncementInput,
+  SiteConfirmInput,
   SiteCreateInput,
   SiteUpdateInput,
 } from "../validation/coordination.ts";
@@ -165,6 +167,11 @@ export async function createSite(input: SiteCreateInput, actor: SiteActor = SYST
     // Whoever creates the site is its responsable (human direction 2026-07-03).
     createdByUserId: actor.userId,
     createdByEmail: actor.email,
+    // A brand-new site is unconfirmed until someone taps "confirmar operativo"
+    // (HOS-2026-014-01) — creation is not a liveness confirmation.
+    lastConfirmedAt: null,
+    lastConfirmedBy: null,
+    lastConfirmedTrust: null,
   };
   await transaction(async () => {
     await insertSite(site);
@@ -211,6 +218,41 @@ export async function updateSiteCapacity(input: SiteUpdateInput, actor: SiteActo
     });
   });
   return { ...site, ...input, bedsFree, updatedAt: nowIso() };
+}
+
+/** Record a one-tap operational-liveness confirmation (HOS-2026-014-01).
+ *  Deliberately SPLIT from updateSiteCapacity: confirming "this site is still
+ *  operating" is a distinct signal from editing the bed count, and each keeps
+ *  its own freshness. Same authorization as any site write (responsable,
+ *  delegated site-coordinator, or coordinator).
+ *
+ *  Trust tier is honest: no verified-identity primitive exists yet
+ *  (HOS-2026-011), so EVERY confirmation today is "honor" — self-declared. A
+ *  coordinator is a trusted tier but not a verified *identity* on the record, so
+ *  we never label an unverified confirmation "verified". The tier is stamped now
+ *  (not left blank) because it can never be reconstructed for past confirmations
+ *  once the log grows (Board HOS-2026-014 D2, prevent-now-or-never). */
+export async function confirmSiteOperational(
+  input: SiteConfirmInput,
+  actor: SiteActor = SYSTEM_ACTOR,
+): Promise<Site> {
+  const site = await getSite(input.siteId);
+  if (!site) throw notFound(`site ${input.siteId} not found`);
+  await assertCanManageSite(site, actor);
+  const org = await getOrg(site.orgId);
+  const at = nowIso();
+  const trust: SiteTrustTier = "honor";
+  await transaction(async () => {
+    await setSiteConfirmation(site.id, { at, by: actor.by, trust });
+    await appendEvent({
+      entityType: "site",
+      entityId: site.id,
+      type: "site.confirmed_operational",
+      actor: `org:${org?.name ?? site.orgId}`,
+      payload: { by: actor.by, trustTier: trust },
+    });
+  });
+  return { ...site, lastConfirmedAt: at, lastConfirmedBy: actor.by, lastConfirmedTrust: trust };
 }
 
 /** Set or clear a site's broadcast ("hoy entregan comida 2-5pm"). Allowed for
@@ -393,6 +435,7 @@ export async function coordinationView(): Promise<CoordinationView> {
       site,
       org: orgById.get(site.orgId) ?? null,
       freshness: freshnessOf(site.updatedAt, now),
+      confirmation: confirmationFreshnessOf(site.lastConfirmedAt, now),
     })),
     needs: needs.map((need) => ({
       need,
@@ -432,7 +475,12 @@ export async function contributorView(userId: string, email: string): Promise<Co
     orgs,
     sites: sites
       .filter((s) => s.status === "active")
-      .map((site) => ({ site, org: orgById.get(site.orgId) ?? null, freshness: freshnessOf(site.updatedAt, now) })),
+      .map((site) => ({
+        site,
+        org: orgById.get(site.orgId) ?? null,
+        freshness: freshnessOf(site.updatedAt, now),
+        confirmation: confirmationFreshnessOf(site.lastConfirmedAt, now),
+      })),
     managedSiteIds: [...managedIds],
   };
 }
