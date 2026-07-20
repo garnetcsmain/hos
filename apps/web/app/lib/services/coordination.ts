@@ -13,6 +13,7 @@
 // shared token `by` is honestly "coordinator:token", never a fabricated name.
 
 import {
+  confirmSiteOperativo as repoConfirmSiteOperativo,
   getNeed,
   getOrg,
   getSite,
@@ -42,13 +43,14 @@ import { badRequest, forbidden, notFound } from "../errors.ts";
 import { approxKm } from "../coordination/classify.ts";
 import { freshnessOf } from "../coordination/freshness.ts";
 import { rankOffersForNeed } from "../coordination/match.ts";
-import type { Need, Offer, Org, OrgKind, Site } from "@/app/lib/domain/coordination";
-import type { CoordinationView, SiteView } from "@/app/lib/domain/coordinationViews";
+import type { Need, Offer, Org, OrgKind, Site, SiteTrustTier } from "@/app/lib/domain/coordination";
+import type { CoordinationView, SiteConfirmationView, SiteView } from "@/app/lib/domain/coordinationViews";
 import type {
   NeedCreateInput,
   NeedTransitionInput,
   OfferCreateInput,
   SiteAnnouncementInput,
+  SiteConfirmInput,
   SiteCreateInput,
   SiteUpdateInput,
 } from "../validation/coordination.ts";
@@ -165,6 +167,10 @@ export async function createSite(input: SiteCreateInput, actor: SiteActor = SYST
     // Whoever creates the site is its responsable (human direction 2026-07-03).
     createdByUserId: actor.userId,
     createdByEmail: actor.email,
+    // Creation is NOT an operativo confirmation — nobody has attested liveness
+    // yet, so this stays null until an explicit confirm (Judge D3 honesty).
+    lastConfirmedAt: null,
+    lastConfirmedTier: null,
   };
   await transaction(async () => {
     await insertSite(site);
@@ -211,6 +217,45 @@ export async function updateSiteCapacity(input: SiteUpdateInput, actor: SiteActo
     });
   });
   return { ...site, ...input, bedsFree, updatedAt: nowIso() };
+}
+
+// Interim trust tier for every stewardship write. Under shared-token auth there
+// is no verified per-user identity to pin a confirmation to, so it is honestly
+// 'honor' (attributed by trust, unverified) — NEVER rendered as verified
+// accountability (Judge HOS-2026-014-D2). 'verified' arrives only with a real
+// identity substrate (HOS-2026-010/011); the flag is recorded now because
+// append-only auditability makes the era impossible to reconstruct later (D1).
+const INTERIM_TRUST_TIER: SiteTrustTier = "honor";
+
+/** One-tap "operativo" confirmation: attest that this site is live right now,
+ *  WITHOUT touching the bed count. Split from updateSiteCapacity on purpose so an
+ *  easy confirm can never launder a stale bed number ('operativo confirmado hace
+ *  3h · camas: dato de hace 2 días' — Judge HOS-2026-014-D3). Authorized like any
+ *  other site write (responsable, delegated site-coordinator, or coordinator).
+ *  Every write stamps the honor/verified trust tier (prevent-now-or-never, D1). */
+export async function confirmSiteOperativo(
+  input: SiteConfirmInput,
+  actor: SiteActor = SYSTEM_ACTOR,
+): Promise<Site> {
+  const site = await getSite(input.siteId);
+  if (!site) throw notFound(`site ${input.siteId} not found`);
+  await assertCanManageSite(site, actor);
+  const org = await getOrg(site.orgId);
+  const at = nowIso();
+  const tier = INTERIM_TRUST_TIER;
+  await transaction(async () => {
+    await repoConfirmSiteOperativo(site.id, { at, tier });
+    await appendEvent({
+      entityType: "site",
+      entityId: site.id,
+      type: "site.operativo_confirmed",
+      actor: `org:${org?.name ?? site.orgId}`,
+      // Credited at site/shift grain via the token label — NOT a verified person
+      // (D2). The trust tier records that this attribution is honor-grade.
+      payload: { tier, by: actor.by },
+    });
+  });
+  return { ...site, lastConfirmedAt: at, lastConfirmedTier: tier };
 }
 
 /** Set or clear a site's broadcast ("hoy entregan comida 2-5pm"). Allowed for
@@ -374,6 +419,19 @@ export async function createOffer(input: OfferCreateInput, by = "unattributed"):
 
 // --- Read assembly --------------------------------------------------------
 
+/** Decay a site's stored operativo confirmation into its own freshness signal,
+ *  or null when it was never confirmed. COORDINATOR-ONLY: a precise steward
+ *  presence cadence is a targeting signal (D5), so contributor/public surfaces
+ *  pass null here. */
+function siteConfirmation(site: Site, now: string): SiteConfirmationView | null {
+  if (!site.lastConfirmedAt || !site.lastConfirmedTier) return null;
+  return {
+    freshness: freshnessOf(site.lastConfirmedAt, now),
+    at: site.lastConfirmedAt,
+    tier: site.lastConfirmedTier,
+  };
+}
+
 /** Assemble the coordinator board: sites + needs (with advisory matches) +
  *  offers, each joined to its org and tagged with a freshness signal. */
 export async function coordinationView(): Promise<CoordinationView> {
@@ -393,6 +451,7 @@ export async function coordinationView(): Promise<CoordinationView> {
       site,
       org: orgById.get(site.orgId) ?? null,
       freshness: freshnessOf(site.updatedAt, now),
+      confirmed: siteConfirmation(site, now),
     })),
     needs: needs.map((need) => ({
       need,
@@ -432,7 +491,9 @@ export async function contributorView(userId: string, email: string): Promise<Co
     orgs,
     sites: sites
       .filter((s) => s.status === "active")
-      .map((site) => ({ site, org: orgById.get(site.orgId) ?? null, freshness: freshnessOf(site.updatedAt, now) })),
+      // confirmed: null — the steward liveness cadence is coordinator-only (D5);
+      // contributors get the public band elsewhere, not the precise signal here.
+      .map((site) => ({ site, org: orgById.get(site.orgId) ?? null, freshness: freshnessOf(site.updatedAt, now), confirmed: null })),
     managedSiteIds: [...managedIds],
   };
 }

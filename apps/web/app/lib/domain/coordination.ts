@@ -42,6 +42,15 @@ export interface Org {
 
 export type SiteStatus = "active" | "closed";
 
+/** Trust tier of a stewardship write (HOS-2026-014-01). Under interim shared-token
+ *  auth every confirmation is 'honor' — attributed by trust, identity NOT verified.
+ *  'verified' is reserved for when a real per-user identity substrate exists
+ *  (HOS-2026-010/011); until then the UI must never render an honor-tier
+ *  confirmation as verified accountability (Judge D2). The flag is stamped on every
+ *  write because append-only auditability makes the era impossible to reconstruct
+ *  later (Judge D1, prevent-now-or-never). */
+export type SiteTrustTier = "honor" | "verified";
+
 /** What kind of public aid point a site is. Spanish values on purpose — they are
  *  shown verbatim in the UI and match the vocabulary of the field data
  *  (caracasayuda.com import, HOS-2026-007). */
@@ -94,6 +103,14 @@ export interface Site {
    *  (those are coordinator-managed). */
   createdByUserId: string | null;
   createdByEmail: string | null;
+  /** When someone last confirmed this site is operativo (one-tap liveness),
+   *  or null if never. Kept SEPARATE from updatedAt/bed-count freshness so an
+   *  easy confirm can never launder a stale bed number (Judge HOS-2026-014-D3). */
+  lastConfirmedAt: string | null;
+  /** Trust tier of that confirmation ('honor' under interim auth). Null when
+   *  never confirmed. Rendered honestly — an honor confirmation is NOT verified
+   *  accountability (Judge HOS-2026-014-D2). */
+  lastConfirmedTier: SiteTrustTier | null;
 }
 
 /** The announcement to display right now, or null if none/expired. Expiry is

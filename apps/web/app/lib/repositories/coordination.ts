@@ -45,8 +45,8 @@ export async function countOrgs(): Promise<number> {
 
 const insertSiteStmt = lazyStatement(
   `INSERT INTO sites
-     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes, source_id, synced_at, announcement, announcement_until, radius_m, created_by_user_id, created_by_email)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes, source_id, synced_at, announcement, announcement_until, radius_m, created_by_user_id, created_by_email, last_confirmed_at, last_confirmed_tier)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 export async function insertSite(site: Site): Promise<void> {
@@ -71,6 +71,8 @@ export async function insertSite(site: Site): Promise<void> {
     site.radiusM,
     site.createdByUserId,
     site.createdByEmail,
+    site.lastConfirmedAt,
+    site.lastConfirmedTier,
   );
 }
 
@@ -158,6 +160,20 @@ export async function updateSiteCapacity(
   await db.prepare(
     `UPDATE sites SET beds_total = ?, beds_free = ?, status = ?, notes = ?, updated_at = ? WHERE id = ?`,
   ).run(fields.bedsTotal, fields.bedsFree, fields.status, fields.notes, nowIso(), id);
+}
+
+/** Record a one-tap "operativo" confirmation (HOS-2026-014-01). Writes ONLY the
+ *  liveness columns and DELIBERATELY does NOT touch updated_at: bed-count
+ *  freshness reads from updated_at, so leaving it untouched makes it structurally
+ *  impossible for a confirm to launder a stale bed number (Judge D3). The sync
+ *  never touches these columns, so the confirmation survives a source reconcile. */
+export async function confirmSiteOperativo(
+  id: string,
+  fields: { at: string; tier: string },
+): Promise<void> {
+  await db.prepare(
+    `UPDATE sites SET last_confirmed_at = ?, last_confirmed_tier = ? WHERE id = ?`,
+  ).run(fields.at, fields.tier, id);
 }
 
 /** Set or clear (empty message) a site's broadcast. Bumps updated_at: an

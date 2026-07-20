@@ -76,6 +76,10 @@ export const updateSiteCapacity = (payload: {
   notes?: string;
 }) => write("/api/coordination/sites", payload, "PATCH");
 
+// One-tap "operativo" confirmation — liveness only, never touches the bed count.
+export const confirmSiteOperativo = (payload: { siteId: string }) =>
+  write("/api/coordination/sites/confirm", payload);
+
 // Empty message clears the broadcast.
 export const setSiteAnnouncement = (payload: {
   siteId: string;

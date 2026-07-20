@@ -59,6 +59,8 @@ export async function seedCoordinationIfEmpty(): Promise<boolean> {
         radiusM: null,
         createdByUserId: null,
         createdByEmail: null,
+        lastConfirmedAt: null,
+        lastConfirmedTier: null,
       });
     }
 
