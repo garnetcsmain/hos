@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { BedDouble, Check, Clock, Megaphone, Truck, X } from "lucide-react";
+import { BedDouble, Check, Clock, Megaphone, ShieldAlert, ShieldCheck, Truck, X } from "lucide-react";
 import { Term } from "@/app/components/Term";
-import { setSiteAnnouncement, transitionNeed, updateSiteCapacity } from "@/app/lib/client/coordination";
+import { confirmSiteOperativo, setSiteAnnouncement, transitionNeed, updateSiteCapacity } from "@/app/lib/client/coordination";
 import type { Freshness } from "@/app/lib/coordination/freshness";
 import { activeAnnouncement } from "@/app/lib/domain/coordination";
 import type { Org } from "@/app/lib/domain/coordination";
-import type { NeedView, OfferView, SiteView } from "@/app/lib/domain/coordinationViews";
+import type { NeedView, OfferView, SiteConfirmationView, SiteView } from "@/app/lib/domain/coordinationViews";
 import {
   CATEGORY_LABEL,
   NEED_STATUS,
@@ -47,8 +47,39 @@ function orgName(orgs: Org[], id: string | null): string {
   return orgs.find((o) => o.id === id)?.name ?? id;
 }
 
+/** The site's "operativo" liveness confirmation, rendered honestly and SEPARATE
+ *  from the bed-count freshness (Judge HOS-2026-014-D3). Never confirmed reads as
+ *  such; an honor-tier confirmation carries a "sin verificar" caveat at equal
+ *  weight so it is not mistaken for verified accountability (D2). */
+export function ConfirmationBadge({ confirmed }: { confirmed: SiteConfirmationView | null }) {
+  if (!confirmed) {
+    return (
+      <span className="inline-flex items-center gap-[4px] text-[11px] font-bold text-[var(--hos-muted)]">
+        <ShieldAlert className="h-[12px] w-[12px]" strokeWidth={2.4} />
+        Sin confirmar operativo
+      </span>
+    );
+  }
+  const map = {
+    fresh: { label: "Operativo confirmado", className: "text-[var(--hos-green)]" },
+    aging: { label: "Confirmado hace horas", className: "text-[#7A3D00]" },
+    stale: { label: "Confirmación vencida +24h", className: "text-[var(--hos-red)]" },
+  } as const;
+  const f = map[confirmed.freshness];
+  const unverified = confirmed.tier !== "verified";
+  return (
+    <span className={`inline-flex items-center gap-[4px] text-[11px] font-bold ${f.className}`}>
+      <ShieldCheck className="h-[12px] w-[12px]" strokeWidth={2.4} />
+      {f.label}
+      {unverified ? (
+        <span className="font-bold text-[var(--hos-muted)]">· sin verificar</span>
+      ) : null}
+    </span>
+  );
+}
+
 export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () => void }) {
-  const { site, org, freshness } = view;
+  const { site, org, freshness, confirmed } = view;
   const [editing, setEditing] = useState(false);
   const [total, setTotal] = useState(String(site.bedsTotal));
   const [free, setFree] = useState(String(site.bedsFree));
@@ -101,6 +132,21 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
     }
   }
 
+  // Liveness only: attests the site is operativo WITHOUT touching the bed count,
+  // so the two freshness signals decay independently (Judge D3).
+  async function confirmOperativo() {
+    setBusy(true);
+    setError("");
+    try {
+      await confirmSiteOperativo({ siteId: site.id });
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo confirmar.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const full = site.bedsFree === 0;
   return (
     <div className="rounded-[8px] border border-[var(--hos-border)] bg-white p-[14px]">
@@ -114,6 +160,9 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
           </div>
         </div>
         <FreshnessBadge freshness={freshness} />
+      </div>
+      <div className="mt-[8px]">
+        <ConfirmationBadge confirmed={confirmed} />
       </div>
       {site.category === "refugio" || site.bedsTotal > 0 ? (
         <div className="mt-[12px] flex items-center gap-[8px]">
@@ -142,7 +191,7 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
       <div className="mt-[10px] flex flex-wrap items-center gap-[12px] border-t border-[#E2E8E4] pt-[8px]">
         {site.status === "active" ? (
           <>
-            <button type="button" disabled={busy} onClick={() => void setStatus("active")} className="text-[12px] font-extrabold text-[var(--hos-green)] hover:underline disabled:opacity-60">Confirmar operativo</button>
+            <button type="button" disabled={busy} onClick={() => void confirmOperativo()} className="text-[12px] font-extrabold text-[var(--hos-green)] hover:underline disabled:opacity-60">Confirmar operativo</button>
             <button type="button" disabled={busy} onClick={() => void setStatus("closed")} className="text-[12px] font-extrabold text-[var(--hos-muted)] hover:underline disabled:opacity-60">Marcar cerrado</button>
           </>
         ) : (

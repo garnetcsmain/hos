@@ -246,6 +246,8 @@ export async function runCoordinationSync(
             radiusM: null,
             createdByUserId: null,
             createdByEmail: null,
+            lastConfirmedAt: null,
+            lastConfirmedTier: null,
           });
           summary.sitesInserted += 1;
         } else if (locallyModified(existing)) {

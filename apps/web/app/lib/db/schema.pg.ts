@@ -127,7 +127,9 @@ CREATE TABLE IF NOT EXISTS sites (
   announcement_until TEXT,                  -- ISO expiry; announcement hides after this
   radius_m      INTEGER,                    -- coverage radius in meters (NULL = a point, not an area)
   created_by_user_id TEXT,                  -- the responsable: whoever created the site owns it (Supabase user id)
-  created_by_email   TEXT                   -- their email, for display/audit
+  created_by_email   TEXT,                  -- their email, for display/audit
+  last_confirmed_at   TEXT,                 -- HOS-2026-014-01: last "operativo" confirmation (separate from updated_at)
+  last_confirmed_tier TEXT                  -- 'honor' | 'verified' trust flag stamped on every confirm write
 );
 
 -- Additive migrations for databases created before these columns existed.
@@ -141,6 +143,8 @@ ALTER TABLE sites ADD COLUMN IF NOT EXISTS announcement_until TEXT;
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS radius_m INTEGER;
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS created_by_user_id TEXT;
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS created_by_email TEXT;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS last_confirmed_at TEXT;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS last_confirmed_tier TEXT;
 
 CREATE TABLE IF NOT EXISTS needs (
   id            TEXT PRIMARY KEY,

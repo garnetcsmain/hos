@@ -120,7 +120,16 @@ CREATE TABLE IF NOT EXISTS sites (
   announcement_until TEXT,                  -- ISO expiry; announcement hides after this
   radius_m      INTEGER,                    -- coverage radius in meters (NULL = a point, not an area)
   created_by_user_id TEXT,                  -- the responsable: whoever created the site owns it (Supabase user id)
-  created_by_email   TEXT                   -- their email, for display/audit
+  created_by_email   TEXT,                  -- their email, for display/audit
+  -- Site-stewardship liveness (HOS-2026-014-01). A one-tap "operativo" confirmation
+  -- kept DELIBERATELY separate from updated_at (which drives bed-count freshness):
+  -- a confirm must never launder a stale bed number (Judge D3). last_confirmed_tier
+  -- is the 'honor' | 'verified' trust flag stamped on EVERY confirm write — under
+  -- shared-token interim auth this is always 'honor' (identity unverified), and it
+  -- is recorded now because append-only auditability makes the era impossible to
+  -- reconstruct later (Judge D1/D2, prevent-now-or-never).
+  last_confirmed_at   TEXT,                 -- when the site was last confirmed operativo (NULL = never)
+  last_confirmed_tier TEXT                  -- 'honor' | 'verified'; NULL when never confirmed
 );
 
 CREATE TABLE IF NOT EXISTS needs (
@@ -225,6 +234,8 @@ export const SQLITE_MIGRATIONS: readonly string[] = [
   `ALTER TABLE sites ADD COLUMN radius_m INTEGER`,
   `ALTER TABLE sites ADD COLUMN created_by_user_id TEXT`,
   `ALTER TABLE sites ADD COLUMN created_by_email TEXT`,
+  `ALTER TABLE sites ADD COLUMN last_confirmed_at TEXT`,
+  `ALTER TABLE sites ADD COLUMN last_confirmed_tier TEXT`,
   `ALTER TABLE needs ADD COLUMN lat REAL`,
   `ALTER TABLE needs ADD COLUMN lng REAL`,
   `ALTER TABLE needs ADD COLUMN source_id TEXT`,

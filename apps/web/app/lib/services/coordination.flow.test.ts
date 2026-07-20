@@ -206,6 +206,81 @@ test("site 'otro' free-text label is captured in the audit event", async () => {
   assert.equal((created!.payload as { otherLabel?: string }).otherLabel, "carga de gas doméstico");
 });
 
+// --- Site stewardship: operativo confirmation (HOS-2026-014-01) --------------
+
+test("confirmar operativo records an honor-tier liveness signal WITHOUT laundering the bed-count freshness", async () => {
+  const org = await seedOrg("Refugio Live");
+  const site = await svc.createSite(
+    { name: "Refugio Live", orgId: org.id, district: "Maiquetía", category: "refugio", lat: null, lng: null, bedsTotal: 30, bedsFree: 4, notes: "" },
+    COORD,
+  );
+  // A brand-new site has never been confirmed operativo.
+  assert.equal(site.lastConfirmedAt, null);
+  assert.equal(site.lastConfirmedTier, null);
+  const bedFreshnessMarker = site.updatedAt; // freshness derives from updated_at
+
+  const confirmed = await svc.confirmSiteOperativo({ siteId: site.id }, COORD);
+  assert.ok(confirmed.lastConfirmedAt, "confirmation timestamp is set");
+  assert.equal(confirmed.lastConfirmedTier, "honor");
+
+  const view = await svc.coordinationView();
+  const row = view.sites.find((s) => s.site.id === site.id);
+  assert.ok(row);
+  // THE anti-laundering invariant: confirming operativo must not touch updated_at,
+  // so the bed-count freshness is unchanged by an easy confirm (Judge D3).
+  assert.equal(row!.site.updatedAt, bedFreshnessMarker, "bed-count freshness untouched by a confirm");
+  // The confirmation is its own, separate, honest signal.
+  assert.ok(row!.confirmed, "confirmation surfaces as its own signal");
+  assert.equal(row!.confirmed!.tier, "honor");
+  assert.equal(row!.confirmed!.freshness, "fresh");
+});
+
+test("operativo confirmation is audited with the honor trust-tier flag and by-attribution", async () => {
+  const org = await seedOrg("Refugio Audit");
+  const site = await svc.createSite(
+    { name: "Refugio Audit", orgId: org.id, district: "La Guaira", category: "refugio", lat: null, lng: null, bedsTotal: 10, bedsFree: 2, notes: "" },
+    COORD,
+  );
+  await svc.confirmSiteOperativo({ siteId: site.id }, COORD);
+  const events = await eventsFor("site", site.id);
+  const confirm = events.find((e) => e.type === "site.operativo_confirmed");
+  assert.ok(confirm, "a site.operativo_confirmed event is appended");
+  const payload = confirm!.payload as { tier?: string; by?: string };
+  assert.equal(payload.tier, "honor", "trust tier stamped on the write (prevent-now-or-never)");
+  assert.equal(payload.by, "coordinator:test@hos");
+});
+
+test("confirmar operativo is authorized like any site write (non-owner contributor rejected, coordinator allowed)", async () => {
+  const org = await seedOrg("Refugio Authz");
+  const ana = contributor("user-ana-live", "ana-live@ejemplo.com");
+  const beto = contributor("user-beto-live", "beto-live@ejemplo.com");
+  const site = await svc.createSite(
+    { name: "Refugio de Ana", orgId: org.id, district: "Macuto", category: "refugio", lat: null, lng: null, bedsTotal: 5, bedsFree: 5, notes: "" },
+    ana,
+  );
+  await assert.rejects(svc.confirmSiteOperativo({ siteId: site.id }, beto), /No tiene permiso/);
+  await assert.doesNotReject(svc.confirmSiteOperativo({ siteId: site.id }, ana));
+  await assert.doesNotReject(svc.confirmSiteOperativo({ siteId: site.id }, COORD));
+});
+
+test("contributor view does NOT expose the steward liveness confirmation (coordinator-only, D5)", async () => {
+  const org = await seedOrg("Refugio D5");
+  const ana = contributor("user-ana-d5", "ana-d5@ejemplo.com");
+  const site = await svc.createSite(
+    { name: "Acopio de Ana", orgId: org.id, district: "Chacao", category: "acopio", lat: null, lng: null, bedsTotal: 0, bedsFree: 0, notes: "" },
+    ana,
+  );
+  await svc.confirmSiteOperativo({ siteId: site.id }, ana);
+  // Coordinator board sees the confirmation...
+  const board = await svc.coordinationView();
+  assert.ok(board.sites.find((s) => s.site.id === site.id)?.confirmed, "coordinator sees the confirmation");
+  // ...but the contributor view (self-signup tier) never carries the precise cadence.
+  const mine = await svc.contributorView("user-ana-d5", "ana-d5@ejemplo.com");
+  const row = mine.sites.find((s) => s.site.id === site.id);
+  assert.ok(row, "contributor sees the aid point");
+  assert.equal(row!.confirmed, null, "steward liveness cadence is stripped for contributors");
+});
+
 // --- Self-signup / site ownership authorization (the security boundary) ----
 
 test("site ownership: creator becomes responsable and can manage their site", async () => {
