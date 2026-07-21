@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { BedDouble, Check, Clock, Megaphone, Truck, X } from "lucide-react";
+import { AlertTriangle, BedDouble, Check, Clock, Megaphone, Truck, X } from "lucide-react";
 import { Term } from "@/app/components/Term";
-import { setSiteAnnouncement, transitionNeed, updateSiteCapacity } from "@/app/lib/client/coordination";
+import { confirmSiteOperational, setSiteAnnouncement, transitionNeed, updateSiteCapacity } from "@/app/lib/client/coordination";
 import type { Freshness } from "@/app/lib/coordination/freshness";
+import { type LivenessBand, livenessLabel, siteLiveness, sitesNeedingConfirmation } from "@/app/lib/coordination/siteFreshness";
 import { activeAnnouncement } from "@/app/lib/domain/coordination";
 import type { Org } from "@/app/lib/domain/coordination";
 import type { NeedView, OfferView, SiteView } from "@/app/lib/domain/coordinationViews";
@@ -45,6 +46,91 @@ export function FreshnessBadge({ freshness }: { freshness: Freshness }) {
 function orgName(orgs: Org[], id: string | null): string {
   if (!id) return "—";
   return orgs.find((o) => o.id === id)?.name ?? id;
+}
+
+// Operational-liveness pill (HOS-2026-014-01). Separate from the bed-count
+// FreshnessBadge: this answers "is the site still open?", not "is the number
+// current?". Name-free by construction (Judge D2) — it never says who confirmed.
+const LIVENESS_STYLE: Record<LivenessBand, string> = {
+  confirmed: "text-[var(--hos-green)]",
+  aging: "text-[#7A3D00]",
+  stale: "text-[var(--hos-red)]",
+  unconfirmed: "text-[var(--hos-muted)]",
+};
+
+export function LivenessBadge({ label, band }: { label: string; band: LivenessBand }) {
+  return (
+    <span className={`inline-flex items-center gap-[4px] text-[11px] font-bold ${LIVENESS_STYLE[band]}`}>
+      <Check className="h-[12px] w-[12px]" strokeWidth={2.4} />
+      {label}
+    </span>
+  );
+}
+
+// "Sitios vencidos" triage (HOS-2026-014-01, Judge D1): a coordinator's real
+// missing tool — the active sites whose operational confirmation has decayed,
+// worst-first. It is a LIST the coordinator reads and acts on, never an
+// automatic timer that strips anyone (Judge D3). Coordinator-gated by placement
+// inside the console; renders no steward name, only staleness (Judge D2/D5).
+export function SitesVencidosPanel({ sites, onChanged }: { sites: SiteView[]; onChanged: () => void }) {
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const triage = sitesNeedingConfirmation(sites.map((v) => v.site), new Date().toISOString());
+  if (triage.length === 0) return null;
+  const top = triage.slice(0, 6);
+
+  async function confirm(siteId: string) {
+    setBusyId(siteId);
+    setError("");
+    try {
+      await confirmSiteOperational({ siteId });
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo confirmar.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <div className="rounded-[8px] border border-[#EBD9B8] bg-[#FBF6EA] p-[12px]">
+      <div className="flex items-center gap-[7px]">
+        <AlertTriangle className="h-[14px] w-[14px] text-[#7A5200]" strokeWidth={2.4} />
+        <span className="text-[12px] font-extrabold text-[#7A5200]">
+          Sitios por reconfirmar ({triage.length})
+        </span>
+      </div>
+      <p className="mt-[3px] text-[11px] font-bold leading-[15px] text-[#8A6A2A]">
+        Sin confirmación reciente de que sigan operativos. Confirme solo si sabe que el sitio sigue abierto.
+      </p>
+      <div className="mt-[9px] flex flex-col gap-[6px]">
+        {top.map(({ site, liveness }) => (
+          <div key={site.id} className="flex items-center justify-between gap-[8px]">
+            <div className="min-w-0">
+              <div className="truncate text-[12px] font-extrabold text-[var(--hos-text)]">{site.name}</div>
+              <div className="text-[11px] font-bold text-[#8A6A2A]">
+                {site.district} · {livenessLabel(liveness)}
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={busyId === site.id}
+              onClick={() => void confirm(site.id)}
+              className="shrink-0 rounded-[6px] border border-[#D8C089] bg-white px-[10px] py-[5px] text-[11px] font-extrabold text-[#7A5200] hover:bg-[#FDFAF2] disabled:opacity-60"
+            >
+              Confirmar operativo
+            </button>
+          </div>
+        ))}
+      </div>
+      {triage.length > top.length ? (
+        <p className="mt-[8px] text-[11px] font-bold text-[#8A6A2A]">
+          y {triage.length - top.length} más en la lista de sitios.
+        </p>
+      ) : null}
+      {error ? <p className="mt-[6px] text-[11px] font-bold text-[var(--hos-red)]">{error}</p> : null}
+    </div>
+  );
 }
 
 export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () => void }) {
@@ -101,6 +187,22 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
     }
   }
 
+  // One-tap "sigue operativo" — refreshes ONLY the liveness signal, never the
+  // bed count (HOS-2026-014-01, Judge D3-c). Distinct from "Actualizar camas".
+  async function confirmOperativo() {
+    setBusy(true);
+    setError("");
+    try {
+      await confirmSiteOperational({ siteId: site.id });
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo confirmar.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const liveness = siteLiveness(site, new Date().toISOString());
   const full = site.bedsFree === 0;
   return (
     <div className="rounded-[8px] border border-[var(--hos-border)] bg-white p-[14px]">
@@ -112,6 +214,11 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
             <Chip label={SITE_CATEGORY_LABEL[site.category]} className={SITE_CATEGORY_STYLE[site.category]} />
             {site.status === "closed" ? <Chip label="Cerrado" className="bg-[#F6DAD5] text-[#8A2A1E]" /> : null}
           </div>
+          {site.status === "active" ? (
+            <div className="mt-[4px]">
+              <LivenessBadge label={livenessLabel(liveness)} band={liveness.band} />
+            </div>
+          ) : null}
         </div>
         <FreshnessBadge freshness={freshness} />
       </div>
@@ -142,7 +249,7 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
       <div className="mt-[10px] flex flex-wrap items-center gap-[12px] border-t border-[#E2E8E4] pt-[8px]">
         {site.status === "active" ? (
           <>
-            <button type="button" disabled={busy} onClick={() => void setStatus("active")} className="text-[12px] font-extrabold text-[var(--hos-green)] hover:underline disabled:opacity-60">Confirmar operativo</button>
+            <button type="button" disabled={busy} onClick={() => void confirmOperativo()} className="text-[12px] font-extrabold text-[var(--hos-green)] hover:underline disabled:opacity-60">Confirmar operativo</button>
             <button type="button" disabled={busy} onClick={() => void setStatus("closed")} className="text-[12px] font-extrabold text-[var(--hos-muted)] hover:underline disabled:opacity-60">Marcar cerrado</button>
           </>
         ) : (

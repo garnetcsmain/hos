@@ -54,6 +54,7 @@ export function mapSite(row: Row): Site {
     radiusM: numOrNull(row.radius_m),
     createdByUserId: strOrNull(row.created_by_user_id),
     createdByEmail: strOrNull(row.created_by_email),
+    lastConfirmedAt: strOrNull(row.last_confirmed_at),
   };
 }
 

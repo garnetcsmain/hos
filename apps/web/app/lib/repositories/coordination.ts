@@ -45,8 +45,8 @@ export async function countOrgs(): Promise<number> {
 
 const insertSiteStmt = lazyStatement(
   `INSERT INTO sites
-     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes, source_id, synced_at, announcement, announcement_until, radius_m, created_by_user_id, created_by_email)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes, source_id, synced_at, announcement, announcement_until, radius_m, created_by_user_id, created_by_email, last_confirmed_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 export async function insertSite(site: Site): Promise<void> {
@@ -71,7 +71,16 @@ export async function insertSite(site: Site): Promise<void> {
     site.radiusM,
     site.createdByUserId,
     site.createdByEmail,
+    site.lastConfirmedAt,
   );
+}
+
+/** Record an operational-liveness confirmation (HOS-2026-014-01, Judge D3-c).
+ *  Sets ONLY last_confirmed_at — deliberately does NOT touch updated_at, so the
+ *  bed-count/data freshness signal stays independent: a one-tap confirm can
+ *  never make a stale bed number read fresh. */
+export async function confirmSiteOperational(id: string, at: string): Promise<void> {
+  await db.prepare(`UPDATE sites SET last_confirmed_at = ? WHERE id = ?`).run(at, id);
 }
 
 /** Sites a user owns (created) or holds an active delegated grant on (matched by

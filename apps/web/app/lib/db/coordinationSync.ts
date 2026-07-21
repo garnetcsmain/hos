@@ -246,6 +246,8 @@ export async function runCoordinationSync(
             radiusM: null,
             createdByUserId: null,
             createdByEmail: null,
+            // Source rows are not operationally confirmed by us (HOS-2026-014).
+            lastConfirmedAt: null,
           });
           summary.sitesInserted += 1;
         } else if (locallyModified(existing)) {

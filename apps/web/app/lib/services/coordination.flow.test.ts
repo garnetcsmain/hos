@@ -298,3 +298,48 @@ test("contributor view excludes the sensitive needs board, shows managed sites",
   assert.ok(view.sites.some((s) => s.site.id === site.id));
   assert.ok(view.managedSiteIds.includes(site.id));
 });
+
+test("confirmSiteOperational bumps liveness only, never the bed-count freshness (Judge D3-c)", async () => {
+  const org = await seedOrg("Refugio Liveness");
+  const site = await svc.createSite(
+    { name: "Refugio Liveness", orgId: org.id, district: "Petare", category: "refugio", lat: null, lng: null, bedsTotal: 30, bedsFree: 30, notes: "" },
+    COORD,
+  );
+  // Age the bed-count data: an edit stamps updated_at, but not a fresh confirm.
+  await svc.updateSiteCapacity({ siteId: site.id, bedsTotal: 30, bedsFree: 2, status: "active", notes: "" }, COORD);
+  const before = (await svc.coordinationView()).sites.find((s) => s.site.id === site.id);
+  assert.ok(before);
+  const staleUpdatedAt = before.site.updatedAt;
+
+  const confirmed = await svc.confirmSiteOperational({ siteId: site.id }, COORD);
+  // Liveness advanced...
+  assert.ok(confirmed.lastConfirmedAt);
+  assert.notEqual(confirmed.lastConfirmedAt, staleUpdatedAt);
+  // ...but the bed-count/data timestamp did NOT move: a one-tap confirm cannot
+  // launder the stale bed number.
+  const after = (await svc.coordinationView()).sites.find((s) => s.site.id === site.id);
+  assert.ok(after);
+  assert.equal(after.site.updatedAt, staleUpdatedAt);
+  assert.equal(after.site.bedsFree, 2);
+  assert.ok(after.site.lastConfirmedAt);
+
+  // The confirmation is in the append-only audit, flagged honor-tier (not a
+  // verified person) so the interim era can be reconstructed later.
+  const events = await eventsFor("site", site.id);
+  const ev = events.find((e) => e.type === "site.confirmed_operational");
+  assert.ok(ev, "a site.confirmed_operational event was recorded");
+  assert.equal((ev.payload as { trust?: string }).trust, "honor");
+});
+
+test("a contributor without a grant cannot confirm a site operational", async () => {
+  const org = await seedOrg("Refugio Guarded");
+  const site = await svc.createSite(
+    { name: "Refugio Guarded", orgId: org.id, district: "Sucre", category: "refugio", lat: null, lng: null, bedsTotal: 5, bedsFree: 5, notes: "" },
+    COORD,
+  );
+  const stranger = contributor("user-stranger", "stranger@ejemplo.com");
+  await assert.rejects(
+    svc.confirmSiteOperational({ siteId: site.id }, stranger),
+    /No tiene permiso/,
+  );
+});

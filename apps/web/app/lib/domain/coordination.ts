@@ -94,6 +94,12 @@ export interface Site {
    *  (those are coordinator-managed). */
   createdByUserId: string | null;
   createdByEmail: string | null;
+  /** Last time someone confirmed this site is still OPERATIONAL — a liveness
+   *  signal kept SEPARATE from `updatedAt` (which tracks data/bed-count edits)
+   *  so a one-tap confirmation can never launder a stale bed number (Judge
+   *  HOS-2026-014-D3-c). Null = never confirmed operational (reads "sin
+   *  confirmar", never "fresh"). See lib/coordination/siteFreshness.ts. */
+  lastConfirmedAt: string | null;
 }
 
 /** The announcement to display right now, or null if none/expired. Expiry is
