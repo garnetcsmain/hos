@@ -12,6 +12,7 @@ import {
   PostOfferForm,
   SITE_CATEGORY_LABEL,
   SiteCard,
+  SitesVencidosPanel,
 } from "@/app/components/CoordinationParts";
 import type { NeedCategory, Org, Site, SiteCategory } from "@/app/lib/domain/coordination";
 import type { NeedView, OfferView, SiteView } from "@/app/lib/domain/coordinationViews";
@@ -315,6 +316,7 @@ export function BoardList({
             <span className="font-data text-[12px] font-bold text-[var(--hos-muted)]">{visibleSites.length}</span>
           </div>
           <div className="flex flex-col gap-[12px]">
+            <SitesVencidosPanel sites={visibleSites} onChanged={onReload} />
             {pagedSites.map((v) => <SiteCard key={v.site.id} view={v} onChanged={onReload} />)}
             {visibleSites.length > pagedSites.length ? (
               <button

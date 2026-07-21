@@ -76,6 +76,11 @@ export const updateSiteCapacity = (payload: {
   notes?: string;
 }) => write("/api/coordination/sites", payload, "PATCH");
 
+// One-tap operational-liveness confirmation (HOS-2026-014-01). Does NOT touch
+// bed counts — it only refreshes the "operativo confirmado hace X" signal.
+export const confirmSiteOperational = (payload: { siteId: string }) =>
+  write<{ site: SiteView["site"] }>("/api/coordination/sites/confirm", payload);
+
 // Empty message clears the broadcast.
 export const setSiteAnnouncement = (payload: {
   siteId: string;

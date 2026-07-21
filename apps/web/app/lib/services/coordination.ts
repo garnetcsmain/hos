@@ -13,6 +13,7 @@
 // shared token `by` is honestly "coordinator:token", never a fabricated name.
 
 import {
+  confirmSiteOperational as repoConfirmSiteOperational,
   getNeed,
   getOrg,
   getSite,
@@ -49,6 +50,7 @@ import type {
   NeedTransitionInput,
   OfferCreateInput,
   SiteAnnouncementInput,
+  SiteConfirmInput,
   SiteCreateInput,
   SiteUpdateInput,
 } from "../validation/coordination.ts";
@@ -165,6 +167,9 @@ export async function createSite(input: SiteCreateInput, actor: SiteActor = SYST
     // Whoever creates the site is its responsable (human direction 2026-07-03).
     createdByUserId: actor.userId,
     createdByEmail: actor.email,
+    // Creating a site in HOS is a first-hand assertion it exists and is live
+    // right now, so it starts operationally confirmed (HOS-2026-014-01).
+    lastConfirmedAt: now,
   };
   await transaction(async () => {
     await insertSite(site);
@@ -211,6 +216,37 @@ export async function updateSiteCapacity(input: SiteUpdateInput, actor: SiteActo
     });
   });
   return { ...site, ...input, bedsFree, updatedAt: nowIso() };
+}
+
+/** Record a one-tap operational-liveness confirmation (HOS-2026-014-01, Judge
+ *  D3-c). Bumps ONLY last_confirmed_at — never the bed-count/data freshness — so
+ *  "operativo confirmado hace 3h" can coexist honestly with "camas: dato de hace
+ *  2 días". Attributed in the append-only audit at the actor's grain (the actor
+ *  is a token/email under interim auth — NEVER rendered as a verified person,
+ *  Judge D2). Same manage-authorization as every other site write. */
+export async function confirmSiteOperational(
+  input: SiteConfirmInput,
+  actor: SiteActor = SYSTEM_ACTOR,
+): Promise<Site> {
+  const site = await getSite(input.siteId);
+  if (!site) throw notFound(`site ${input.siteId} not found`);
+  await assertCanManageSite(site, actor);
+  const org = await getOrg(site.orgId);
+  const at = nowIso();
+  await transaction(async () => {
+    await repoConfirmSiteOperational(site.id, at);
+    await appendEvent({
+      entityType: "site",
+      entityId: site.id,
+      type: "site.confirmed_operational",
+      actor: `org:${org?.name ?? site.orgId}`,
+      // trust: 'honor' — under interim shared-token auth this attribution is by
+      // trust, not verified identity (Judge D2). Stamped now because append-only
+      // history cannot reconstruct the era later (Judge D1/HOS-2026-011).
+      payload: { by: actor.by, trust: "honor" },
+    });
+  });
+  return { ...site, lastConfirmedAt: at };
 }
 
 /** Set or clear a site's broadcast ("hoy entregan comida 2-5pm"). Allowed for

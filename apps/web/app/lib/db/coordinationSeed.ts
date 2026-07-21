@@ -59,6 +59,9 @@ export async function seedCoordinationIfEmpty(): Promise<boolean> {
         radiusM: null,
         createdByUserId: null,
         createdByEmail: null,
+        // Imported from the public source: we have NOT confirmed it is live, so
+        // it reads "sin confirmar" until a coordinator confirms it (HOS-2026-014).
+        lastConfirmedAt: null,
       });
     }
 

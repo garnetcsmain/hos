@@ -90,6 +90,12 @@ export const siteAnnouncementSchema = z.object({
   hoursValid: z.number().int().min(1).max(168).optional().transform((v) => v ?? 24),
 });
 
+// One-tap operational-liveness confirmation (HOS-2026-014-01). Just a site id:
+// it asserts "this site is still open right now" and nothing about bed counts.
+export const siteConfirmSchema = z.object({
+  siteId: z.string().trim().min(1).max(40),
+});
+
 export const needCreateSchema = z.object({
   orgId: z.string().trim().min(1, "requesting org is required").max(40),
   siteId: z.string().trim().max(40).optional().transform((v) => (v ? v : null)),
@@ -127,6 +133,7 @@ export const offerCreateSchema = z.object({
 export type SiteCreateInput = z.infer<typeof siteCreateSchema>;
 export type SiteUpdateInput = z.infer<typeof siteUpdateSchema>;
 export type SiteAnnouncementInput = z.infer<typeof siteAnnouncementSchema>;
+export type SiteConfirmInput = z.infer<typeof siteConfirmSchema>;
 export type NeedCreateInput = z.infer<typeof needCreateSchema>;
 export type NeedTransitionInput = z.infer<typeof needTransitionSchema>;
 export type OfferCreateInput = z.infer<typeof offerCreateSchema>;
