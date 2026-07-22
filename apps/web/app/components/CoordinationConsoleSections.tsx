@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Boxes, Building2, MapPin, Package, Siren, X } from "lucide-react";
+import { ArrowLeft, Boxes, Building2, MapPin, Package, Search, Siren, X } from "lucide-react";
 import { Term } from "@/app/components/Term";
 import {
   AddOrgForm,
@@ -143,6 +143,57 @@ export function BoardFilters({
           <FilterChip key={c} label={SITE_CATEGORY_LABEL[c]} active={siteCat === c} onClick={() => onToggleSite(c)} />
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Free-text search over the board (HOS-2026-013-01). Complements the category
+ *  chips + pagination: with ~1000 needs and ~150 sites imported, a coordinator
+ *  needs to type a place or org name and land on the record. Filters live over
+ *  the already-loaded board (no server round-trip). */
+export function BoardSearch({
+  query,
+  onChange,
+  needsCount,
+  sitesCount,
+}: {
+  query: string;
+  onChange: (q: string) => void;
+  needsCount: number;
+  sitesCount: number;
+}) {
+  const active = query.trim().length > 0;
+  return (
+    <div className="flex flex-wrap items-center gap-[10px]">
+      <div className="relative flex-1 min-w-[220px]">
+        <Search
+          className="pointer-events-none absolute left-[10px] top-1/2 h-[14px] w-[14px] -translate-y-1/2 text-[var(--hos-muted)]"
+          strokeWidth={2.4}
+        />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Buscar por sitio, organización, distrito o categoría…"
+          aria-label="Buscar sitios y necesidades"
+          className="h-[38px] w-full rounded-[6px] border border-[var(--hos-border)] bg-white pl-[32px] pr-[32px] text-[13px] font-bold text-[var(--hos-text)] outline-none placeholder:text-[var(--hos-muted)] focus:border-[var(--hos-dark)]"
+        />
+        {active ? (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            aria-label="Limpiar búsqueda"
+            className="absolute right-[8px] top-1/2 -translate-y-1/2 text-[var(--hos-muted)] hover:text-[var(--hos-text)]"
+          >
+            <X className="h-[14px] w-[14px]" strokeWidth={2.6} />
+          </button>
+        ) : null}
+      </div>
+      {active ? (
+        <span className="text-[12px] font-bold text-[var(--hos-muted)]">
+          {needsCount} nec. · {sitesCount} {sitesCount === 1 ? "sitio" : "sitios"}
+        </span>
+      ) : null}
     </div>
   );
 }
