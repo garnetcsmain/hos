@@ -18,11 +18,14 @@ import {
 import {
   BoardFilters,
   BoardList,
+  BoardSearch,
   CoordinatorBrief,
   CreateRecordFlow,
   DistrictFilterPill,
   type CreateKind,
 } from "@/app/components/CoordinationConsoleSections";
+import { CATEGORY_LABEL, SITE_CATEGORY_LABEL } from "@/app/components/CoordinationLabels";
+import { filterNeeds, filterSites } from "@/app/lib/coordination/search";
 import { getCoordinationBoard } from "@/app/lib/client/coordination";
 import { ApiError, COORDINATOR_TOKEN_KEY } from "@/app/lib/client/api";
 import {
@@ -100,6 +103,9 @@ export function CoordinationConsole() {
   const [needCat, setNeedCat] = useState<NeedCategory | null>(null);
   const [siteCat, setSiteCat] = useState<SiteCategory | null>(null);
   const [criticalOnly, setCriticalOnly] = useState(false);
+  // Free-text search across both columns (HOS-2026-013-01). Runs over the
+  // already-loaded board; every change resets the pagination window (pickFilter).
+  const [query, setQuery] = useState("");
 
   const pickFilter = (apply: () => void) => {
     apply();
@@ -173,16 +179,18 @@ export function CoordinationConsole() {
   // map too, so the badges/pins show exactly what the list shows.
   const filteredBoard = useMemo(() => {
     if (!board) return null;
+    const needs = board.needs.filter(
+      (v) =>
+        (!needCat || v.need.category === needCat) &&
+        (!criticalOnly || v.need.urgency === "critical"),
+    );
+    const sites = board.sites.filter((v) => !siteCat || v.site.category === siteCat);
     return {
       ...board,
-      needs: board.needs.filter(
-        (v) =>
-          (!needCat || v.need.category === needCat) &&
-          (!criticalOnly || v.need.urgency === "critical"),
-      ),
-      sites: board.sites.filter((v) => !siteCat || v.site.category === siteCat),
+      needs: filterNeeds(needs, query, CATEGORY_LABEL),
+      sites: filterSites(sites, query, SITE_CATEGORY_LABEL),
     };
-  }, [board, needCat, siteCat, criticalOnly]);
+  }, [board, needCat, siteCat, criticalOnly, query]);
 
   const sortedNeeds = useMemo(() => {
     if (!filteredBoard) return [];
@@ -351,6 +359,15 @@ export function CoordinationConsole() {
                 onToggleCritical={() => pickFilter(() => setCriticalOnly((v) => !v))}
                 onResetSites={() => pickFilter(() => setSiteCat(null))}
                 onToggleSite={(c) => pickFilter(() => setSiteCat(siteCat === c ? null : c))}
+              />
+            ) : null}
+
+            {!creating ? (
+              <BoardSearch
+                query={query}
+                onChange={(q) => pickFilter(() => setQuery(q))}
+                needsCount={visibleNeeds.length}
+                sitesCount={visibleSites.length}
               />
             ) : null}
 
