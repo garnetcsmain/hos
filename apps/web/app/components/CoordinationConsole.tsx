@@ -32,6 +32,7 @@ import {
 } from "@/app/lib/client/supabase";
 import type { CoordinationView } from "@/app/lib/domain/coordinationViews";
 import type { NeedCategory, SiteCategory, Urgency } from "@/app/lib/domain/coordination";
+import { overdueSites } from "@/app/lib/coordination/siteTriage";
 
 /** Refresh the mirrored Supabase access token before a request so a coordinator
  *  isn't 401'd after ~1h just because a tab stayed open (supabase-js refreshes
@@ -100,6 +101,9 @@ export function CoordinationConsole() {
   const [needCat, setNeedCat] = useState<NeedCategory | null>(null);
   const [siteCat, setSiteCat] = useState<SiteCategory | null>(null);
   const [criticalOnly, setCriticalOnly] = useState(false);
+  // HOS-2026-014-01 (Judge D1): "sitios vencidos" triage — show only active
+  // sites whose freshness has gone stale (overdue for a re-confirm/close).
+  const [overdueOnly, setOverdueOnly] = useState(false);
 
   const pickFilter = (apply: () => void) => {
     apply();
@@ -210,7 +214,12 @@ export function CoordinationConsole() {
   const allOffers = board?.offers ?? [];
   const visibleNeeds = district ? sortedNeeds.filter((v) => v.need.district === district) : sortedNeeds;
   const pagedNeeds = visibleNeeds.slice(0, needsShown);
-  const visibleSites = district ? allSites.filter((v) => v.site.district === district) : allSites;
+  const scopedSites = district ? allSites.filter((v) => v.site.district === district) : allSites;
+  // The "sitios vencidos" triage narrows the site column to active+stale sites,
+  // most overdue first, so a coordinator sees the re-confirm/close worklist. The
+  // chip count reflects the current district/category scope.
+  const overdueVisible = useMemo(() => overdueSites(scopedSites), [scopedSites]);
+  const visibleSites = overdueOnly ? overdueVisible : scopedSites;
   const pagedSites = visibleSites.slice(0, sitesShown);
   const visibleOffers = district ? allOffers.filter((v) => v.offer.district === district) : allOffers;
 
@@ -341,6 +350,8 @@ export function CoordinationConsole() {
                 needCat={needCat}
                 siteCat={siteCat}
                 criticalOnly={criticalOnly}
+                overdueOnly={overdueOnly}
+                overdueCount={overdueVisible.length}
                 onResetNeeds={() =>
                   pickFilter(() => {
                     setNeedCat(null);
@@ -351,6 +362,7 @@ export function CoordinationConsole() {
                 onToggleCritical={() => pickFilter(() => setCriticalOnly((v) => !v))}
                 onResetSites={() => pickFilter(() => setSiteCat(null))}
                 onToggleSite={(c) => pickFilter(() => setSiteCat(siteCat === c ? null : c))}
+                onToggleOverdue={() => pickFilter(() => setOverdueOnly((v) => !v))}
               />
             ) : null}
 

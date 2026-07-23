@@ -111,20 +111,26 @@ export function BoardFilters({
   needCat,
   siteCat,
   criticalOnly,
+  overdueOnly,
+  overdueCount,
   onResetNeeds,
   onToggleNeed,
   onToggleCritical,
   onResetSites,
   onToggleSite,
+  onToggleOverdue,
 }: {
   needCat: NeedCategory | null;
   siteCat: SiteCategory | null;
   criticalOnly: boolean;
+  overdueOnly: boolean;
+  overdueCount: number;
   onResetNeeds: () => void;
   onToggleNeed: (category: NeedCategory) => void;
   onToggleCritical: () => void;
   onResetSites: () => void;
   onToggleSite: (category: SiteCategory) => void;
+  onToggleOverdue: () => void;
 }) {
   return (
     <div className="flex flex-col gap-[8px]">
@@ -142,6 +148,15 @@ export function BoardFilters({
         {SITE_FILTERS.map((c) => (
           <FilterChip key={c} label={SITE_CATEGORY_LABEL[c]} active={siteCat === c} onClick={() => onToggleSite(c)} />
         ))}
+        {/* HOS-2026-014-01 (Judge D1): the "sitios vencidos" triage — active
+            sites not confirmed past the stale threshold, so a coordinator can go
+            re-confirm or close them. It names no steward and claims no ownership
+            (D2 withheld); it is only "these live sites are overdue for a look". */}
+        <FilterChip
+          label={overdueCount > 0 ? `Vencidos · ${overdueCount}` : "Vencidos"}
+          active={overdueOnly}
+          onClick={onToggleOverdue}
+        />
       </div>
     </div>
   );
