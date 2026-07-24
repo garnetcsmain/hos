@@ -18,11 +18,19 @@ import {
 import {
   BoardFilters,
   BoardList,
+  BoardSearchTriage,
   CoordinatorBrief,
   CreateRecordFlow,
   DistrictFilterPill,
   type CreateKind,
 } from "@/app/components/CoordinationConsoleSections";
+import { CATEGORY_LABEL, SITE_CATEGORY_LABEL } from "@/app/components/CoordinationLabels";
+import {
+  needMatchesQuery,
+  needMatchesTriage,
+  siteMatchesQuery,
+  type TriagePresetId,
+} from "@/app/lib/coordination/boardSearch";
 import { getCoordinationBoard } from "@/app/lib/client/coordination";
 import { ApiError, COORDINATOR_TOKEN_KEY } from "@/app/lib/client/api";
 import {
@@ -100,6 +108,11 @@ export function CoordinationConsole() {
   const [needCat, setNeedCat] = useState<NeedCategory | null>(null);
   const [siteCat, setSiteCat] = useState<SiteCategory | null>(null);
   const [criticalOnly, setCriticalOnly] = useState(false);
+  // Free-text search (needs + sites) and a triage preset (needs only). Additive
+  // to the category chips — empty query + "todas" leave the chip selection
+  // untouched (HOS-2026-013-01).
+  const [query, setQuery] = useState("");
+  const [triage, setTriage] = useState<TriagePresetId>("todas");
 
   const pickFilter = (apply: () => void) => {
     apply();
@@ -169,8 +182,17 @@ export function CoordinationConsole() {
     startCoordinationTour();
   };
 
-  // Category/urgency presets applied BEFORE the district filter, and fed to the
-  // map too, so the badges/pins show exactly what the list shows.
+  // Minute-granular "now" for the freshness-based "vencidas" triage preset. The
+  // stale threshold is 24h, so re-deriving it once a minute (not every second
+  // like nowTick) keeps the ~1000-need filter from recomputing needlessly.
+  const triageNow = useMemo(
+    () => new Date(Math.floor(nowTick / 60_000) * 60_000).toISOString(),
+    [nowTick],
+  );
+
+  // Category/urgency chips + free-text search + triage preset, applied BEFORE
+  // the district filter and fed to the map too, so the badges/pins show exactly
+  // what the list shows. All filters are AND-combined and each stays optional.
   const filteredBoard = useMemo(() => {
     if (!board) return null;
     return {
@@ -178,11 +200,17 @@ export function CoordinationConsole() {
       needs: board.needs.filter(
         (v) =>
           (!needCat || v.need.category === needCat) &&
-          (!criticalOnly || v.need.urgency === "critical"),
+          (!criticalOnly || v.need.urgency === "critical") &&
+          needMatchesTriage(v, triage, triageNow) &&
+          needMatchesQuery(v, query, CATEGORY_LABEL),
       ),
-      sites: board.sites.filter((v) => !siteCat || v.site.category === siteCat),
+      sites: board.sites.filter(
+        (v) =>
+          (!siteCat || v.site.category === siteCat) &&
+          siteMatchesQuery(v, query, SITE_CATEGORY_LABEL),
+      ),
     };
-  }, [board, needCat, siteCat, criticalOnly]);
+  }, [board, needCat, siteCat, criticalOnly, triage, triageNow, query]);
 
   const sortedNeeds = useMemo(() => {
     if (!filteredBoard) return [];
@@ -337,21 +365,31 @@ export function CoordinationConsole() {
             </div>
 
             {!creating ? (
-              <BoardFilters
-                needCat={needCat}
-                siteCat={siteCat}
-                criticalOnly={criticalOnly}
-                onResetNeeds={() =>
-                  pickFilter(() => {
-                    setNeedCat(null);
-                    setCriticalOnly(false);
-                  })
-                }
-                onToggleNeed={(c) => pickFilter(() => setNeedCat(needCat === c ? null : c))}
-                onToggleCritical={() => pickFilter(() => setCriticalOnly((v) => !v))}
-                onResetSites={() => pickFilter(() => setSiteCat(null))}
-                onToggleSite={(c) => pickFilter(() => setSiteCat(siteCat === c ? null : c))}
-              />
+              <div className="flex flex-col gap-[10px]">
+                <BoardSearchTriage
+                  query={query}
+                  onQuery={(q) => pickFilter(() => setQuery(q))}
+                  triage={triage}
+                  onTriage={(t) => pickFilter(() => setTriage(t))}
+                  needCount={visibleNeeds.length}
+                  siteCount={visibleSites.length}
+                />
+                <BoardFilters
+                  needCat={needCat}
+                  siteCat={siteCat}
+                  criticalOnly={criticalOnly}
+                  onResetNeeds={() =>
+                    pickFilter(() => {
+                      setNeedCat(null);
+                      setCriticalOnly(false);
+                    })
+                  }
+                  onToggleNeed={(c) => pickFilter(() => setNeedCat(needCat === c ? null : c))}
+                  onToggleCritical={() => pickFilter(() => setCriticalOnly((v) => !v))}
+                  onResetSites={() => pickFilter(() => setSiteCat(null))}
+                  onToggleSite={(c) => pickFilter(() => setSiteCat(siteCat === c ? null : c))}
+                />
+              </div>
             ) : null}
 
             {creating && createKind ? (
