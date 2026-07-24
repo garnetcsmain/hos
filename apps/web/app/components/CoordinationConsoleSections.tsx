@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowLeft, Boxes, Building2, MapPin, Package, Siren, X } from "lucide-react";
+import { ArrowLeft, Boxes, Building2, MapPin, Package, Search, Siren, X } from "lucide-react";
 import { Term } from "@/app/components/Term";
+import { TRIAGE_PRESETS, type TriagePresetId } from "@/app/lib/coordination/boardSearch";
 import {
   AddOrgForm,
   AddSiteForm,
@@ -143,6 +144,71 @@ export function BoardFilters({
           <FilterChip key={c} label={SITE_CATEGORY_LABEL[c]} active={siteCat === c} onClick={() => onToggleSite(c)} />
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Free-text search box + one-tap triage presets, rendered above the category
+ *  chips. Search narrows both needs and sites; triage narrows needs only
+ *  (HOS-2026-013-01). Both are additive to the category filters — an empty
+ *  search and "todas" leave the board exactly as the chips selected it. */
+export function BoardSearchTriage({
+  query,
+  onQuery,
+  triage,
+  onTriage,
+  needCount,
+  siteCount,
+}: {
+  query: string;
+  onQuery: (q: string) => void;
+  triage: TriagePresetId;
+  onTriage: (t: TriagePresetId) => void;
+  needCount: number;
+  siteCount: number;
+}) {
+  const active = query.trim().length > 0 || triage !== "todas";
+  return (
+    <div className="flex flex-col gap-[8px]">
+      <div className="flex items-center gap-[8px] max-[620px]:flex-col max-[620px]:items-stretch">
+        <label className="relative flex min-w-[240px] flex-1 items-center">
+          <Search className="pointer-events-none absolute left-[10px] h-[15px] w-[15px] text-[var(--hos-muted)]" strokeWidth={2.2} />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => onQuery(e.target.value)}
+            placeholder="Buscar por distrito, categoría, sitio, organización…"
+            aria-label="Buscar en el panel"
+            className="h-[38px] w-full rounded-[6px] border border-[var(--hos-border)] bg-white pl-[32px] pr-[30px] text-[13px] font-bold text-[var(--hos-text)] outline-none placeholder:font-semibold placeholder:text-[var(--hos-muted)] focus:border-[var(--hos-dark)]"
+          />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => onQuery("")}
+              aria-label="Borrar búsqueda"
+              className="absolute right-[8px] text-[var(--hos-muted)] hover:text-[var(--hos-text)]"
+            >
+              <X className="h-[14px] w-[14px]" strokeWidth={2.6} />
+            </button>
+          ) : null}
+        </label>
+        <div className="flex flex-wrap items-center gap-[6px]">
+          {TRIAGE_PRESETS.map((p) => (
+            <FilterChip
+              key={p.id}
+              label={p.label}
+              active={triage === p.id}
+              onClick={() => onTriage(p.id)}
+            />
+          ))}
+        </div>
+      </div>
+      {active ? (
+        <p className="text-[11px] font-bold text-[var(--hos-muted)]">
+          {needCount} {needCount === 1 ? "necesidad" : "necesidades"} · {siteCount} {siteCount === 1 ? "sitio" : "sitios"} coinciden
+          {triage !== "todas" ? ` · ${TRIAGE_PRESETS.find((p) => p.id === triage)?.hint ?? ""}` : ""}
+        </p>
+      ) : null}
     </div>
   );
 }
