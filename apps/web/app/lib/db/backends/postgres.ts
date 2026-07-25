@@ -26,7 +26,7 @@ export type SslDecision = false | { rejectUnauthorized: boolean; ca?: string };
 // HOS_PG_CA_CERT_FILE. Node's built-in Mozilla root store already covers the
 // Supabase transaction pooler (…pooler.supabase.com), so this is optional pinning,
 // not a prerequisite for peer verification.
-function loadPinnedCa(env: NodeJS.ProcessEnv): string | undefined {
+function loadPinnedCa(env: Partial<NodeJS.ProcessEnv>): string | undefined {
   const inline = env.HOS_PG_CA_CERT?.trim();
   if (inline) return inline;
   const file = env.HOS_PG_CA_CERT_FILE?.trim();
@@ -43,7 +43,7 @@ function loadPinnedCa(env: NodeJS.ProcessEnv): string | undefined {
 // the Supabase pooler.)
 export function sslConfig(
   connectionString: string,
-  env: NodeJS.ProcessEnv = process.env,
+  env: Partial<NodeJS.ProcessEnv> = process.env,
 ): SslDecision {
   const mode = (env.HOS_PG_SSL ?? "").toLowerCase();
 

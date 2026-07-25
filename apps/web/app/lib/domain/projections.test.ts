@@ -62,14 +62,14 @@ test("public found preserves reassuring/neutral conditions", () => {
 });
 
 test("public found projection carries no server-only PII", () => {
-  const projected = toPublicFound(foundWith("alive")) as Record<string, unknown>;
+  const projected = toPublicFound(foundWith("alive")) as unknown as Record<string, unknown>;
   for (const leaked of ["fullName", "foundLocation", "description", "reporterOrg", "reporterName", "reporterContact"]) {
     assert.equal(leaked in projected, false, `public found must not expose ${leaked}`);
   }
 });
 
 test("public missing projection carries no server-only PII", () => {
-  const projected = toPublicMissing(missing) as Record<string, unknown>;
+  const projected = toPublicMissing(missing) as unknown as Record<string, unknown>;
   for (const leaked of ["fullName", "lastSeenLocation", "description", "sensitiveNotes", "reporterName", "reporterContact"]) {
     assert.equal(leaked in projected, false, `public missing must not expose ${leaked}`);
   }
