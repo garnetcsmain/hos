@@ -24,6 +24,13 @@ import {
   type CreateKind,
 } from "@/app/components/CoordinationConsoleSections";
 import { getCoordinationBoard } from "@/app/lib/client/coordination";
+import { matchesQuery } from "@/app/lib/coordination/consoleFilter";
+import {
+  CATEGORY_LABEL,
+  NEED_STATUS,
+  SITE_CATEGORY_LABEL,
+  URGENCY,
+} from "@/app/components/CoordinationLabels";
 import { ApiError, COORDINATOR_TOKEN_KEY } from "@/app/lib/client/api";
 import {
   getBrowserSupabase,
@@ -100,6 +107,12 @@ export function CoordinationConsole() {
   const [needCat, setNeedCat] = useState<NeedCategory | null>(null);
   const [siteCat, setSiteCat] = useState<SiteCategory | null>(null);
   const [criticalOnly, setCriticalOnly] = useState(false);
+  // Free-text search over both columns, and a staleness triage preset that
+  // isolates sites unconfirmed for 24h+ so a coordinator can find and re-confirm
+  // them (HOS-2026-013-01 / HOS-2026-014 staleness accountability — surfaced
+  // for a human, never an automatic lapse).
+  const [query, setQuery] = useState("");
+  const [siteStale, setSiteStale] = useState(false);
 
   const pickFilter = (apply: () => void) => {
     apply();
@@ -178,11 +191,39 @@ export function CoordinationConsole() {
       needs: board.needs.filter(
         (v) =>
           (!needCat || v.need.category === needCat) &&
-          (!criticalOnly || v.need.urgency === "critical"),
+          (!criticalOnly || v.need.urgency === "critical") &&
+          matchesQuery(
+            [
+              v.need.quantity,
+              v.need.unit,
+              CATEGORY_LABEL[v.need.category],
+              v.need.district,
+              v.org?.name,
+              v.claimedByOrg?.name,
+              v.need.notes,
+              URGENCY[v.need.urgency].label,
+              NEED_STATUS[v.need.status]?.label,
+            ],
+            query,
+          ),
       ),
-      sites: board.sites.filter((v) => !siteCat || v.site.category === siteCat),
+      sites: board.sites.filter(
+        (v) =>
+          (!siteCat || v.site.category === siteCat) &&
+          (!siteStale || v.freshness === "stale") &&
+          matchesQuery(
+            [
+              v.site.name,
+              v.org?.name,
+              v.site.district,
+              SITE_CATEGORY_LABEL[v.site.category],
+              v.site.notes,
+            ],
+            query,
+          ),
+      ),
     };
-  }, [board, needCat, siteCat, criticalOnly]);
+  }, [board, needCat, siteCat, criticalOnly, siteStale, query]);
 
   const sortedNeeds = useMemo(() => {
     if (!filteredBoard) return [];
@@ -341,6 +382,9 @@ export function CoordinationConsole() {
                 needCat={needCat}
                 siteCat={siteCat}
                 criticalOnly={criticalOnly}
+                siteStale={siteStale}
+                query={query}
+                onQueryChange={(q) => pickFilter(() => setQuery(q))}
                 onResetNeeds={() =>
                   pickFilter(() => {
                     setNeedCat(null);
@@ -351,6 +395,7 @@ export function CoordinationConsole() {
                 onToggleCritical={() => pickFilter(() => setCriticalOnly((v) => !v))}
                 onResetSites={() => pickFilter(() => setSiteCat(null))}
                 onToggleSite={(c) => pickFilter(() => setSiteCat(siteCat === c ? null : c))}
+                onToggleStale={() => pickFilter(() => setSiteStale((v) => !v))}
               />
             ) : null}
 
