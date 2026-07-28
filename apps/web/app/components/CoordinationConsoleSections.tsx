@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Boxes, Building2, MapPin, Package, Siren, X } from "lucide-react";
+import { ArrowLeft, Boxes, Building2, MapPin, Package, Search, Siren, X } from "lucide-react";
 import { Term } from "@/app/components/Term";
 import {
   AddOrgForm,
@@ -111,23 +111,55 @@ export function BoardFilters({
   needCat,
   siteCat,
   criticalOnly,
+  siteStale,
+  query,
+  onQueryChange,
   onResetNeeds,
   onToggleNeed,
   onToggleCritical,
   onResetSites,
   onToggleSite,
+  onToggleStale,
 }: {
   needCat: NeedCategory | null;
   siteCat: SiteCategory | null;
   criticalOnly: boolean;
+  siteStale: boolean;
+  query: string;
+  onQueryChange: (query: string) => void;
   onResetNeeds: () => void;
   onToggleNeed: (category: NeedCategory) => void;
   onToggleCritical: () => void;
   onResetSites: () => void;
   onToggleSite: (category: SiteCategory) => void;
+  onToggleStale: () => void;
 }) {
   return (
     <div className="flex flex-col gap-[8px]">
+      <div className="relative max-w-[420px]">
+        <Search
+          className="pointer-events-none absolute left-[10px] top-1/2 h-[15px] w-[15px] -translate-y-1/2 text-[var(--hos-muted)]"
+          strokeWidth={2.4}
+        />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => onQueryChange(e.target.value)}
+          placeholder="Buscar por sitio, organización, distrito o categoría…"
+          aria-label="Buscar en el panel"
+          className="h-[36px] w-full rounded-[8px] border border-[var(--hos-border)] bg-white pl-[32px] pr-[30px] text-[13px] font-semibold text-[var(--hos-text)] outline-none placeholder:font-bold placeholder:text-[var(--hos-muted)] focus:ring-2 focus:ring-[#DDEFE8]"
+        />
+        {query ? (
+          <button
+            type="button"
+            onClick={() => onQueryChange("")}
+            aria-label="Borrar búsqueda"
+            className="absolute right-[8px] top-1/2 -translate-y-1/2 text-[var(--hos-muted)] hover:text-[var(--hos-text)]"
+          >
+            <X className="h-[14px] w-[14px]" strokeWidth={2.6} />
+          </button>
+        ) : null}
+      </div>
       <div className="flex flex-wrap items-center gap-[6px]">
         <span className="w-[110px] shrink-0 text-[11px] font-extrabold uppercase tracking-wide text-[var(--hos-red)]">Necesidades</span>
         <FilterChip label="Todas" active={needCat === null && !criticalOnly} onClick={onResetNeeds} />
@@ -142,6 +174,7 @@ export function BoardFilters({
         {SITE_FILTERS.map((c) => (
           <FilterChip key={c} label={SITE_CATEGORY_LABEL[c]} active={siteCat === c} onClick={() => onToggleSite(c)} />
         ))}
+        <FilterChip label="Vencidos +24h" active={siteStale} onClick={onToggleStale} />
       </div>
     </div>
   );

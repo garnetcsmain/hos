@@ -193,6 +193,10 @@ export function NeedCard({ view, orgs, onChanged }: { view: NeedView; orgs: Org[
   const [claimer, setClaimer] = useState(orgs[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Assign/receive/cancel controls stay collapsed by default so a long column of
+  // open needs reads as a scannable list, not a wall of dropdowns
+  // (HOS-2026-013-01 console density).
+  const [managing, setManaging] = useState(false);
 
   async function act(action: "claim" | "receive" | "cancel") {
     setBusy(true);
@@ -225,25 +229,41 @@ export function NeedCard({ view, orgs, onChanged }: { view: NeedView; orgs: Org[
       </div>
       {need.notes ? <p className="mt-[6px] text-[12px] font-bold leading-[16px] text-[var(--hos-muted)]">{need.notes}</p> : null}
       {!terminal ? (
-        <div className="mt-[12px] flex flex-wrap items-center gap-[8px] border-t border-[#E2E8E4] pt-[10px]">
-          {need.status === "open" ? (
-            <>
-              <select className={`${fieldBase} w-auto`} value={claimer} onChange={(e) => setClaimer(e.target.value)}>
-                {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-              </select>
-              <button type="button" disabled={busy || !claimer} onClick={() => void act("claim")} className="inline-flex h-[34px] items-center gap-[5px] rounded-[6px] bg-[var(--hos-blue)] px-[12px] text-[12px] font-extrabold text-white disabled:opacity-60">
-                <Truck className="h-[13px] w-[13px]" strokeWidth={2.4} /> Asignar
-              </button>
-            </>
-          ) : (
-            <button type="button" disabled={busy} onClick={() => void act("receive")} className="inline-flex h-[34px] items-center gap-[5px] rounded-[6px] bg-[var(--hos-green)] px-[12px] text-[12px] font-extrabold text-white disabled:opacity-60">
-              <Check className="h-[13px] w-[13px]" strokeWidth={2.6} /> Confirmar recepción
+        <div className="mt-[12px] border-t border-[#E2E8E4] pt-[10px]">
+          {!managing ? (
+            <button
+              type="button"
+              onClick={() => setManaging(true)}
+              className="inline-flex h-[30px] items-center gap-[5px] text-[12px] font-extrabold text-[var(--hos-blue)] hover:underline"
+            >
+              <Truck className="h-[13px] w-[13px]" strokeWidth={2.4} />
+              {need.status === "open" ? "Asignar" : "Gestionar"}
             </button>
+          ) : (
+            <div className="flex flex-wrap items-center gap-[8px]">
+              {need.status === "open" ? (
+                <>
+                  <select className={`${fieldBase} w-auto`} value={claimer} onChange={(e) => setClaimer(e.target.value)}>
+                    {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                  </select>
+                  <button type="button" disabled={busy || !claimer} onClick={() => void act("claim")} className="inline-flex h-[34px] items-center gap-[5px] rounded-[6px] bg-[var(--hos-blue)] px-[12px] text-[12px] font-extrabold text-white disabled:opacity-60">
+                    <Truck className="h-[13px] w-[13px]" strokeWidth={2.4} /> Asignar
+                  </button>
+                </>
+              ) : (
+                <button type="button" disabled={busy} onClick={() => void act("receive")} className="inline-flex h-[34px] items-center gap-[5px] rounded-[6px] bg-[var(--hos-green)] px-[12px] text-[12px] font-extrabold text-white disabled:opacity-60">
+                  <Check className="h-[13px] w-[13px]" strokeWidth={2.6} /> Confirmar recepción
+                </button>
+              )}
+              <button type="button" disabled={busy} onClick={() => void act("cancel")} className="inline-flex h-[34px] items-center gap-[5px] rounded-[6px] border border-[var(--hos-border)] bg-white px-[12px] text-[12px] font-extrabold text-[var(--hos-text)] hover:bg-[#F8FAF8] disabled:opacity-60">
+                <X className="h-[13px] w-[13px]" strokeWidth={2.4} /> Cancelar
+              </button>
+              <button type="button" onClick={() => setManaging(false)} className="text-[12px] font-extrabold text-[var(--hos-muted)] hover:underline">
+                Cerrar
+              </button>
+              {error ? <span className="text-[12px] font-bold text-[var(--hos-red)]">{error}</span> : null}
+            </div>
           )}
-          <button type="button" disabled={busy} onClick={() => void act("cancel")} className="inline-flex h-[34px] items-center gap-[5px] rounded-[6px] border border-[var(--hos-border)] bg-white px-[12px] text-[12px] font-extrabold text-[var(--hos-text)] hover:bg-[#F8FAF8] disabled:opacity-60">
-            <X className="h-[13px] w-[13px]" strokeWidth={2.4} /> Cancelar
-          </button>
-          {error ? <span className="text-[12px] font-bold text-[var(--hos-red)]">{error}</span> : null}
         </div>
       ) : null}
       {need.status === "open" && matches.length > 0 ? (
