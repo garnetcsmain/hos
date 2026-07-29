@@ -7,6 +7,7 @@ import { createNeed, createOffer, createOrg, createSite } from "@/app/lib/client
 import { searchAddress, type GeocodeHit } from "@/app/lib/client/geocode";
 import { districtFromText, nearestDistrict } from "@/app/lib/coordination/classify";
 import { draftFromText } from "@/app/lib/coordination/draft";
+import { INTAKE_NUDGE, detectIntakePii, intakePiiCaution } from "@/app/lib/coordination/intakeMinimization";
 import { DISTRICT_OPTIONS, type LatLng } from "@/app/lib/geo/districts";
 import type { NeedCategory, Org, OrgKind, Site, SiteCategory, Urgency } from "@/app/lib/domain/coordination";
 import {
@@ -231,6 +232,24 @@ function OrgCombobox({
   );
 }
 
+/** Intake-minimization hint for free-text fields (HOS-2026-013-02, Board D3 /
+ *  Contrarian Flaw 5). Always shows the standing plain-usted nudge; adds an
+ *  ADVISORY caution when the text looks like it carries a phone / cédula / email.
+ *  Never blocks — surfaces so the author can decide (HOS-2026-010-R2). */
+function IntakeMinimizationHint({ text }: { text: string }) {
+  const flags = detectIntakePii(text);
+  return (
+    <div className="mt-[6px]">
+      <p className="text-[10px] font-bold leading-snug text-[var(--hos-muted)]">{INTAKE_NUDGE}</p>
+      {flags.length > 0 ? (
+        <p className="mt-[3px] text-[10px] font-extrabold leading-snug text-[var(--hos-red)]">
+          {intakePiiCaution(flags)}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 /** Free-text draft box: type a sentence, the deterministic classifier fills the
  *  form as a DRAFT to review. Never submits (human direction 2026-07-03). */
 function FreeTextDraft({ verb, onDraft }: { verb: string; onDraft: (text: string) => void }) {
@@ -246,6 +265,7 @@ function FreeTextDraft({ verb, onDraft }: { verb: string; onDraft: (text: string
           onChange={(e) => setText(e.target.value)}
         />
       </label>
+      <IntakeMinimizationHint text={text} />
       <button
         type="button"
         disabled={!text.trim()}
@@ -347,7 +367,10 @@ export function PostNeedForm({ orgs, sites = [], onChanged }: { orgs: Org[]; sit
         <Field label="Cantidad"><input type="number" min={1} className={fieldBase} value={quantity} onChange={(e) => setQuantity(e.target.value)} /></Field>
         <Field label={`Unidad (${UNIT_HINT[category]})`}><input className={fieldBase} placeholder={UNIT_HINT[category]} value={unit} onChange={(e) => setUnit(e.target.value)} /></Field>
       </div>
-      <Field label="Detalle o punto de referencia (opcional)"><input className={fieldBase} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
+      <Field label="Detalle o punto de referencia (opcional)">
+        <input className={fieldBase} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <IntakeMinimizationHint text={notes} />
+      </Field>
       <div className="flex items-center gap-[10px]">
         <button type="submit" disabled={busy || !orgId || !district} className="h-[38px] rounded-[6px] bg-[var(--hos-red)] px-[16px] text-[13px] font-extrabold text-white disabled:opacity-60">Publicar necesidad</button>
         {error ? <span className="text-[12px] font-bold text-[var(--hos-red)]">{error}</span> : null}
