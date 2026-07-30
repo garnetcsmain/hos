@@ -88,11 +88,11 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
     }
   }
 
-  async function setStatus(status: "active" | "closed") {
+  async function setStatus(status: "active" | "closed", intent: "confirm" | "capacity" = "capacity") {
     setBusy(true);
     setError("");
     try {
-      await updateSiteCapacity({ siteId: site.id, bedsTotal: site.bedsTotal, bedsFree: site.bedsFree, status, notes: site.notes });
+      await updateSiteCapacity({ siteId: site.id, bedsTotal: site.bedsTotal, bedsFree: site.bedsFree, status, notes: site.notes, intent });
       onChanged();
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo actualizar.");
@@ -142,7 +142,7 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
       <div className="mt-[10px] flex flex-wrap items-center gap-[12px] border-t border-[#E2E8E4] pt-[8px]">
         {site.status === "active" ? (
           <>
-            <button type="button" disabled={busy} onClick={() => void setStatus("active")} className="text-[12px] font-extrabold text-[var(--hos-green)] hover:underline disabled:opacity-60">Confirmar operativo</button>
+            <button type="button" disabled={busy} onClick={() => void setStatus("active", "confirm")} className="text-[12px] font-extrabold text-[var(--hos-green)] hover:underline disabled:opacity-60">Confirmar operativo</button>
             <button type="button" disabled={busy} onClick={() => void setStatus("closed")} className="text-[12px] font-extrabold text-[var(--hos-muted)] hover:underline disabled:opacity-60">Marcar cerrado</button>
           </>
         ) : (
@@ -158,6 +158,12 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
         ) : null}
         {error ? <span className="text-[12px] font-bold text-[var(--hos-red)]">{error}</span> : null}
       </div>
+      {/* HOS-2026-014-01 (Judge D2): a confirmation is honor-system, not verified
+          accountability. Render the caveat at EQUAL weight to the confirm control
+          so a coordinator never reads "operativo" as a vouched-for identity. */}
+      <p className="mt-[6px] text-[12px] font-bold leading-[16px] text-[var(--hos-muted)]">
+        Confirmaciones por buena fe: la identidad de quien confirma no está verificada.
+      </p>
       {announcing ? (
         <div className="mt-[10px] flex flex-wrap items-end gap-[8px] border-t border-[#E2E8E4] pt-[10px]">
           <label className="min-w-[220px] flex-1 text-[11px] font-extrabold text-[var(--hos-muted)]">

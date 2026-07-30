@@ -74,6 +74,9 @@ export const updateSiteCapacity = (payload: {
   bedsFree: number;
   status: "active" | "closed";
   notes?: string;
+  // "confirm" records a one-tap liveness confirmation as its own audited event
+  // (HOS-2026-014-01); omit for an ordinary capacity edit.
+  intent?: "confirm" | "capacity";
 }) => write("/api/coordination/sites", payload, "PATCH");
 
 // Empty message clears the broadcast.
