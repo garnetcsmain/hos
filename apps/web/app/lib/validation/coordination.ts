@@ -79,6 +79,10 @@ export const siteUpdateSchema = z.object({
   bedsFree: z.number().int().min(0).max(1_000_000),
   status: z.enum(["active", "closed"]).default("active"),
   notes: optionalText(2000),
+  // "confirm" = a one-tap liveness confirmation (still operating), audited as its
+  // own event distinct from a bed-count edit (HOS-2026-014-01). Defaults to a
+  // capacity edit so existing callers are unchanged.
+  intent: z.enum(["confirm", "capacity"]).default("capacity"),
 });
 
 // Site broadcast ("hoy entregan comida 2-5pm"). Empty message clears it.

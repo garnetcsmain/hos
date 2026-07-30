@@ -41,6 +41,7 @@ import { nowIso } from "../domain/time.ts";
 import { badRequest, forbidden, notFound } from "../errors.ts";
 import { approxKm } from "../coordination/classify.ts";
 import { freshnessOf } from "../coordination/freshness.ts";
+import { trustTierOf } from "../coordination/trustTier.ts";
 import { rankOffersForNeed } from "../coordination/match.ts";
 import type { Need, Offer, Org, OrgKind, Site } from "@/app/lib/domain/coordination";
 import type { CoordinationView, SiteView } from "@/app/lib/domain/coordinationViews";
@@ -195,6 +196,12 @@ export async function updateSiteCapacity(input: SiteUpdateInput, actor: SiteActo
   await assertCanManageSite(site, actor);
   const org = await getOrg(site.orgId);
   const bedsFree = Math.min(input.bedsFree, input.bedsTotal);
+  // A one-tap "confirmar operativo" (HOS-2026-014-01, Judge D1) is a distinct
+  // liveness signal, not a capacity edit — it gets its own event type so the
+  // append-only log can tell "still operating" apart from "beds changed" (each
+  // carries its own freshness). Every stewardship write records the trust tier
+  // of who made it (trustTierOf): append-only means this is stamp-now-or-never.
+  const trust = trustTierOf(actor);
   await transaction(async () => {
     await repoUpdateSiteCapacity(site.id, {
       bedsTotal: input.bedsTotal,
@@ -205,9 +212,9 @@ export async function updateSiteCapacity(input: SiteUpdateInput, actor: SiteActo
     await appendEvent({
       entityType: "site",
       entityId: site.id,
-      type: "site.capacity_updated",
+      type: input.intent === "confirm" ? "site.confirmed" : "site.capacity_updated",
       actor: `org:${org?.name ?? site.orgId}`,
-      payload: { bedsFree, bedsTotal: input.bedsTotal, status: input.status, by: actor.by },
+      payload: { bedsFree, bedsTotal: input.bedsTotal, status: input.status, by: actor.by, trust },
     });
   });
   return { ...site, ...input, bedsFree, updatedAt: nowIso() };
@@ -235,7 +242,7 @@ export async function setSiteAnnouncement(
       entityId: site.id,
       type: message ? "site.announcement_set" : "site.announcement_cleared",
       actor: `org:${org?.name ?? site.orgId}`,
-      payload: { message, until, by: actor.by },
+      payload: { message, until, by: actor.by, trust: trustTierOf(actor) },
     });
   });
   return { ...site, announcement: message, announcementUntil: until, updatedAt: nowIso() };

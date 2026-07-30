@@ -244,6 +244,35 @@ test("a contributor CANNOT modify a site they don't own or manage", async () => 
   );
 });
 
+test("stewardship trust tier (HOS-2026-014-01): confirmar operativo is its own event, and every liveness write records who confirmed it", async () => {
+  const org = await seedOrg("Org Trust");
+  const verifiedCoord = { by: "coordinator:jefe@hos", userId: "user-jefe", email: "jefe@hos", isCoordinator: true };
+  const site = await svc.createSite(
+    { name: "Acopio Trust", orgId: org.id, district: "Chacao", category: "acopio", lat: null, lng: null, bedsTotal: 0, bedsFree: 0, notes: "" },
+    verifiedCoord,
+  );
+
+  // A one-tap "confirmar operativo" by a signed-in coordinator: its own event
+  // type, stamped verified (attested identity).
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 0, bedsFree: 0, status: "active", notes: "", intent: "confirm" },
+    verifiedCoord,
+  );
+  // A capacity edit by the shared-token coordinator (no userId): honor tier.
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 8, bedsFree: 8, status: "active", notes: "", intent: "capacity" },
+    COORD,
+  );
+
+  const events = await eventsFor("site", site.id);
+  const confirmed = events.find((e) => e.type === "site.confirmed");
+  const capacity = events.find((e) => e.type === "site.capacity_updated");
+  assert.ok(confirmed, "confirmar operativo must emit its own site.confirmed event");
+  assert.equal((confirmed!.payload as { trust?: string }).trust, "verified");
+  assert.ok(capacity, "a bed-count edit must stay site.capacity_updated");
+  assert.equal((capacity!.payload as { trust?: string }).trust, "honor");
+});
+
 test("peer delegation: responsable grants a volunteer manage rights on their site (revocable)", async () => {
   const org = await seedOrg("Org Delegation");
   const ana = contributor("user-ana3", "ana3@ejemplo.com");
