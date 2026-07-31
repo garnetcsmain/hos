@@ -1,0 +1,12 @@
+-- HOS-2026-014-01 (Judge D3): split the "confirmar operativo" liveness signal
+-- from the bed-count chore so each carries its OWN freshness.
+--
+-- Until now a one-tap "confirmar operativo" and a bed-count edit both bumped
+-- sites.updated_at, so an easy confirm could launder a stale bed number into
+-- reading fresh. last_confirmed_at records the last operational confirmation
+-- SEPARATELY from updated_at (which stays the bed-count / data freshness), so the
+-- board can honestly render "operativo confirmado hace 3h · camas: hace 2 dias".
+--
+-- Additive and nullable: existing rows keep NULL (liveness unknown / never
+-- explicitly confirmed) and read as "sin confirmar" until a coordinator confirms.
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS last_confirmed_at TEXT;

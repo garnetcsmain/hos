@@ -59,6 +59,10 @@ export async function seedCoordinationIfEmpty(): Promise<boolean> {
         radiusM: null,
         createdByUserId: null,
         createdByEmail: null,
+        // Imported aid points carry no operational confirmation from the source
+        // (it publishes existence, not a fresh liveness check) — honestly unknown
+        // until a coordinator confirms (HOS-2026-014-01, Judge D3).
+        lastConfirmedAt: null,
       });
     }
 

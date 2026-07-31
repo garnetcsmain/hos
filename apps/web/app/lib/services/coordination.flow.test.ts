@@ -273,6 +273,48 @@ test("stewardship trust tier (HOS-2026-014-01): confirmar operativo is its own e
   assert.equal((capacity!.payload as { trust?: string }).trust, "honor");
 });
 
+test("split freshness (HOS-2026-014-01, Judge D3): a bare confirm advances liveness only and never launders a stale bed count", async () => {
+  const org = await seedOrg("Org Split");
+  const site = await svc.createSite(
+    { name: "Refugio Split", orgId: org.id, district: "Chacao", category: "refugio", lat: null, lng: null, bedsTotal: 20, bedsFree: 5, notes: "" },
+    COORD,
+  );
+  // Creating a site seeds the liveness clock so it doesn't read "sin confirmar".
+  assert.ok(site.lastConfirmedAt, "createSite seeds lastConfirmedAt");
+
+  // A bed-count edit sets the bed clock (updatedAt) — this is the number whose
+  // freshness a later confirm must NOT be able to launder.
+  const afterBeds = await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 20, bedsFree: 2, status: "active", notes: "", intent: "capacity" },
+    COORD,
+  );
+  const bedClock = afterBeds.updatedAt;
+
+  // A one-tap "confirmar operativo" advances the liveness clock but leaves the
+  // bed clock EXACTLY where it was — so a stale bed count keeps reading stale.
+  const afterConfirm = await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 20, bedsFree: 2, status: "active", notes: "", intent: "confirm" },
+    COORD,
+  );
+  assert.equal(afterConfirm.updatedAt, bedClock, "a confirm must NOT bump the bed-count clock (no laundering)");
+  assert.ok(afterConfirm.lastConfirmedAt! >= bedClock, "a confirm must advance the liveness clock");
+
+  // Closing a site is not an operational confirmation: it must not advance the
+  // liveness clock (only the data edit).
+  const afterClose = await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 20, bedsFree: 2, status: "closed", notes: "", intent: "capacity" },
+    COORD,
+  );
+  assert.equal(afterClose.lastConfirmedAt, afterConfirm.lastConfirmedAt, "closing a site must not confirm operation");
+
+  // The board view exposes the two clocks as separate freshness signals.
+  const board = await svc.coordinationView();
+  const view = board.sites.find((s) => s.site.id === site.id);
+  assert.ok(view, "site appears on the board");
+  assert.equal(typeof view!.freshness, "string");
+  assert.ok(view!.confirmFreshness === null || typeof view!.confirmFreshness === "string");
+});
+
 test("peer delegation: responsable grants a volunteer manage rights on their site (revocable)", async () => {
   const org = await seedOrg("Org Delegation");
   const ana = contributor("user-ana3", "ana3@ejemplo.com");

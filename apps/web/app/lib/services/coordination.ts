@@ -40,7 +40,7 @@ import { newNeedId, newOfferId, newOrgId, newSiteId } from "../domain/ids.ts";
 import { nowIso } from "../domain/time.ts";
 import { badRequest, forbidden, notFound } from "../errors.ts";
 import { approxKm } from "../coordination/classify.ts";
-import { freshnessOf } from "../coordination/freshness.ts";
+import { confirmFreshnessOf, freshnessOf } from "../coordination/freshness.ts";
 import { trustTierOf } from "../coordination/trustTier.ts";
 import { rankOffersForNeed } from "../coordination/match.ts";
 import type { Need, Offer, Org, OrgKind, Site } from "@/app/lib/domain/coordination";
@@ -166,6 +166,10 @@ export async function createSite(input: SiteCreateInput, actor: SiteActor = SYST
     // Whoever creates the site is its responsable (human direction 2026-07-03).
     createdByUserId: actor.userId,
     createdByEmail: actor.email,
+    // Creating a site asserts it is operational now, so seed the liveness clock
+    // (HOS-2026-014-01, Judge D3) — otherwise a brand-new site reads "sin
+    // confirmar" the instant it is added.
+    lastConfirmedAt: now,
   };
   await transaction(async () => {
     await insertSite(site);
@@ -198,26 +202,40 @@ export async function updateSiteCapacity(input: SiteUpdateInput, actor: SiteActo
   const bedsFree = Math.min(input.bedsFree, input.bedsTotal);
   // A one-tap "confirmar operativo" (HOS-2026-014-01, Judge D1) is a distinct
   // liveness signal, not a capacity edit — it gets its own event type so the
-  // append-only log can tell "still operating" apart from "beds changed" (each
-  // carries its own freshness). Every stewardship write records the trust tier
-  // of who made it (trustTierOf): append-only means this is stamp-now-or-never.
+  // append-only log can tell "still operating" apart from "beds changed". Every
+  // stewardship write records the trust tier of who made it (trustTierOf):
+  // append-only means this is stamp-now-or-never.
   const trust = trustTierOf(actor);
+  const now = nowIso();
+  const isConfirm = input.intent === "confirm";
+  // Judge D3: the two freshness clocks are independent. `updated_at` tracks the
+  // bed-count / data edit; `last_confirmed_at` tracks the operational-liveness
+  // confirmation. A bare confirm advances ONLY last_confirmed_at (never
+  // updated_at), so it can never launder a stale bed count into reading fresh. A
+  // capacity edit that leaves the site active also asserts it is operating, so it
+  // advances both; closing a site confirms no operation, so it advances neither
+  // liveness clock (only updated_at, the data edit).
+  const confirmsOperational = isConfirm || input.status === "active";
+  const nextUpdatedAt = isConfirm ? site.updatedAt : now;
+  const nextConfirmedAt = confirmsOperational ? now : site.lastConfirmedAt;
   await transaction(async () => {
     await repoUpdateSiteCapacity(site.id, {
       bedsTotal: input.bedsTotal,
       bedsFree,
       status: input.status,
       notes: input.notes,
+      updatedAt: isConfirm ? null : now,
+      lastConfirmedAt: confirmsOperational ? now : null,
     });
     await appendEvent({
       entityType: "site",
       entityId: site.id,
-      type: input.intent === "confirm" ? "site.confirmed" : "site.capacity_updated",
+      type: isConfirm ? "site.confirmed" : "site.capacity_updated",
       actor: `org:${org?.name ?? site.orgId}`,
       payload: { bedsFree, bedsTotal: input.bedsTotal, status: input.status, by: actor.by, trust },
     });
   });
-  return { ...site, ...input, bedsFree, updatedAt: nowIso() };
+  return { ...site, ...input, bedsFree, updatedAt: nextUpdatedAt, lastConfirmedAt: nextConfirmedAt };
 }
 
 /** Set or clear a site's broadcast ("hoy entregan comida 2-5pm"). Allowed for
@@ -400,6 +418,7 @@ export async function coordinationView(): Promise<CoordinationView> {
       site,
       org: orgById.get(site.orgId) ?? null,
       freshness: freshnessOf(site.updatedAt, now),
+      confirmFreshness: confirmFreshnessOf(site.lastConfirmedAt, now),
     })),
     needs: needs.map((need) => ({
       need,
@@ -439,7 +458,12 @@ export async function contributorView(userId: string, email: string): Promise<Co
     orgs,
     sites: sites
       .filter((s) => s.status === "active")
-      .map((site) => ({ site, org: orgById.get(site.orgId) ?? null, freshness: freshnessOf(site.updatedAt, now) })),
+      .map((site) => ({
+        site,
+        org: orgById.get(site.orgId) ?? null,
+        freshness: freshnessOf(site.updatedAt, now),
+        confirmFreshness: confirmFreshnessOf(site.lastConfirmedAt, now),
+      })),
     managedSiteIds: [...managedIds],
   };
 }

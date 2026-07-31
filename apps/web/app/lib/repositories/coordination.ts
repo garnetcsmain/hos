@@ -45,8 +45,8 @@ export async function countOrgs(): Promise<number> {
 
 const insertSiteStmt = lazyStatement(
   `INSERT INTO sites
-     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes, source_id, synced_at, announcement, announcement_until, radius_m, created_by_user_id, created_by_email)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes, source_id, synced_at, announcement, announcement_until, radius_m, created_by_user_id, created_by_email, last_confirmed_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 export async function insertSite(site: Site): Promise<void> {
@@ -71,6 +71,7 @@ export async function insertSite(site: Site): Promise<void> {
     site.radiusM,
     site.createdByUserId,
     site.createdByEmail,
+    site.lastConfirmedAt,
   );
 }
 
@@ -149,15 +150,38 @@ export async function listSites(): Promise<Site[]> {
   return rows.map(mapSite);
 }
 
-/** Update mutable site fields (capacity/status/notes) and bump updated_at so the
- *  freshness signal is honest. */
+/** Update mutable site fields (capacity/status/notes). `updatedAt` and
+ *  `lastConfirmedAt` are passed explicitly (null = leave the column unchanged via
+ *  COALESCE) so the caller controls the two freshness clocks independently: a
+ *  bare "confirmar operativo" advances lastConfirmedAt only and must NOT bump
+ *  updatedAt, or an easy confirm would launder a stale bed count (HOS-2026-014-01,
+ *  Judge D3). */
 export async function updateSiteCapacity(
   id: string,
-  fields: { bedsTotal: number; bedsFree: number; status: string; notes: string },
+  fields: {
+    bedsTotal: number;
+    bedsFree: number;
+    status: string;
+    notes: string;
+    updatedAt: string | null;
+    lastConfirmedAt: string | null;
+  },
 ): Promise<void> {
   await db.prepare(
-    `UPDATE sites SET beds_total = ?, beds_free = ?, status = ?, notes = ?, updated_at = ? WHERE id = ?`,
-  ).run(fields.bedsTotal, fields.bedsFree, fields.status, fields.notes, nowIso(), id);
+    `UPDATE sites
+       SET beds_total = ?, beds_free = ?, status = ?, notes = ?,
+           updated_at = COALESCE(?, updated_at),
+           last_confirmed_at = COALESCE(?, last_confirmed_at)
+     WHERE id = ?`,
+  ).run(
+    fields.bedsTotal,
+    fields.bedsFree,
+    fields.status,
+    fields.notes,
+    fields.updatedAt,
+    fields.lastConfirmedAt,
+    id,
+  );
 }
 
 /** Set or clear (empty message) a site's broadcast. Bumps updated_at: an

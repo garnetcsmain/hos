@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BedDouble, Check, Clock, Megaphone, Truck, X } from "lucide-react";
+import { BedDouble, Check, Clock, Megaphone, ShieldCheck, Truck, X } from "lucide-react";
 import { Term } from "@/app/components/Term";
 import { setSiteAnnouncement, transitionNeed, updateSiteCapacity } from "@/app/lib/client/coordination";
 import type { Freshness } from "@/app/lib/coordination/freshness";
@@ -42,13 +42,35 @@ export function FreshnessBadge({ freshness }: { freshness: Freshness }) {
   );
 }
 
+/** Operational-liveness badge (HOS-2026-014-01, Judge D3). Driven by
+ *  confirmFreshness (last "confirmar operativo"), kept visually SEPARATE from the
+ *  bed-count FreshnessBadge so a coordinator reads "still operating?" apart from
+ *  "beds current?" — a confirm can never make a stale bed count look fresh.
+ *  `null` = never confirmed, rendered honestly as "Sin confirmar". */
+export function ConfirmBadge({ confirmFreshness }: { confirmFreshness: Freshness | null }) {
+  const map = {
+    fresh: { label: "Operativo confirmado", className: "text-[var(--hos-green)]" },
+    aging: { label: "Confirmado hace horas", className: "text-[#7A3D00]" },
+    stale: { label: "Sin confirmar +24h", className: "text-[var(--hos-red)]" },
+  } as const;
+  const f = confirmFreshness
+    ? map[confirmFreshness]
+    : { label: "Sin confirmar", className: "text-[var(--hos-red)]" };
+  return (
+    <span className={`inline-flex items-center gap-[4px] text-[11px] font-bold ${f.className}`}>
+      <ShieldCheck className="h-[12px] w-[12px]" strokeWidth={2.4} />
+      {f.label}
+    </span>
+  );
+}
+
 function orgName(orgs: Org[], id: string | null): string {
   if (!id) return "—";
   return orgs.find((o) => o.id === id)?.name ?? id;
 }
 
 export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () => void }) {
-  const { site, org, freshness } = view;
+  const { site, org, freshness, confirmFreshness } = view;
   const [editing, setEditing] = useState(false);
   const [total, setTotal] = useState(String(site.bedsTotal));
   const [free, setFree] = useState(String(site.bedsFree));
@@ -113,13 +135,18 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
             {site.status === "closed" ? <Chip label="Cerrado" className="bg-[#F6DAD5] text-[#8A2A1E]" /> : null}
           </div>
         </div>
-        <FreshnessBadge freshness={freshness} />
+        {site.status === "active" ? <ConfirmBadge confirmFreshness={confirmFreshness} /> : null}
       </div>
       {site.category === "refugio" || site.bedsTotal > 0 ? (
-        <div className="mt-[12px] flex items-center gap-[8px]">
+        <div className="mt-[12px] flex flex-wrap items-center gap-[8px]">
           <BedDouble className={`h-[18px] w-[18px] ${full ? "text-[var(--hos-red)]" : "text-[var(--hos-green)]"}`} strokeWidth={2.2} />
           <span className={`font-data text-[20px] font-bold leading-none ${full ? "text-[var(--hos-red)]" : "text-[var(--hos-text)]"}`}>{site.bedsFree}</span>
           <span className="text-[12px] font-bold text-[var(--hos-muted)]">/ {site.bedsTotal} camas libres</span>
+          {/* Bed-count freshness rides WITH the bed count, distinct from the
+              operativo confirmation above (HOS-2026-014-01, Judge D3). */}
+          <span className="ml-[2px] inline-flex items-center gap-[3px] text-[11px] font-bold text-[var(--hos-muted)]">
+            camas: <FreshnessBadge freshness={freshness} />
+          </span>
           <button type="button" onClick={() => setEditing((v) => !v)} className="ml-auto text-[12px] font-extrabold text-[var(--hos-blue)] hover:underline">
             {editing ? "Cerrar" : "Actualizar"}
           </button>

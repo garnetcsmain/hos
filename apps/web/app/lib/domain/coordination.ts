@@ -94,6 +94,12 @@ export interface Site {
    *  (those are coordinator-managed). */
   createdByUserId: string | null;
   createdByEmail: string | null;
+  /** Last one-tap "confirmar operativo" (HOS-2026-014-01, Judge D3). This is the
+   *  site's LIVENESS freshness and is deliberately SEPARATE from updatedAt (the
+   *  bed-count / data freshness): a bare confirm advances this but never touches
+   *  updatedAt, so an easy confirm can never launder a stale bed count. null =
+   *  never explicitly confirmed operational (reads as "sin confirmar"). */
+  lastConfirmedAt: string | null;
 }
 
 /** The announcement to display right now, or null if none/expired. Expiry is
