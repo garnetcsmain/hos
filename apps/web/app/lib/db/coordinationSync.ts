@@ -246,6 +246,10 @@ export async function runCoordinationSync(
             radiusM: null,
             createdByUserId: null,
             createdByEmail: null,
+            // The source publishes existence, not a fresh operational check, so
+            // liveness is honestly unknown until a coordinator confirms
+            // (HOS-2026-014-01, Judge D3).
+            lastConfirmedAt: null,
           });
           summary.sitesInserted += 1;
         } else if (locallyModified(existing)) {

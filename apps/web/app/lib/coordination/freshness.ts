@@ -23,3 +23,13 @@ export function freshnessOf(updatedAt: string, now: string): Freshness {
   if (h >= AGING_HOURS) return "aging";
   return "fresh";
 }
+
+/** Operational-liveness freshness of a site (HOS-2026-014-01, Judge D3). Derived
+ *  from the last "confirmar operativo" (lastConfirmedAt), NOT from updatedAt, so a
+ *  bare confirm can never launder a stale bed count. `null` (never confirmed)
+ *  returns null — the caller renders it as "sin confirmar", honestly distinct
+ *  from a confirmed-but-stale site. */
+export function confirmFreshnessOf(lastConfirmedAt: string | null, now: string): Freshness | null {
+  if (!lastConfirmedAt) return null;
+  return freshnessOf(lastConfirmedAt, now);
+}

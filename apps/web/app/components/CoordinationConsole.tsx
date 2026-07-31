@@ -210,7 +210,11 @@ export function CoordinationConsole() {
       sites: board.sites.filter(
         (v) =>
           (!siteCat || v.site.category === siteCat) &&
-          (!siteStale || v.freshness === "stale") &&
+          // "Vencidos" triages by operational LIVENESS (HOS-2026-014-01, Judge
+          // D3): a site not confirmed operational in 24h+ OR never confirmed —
+          // tapping "confirmar operativo" clears it; a bed edit alone no longer
+          // launders it off the list.
+          (!siteStale || v.confirmFreshness === null || v.confirmFreshness === "stale") &&
           matchesQuery(
             [
               v.site.name,

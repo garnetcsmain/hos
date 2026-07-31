@@ -9,7 +9,12 @@ import type { Freshness } from "../coordination/freshness.ts";
 export interface SiteView {
   site: Site;
   org: Org | null;
+  /** Bed-count / data freshness, derived from site.updatedAt. */
   freshness: Freshness;
+  /** Operational-liveness freshness, derived from site.lastConfirmedAt
+   *  (HOS-2026-014-01, Judge D3). null = never explicitly confirmed operational.
+   *  Kept SEPARATE from `freshness` so a confirm can't launder a stale bed count. */
+  confirmFreshness: Freshness | null;
 }
 
 export interface NeedView {

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { freshnessOf, hoursSince, AGING_HOURS, STALE_HOURS } from "./freshness.ts";
+import { confirmFreshnessOf, freshnessOf, hoursSince, AGING_HOURS, STALE_HOURS } from "./freshness.ts";
 
 const NOW = "2026-07-01T12:00:00Z";
 
@@ -26,4 +26,14 @@ test("freshness: an unparseable timestamp is treated as stale, never fresh", () 
 
 test("freshness: a future timestamp clamps to 0 hours (fresh)", () => {
   assert.equal(hoursSince("2026-07-01T13:00:00Z", NOW), 0);
+});
+
+test("confirmFreshnessOf: a never-confirmed site is null (rendered 'sin confirmar'), not fresh", () => {
+  assert.equal(confirmFreshnessOf(null, NOW), null);
+});
+
+test("confirmFreshnessOf: a recent confirmation is fresh; an old one is stale", () => {
+  assert.equal(confirmFreshnessOf("2026-07-01T11:30:00Z", NOW), "fresh");
+  const old = new Date(Date.parse(NOW) - (STALE_HOURS + 1) * 3_600_000).toISOString();
+  assert.equal(confirmFreshnessOf(old, NOW), "stale");
 });
