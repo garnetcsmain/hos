@@ -23,3 +23,20 @@ export function freshnessOf(updatedAt: string, now: string): Freshness {
   if (h >= AGING_HOURS) return "aging";
   return "fresh";
 }
+
+/** Freshness of a site's "confirmar operativo" liveness signal (HOS-2026-014-01,
+ *  Judge D1). This is deliberately SEPARATE from `freshnessOf(site.updatedAt)`:
+ *  a bed-count edit bumps updatedAt but is NOT a re-confirmation that the site is
+ *  still operating, so it must not reset the confirmation clock. `lastConfirmedAt`
+ *  comes from the last `site.confirmed` event; `null` means no one has confirmed
+ *  the site operational through HOS at all — rendered honestly as "unconfirmed",
+ *  never as fresh. */
+export type ConfirmFreshness = "unconfirmed" | Freshness;
+
+export function confirmFreshnessOf(
+  lastConfirmedAt: string | null,
+  now: string,
+): ConfirmFreshness {
+  if (!lastConfirmedAt) return "unconfirmed";
+  return freshnessOf(lastConfirmedAt, now);
+}

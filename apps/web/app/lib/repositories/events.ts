@@ -57,3 +57,21 @@ export async function recentEvents(limit = 50): Promise<HosEvent[]> {
   const rows = await db.prepare(`SELECT * FROM events ORDER BY id DESC LIMIT ?`).all(limit);
   return rows.map(mapEvent);
 }
+
+/** For every site that has ever been confirmed operational, the timestamp of its
+ *  most recent `site.confirmed` event (HOS-2026-014-01, Judge D1). Derived from
+ *  the append-only event store rather than a denormalized column so the
+ *  confirmation clock cannot drift from the audit trail. `occurred_at` is a
+ *  zero-padded UTC ISO-8601 string, so a lexical MAX is a chronological MAX.
+ *  Sites absent from the map have never been confirmed through HOS. */
+export async function lastConfirmedAtBySite(): Promise<Map<string, string>> {
+  const rows = (await db
+    .prepare(
+      `SELECT entity_id, MAX(occurred_at) AS last_confirmed
+         FROM events
+        WHERE entity_type = 'site' AND type = 'site.confirmed'
+        GROUP BY entity_id`,
+    )
+    .all()) as Array<{ entity_id: string; last_confirmed: string }>;
+  return new Map(rows.map((r) => [r.entity_id, r.last_confirmed]));
+}
