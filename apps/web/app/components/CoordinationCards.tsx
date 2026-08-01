@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { BedDouble, Check, Clock, Megaphone, Truck, X } from "lucide-react";
+import { BedDouble, Check, Clock, Megaphone, ShieldCheck, Truck, X } from "lucide-react";
 import { Term } from "@/app/components/Term";
 import { setSiteAnnouncement, transitionNeed, updateSiteCapacity } from "@/app/lib/client/coordination";
-import type { Freshness } from "@/app/lib/coordination/freshness";
+import type { ConfirmFreshness, Freshness } from "@/app/lib/coordination/freshness";
 import { activeAnnouncement } from "@/app/lib/domain/coordination";
 import type { Org } from "@/app/lib/domain/coordination";
 import type { NeedView, OfferView, SiteView } from "@/app/lib/domain/coordinationViews";
@@ -42,13 +42,51 @@ export function FreshnessBadge({ freshness }: { freshness: Freshness }) {
   );
 }
 
+/** Distinct liveness badge for the one-tap "confirmar operativo" signal
+ *  (HOS-2026-014-01, Judge D1). SEPARATE from FreshnessBadge on purpose: that
+ *  one tracks any edit (a bed-count change bumps it), this one only advances
+ *  when someone actually re-confirms the site is operating. "Sin confirmar" is
+ *  never rendered as reassuring — a site nobody has confirmed reads as needing a
+ *  look, matching the honest-staleness principle applied to a place. */
+export function ConfirmBadge({
+  confirmFreshness,
+  lastConfirmedAt,
+}: {
+  confirmFreshness: ConfirmFreshness;
+  lastConfirmedAt: string | null;
+}) {
+  const map = {
+    fresh: { label: "Operativo confirmado", className: "text-[var(--hos-green)]" },
+    aging: { label: "Confirmado hace horas", className: "text-[#7A3D00]" },
+    stale: { label: "Confirmación vencida +24h", className: "text-[var(--hos-red)]" },
+    unconfirmed: { label: "Sin confirmar", className: "text-[var(--hos-muted)]" },
+  } as const;
+  const c = map[confirmFreshness];
+  const when =
+    lastConfirmedAt && confirmFreshness !== "unconfirmed"
+      ? new Date(lastConfirmedAt).toLocaleString("es-VE", {
+          hour: "2-digit",
+          minute: "2-digit",
+          day: "numeric",
+          month: "short",
+        })
+      : null;
+  return (
+    <span className={`inline-flex items-center gap-[4px] text-[11px] font-bold ${c.className}`}>
+      <ShieldCheck className="h-[12px] w-[12px]" strokeWidth={2.4} />
+      {c.label}
+      {when ? <span className="font-semibold text-[var(--hos-muted)]">· {when}</span> : null}
+    </span>
+  );
+}
+
 function orgName(orgs: Org[], id: string | null): string {
   if (!id) return "—";
   return orgs.find((o) => o.id === id)?.name ?? id;
 }
 
 export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () => void }) {
-  const { site, org, freshness } = view;
+  const { site, org, freshness, confirmFreshness, lastConfirmedAt } = view;
   const [editing, setEditing] = useState(false);
   const [total, setTotal] = useState(String(site.bedsTotal));
   const [free, setFree] = useState(String(site.bedsFree));
@@ -113,7 +151,10 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
             {site.status === "closed" ? <Chip label="Cerrado" className="bg-[#F6DAD5] text-[#8A2A1E]" /> : null}
           </div>
         </div>
-        <FreshnessBadge freshness={freshness} />
+        <div className="flex flex-col items-end gap-[3px]">
+          <ConfirmBadge confirmFreshness={confirmFreshness} lastConfirmedAt={lastConfirmedAt} />
+          <FreshnessBadge freshness={freshness} />
+        </div>
       </div>
       {site.category === "refugio" || site.bedsTotal > 0 ? (
         <div className="mt-[12px] flex items-center gap-[8px]">

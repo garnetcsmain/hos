@@ -273,6 +273,43 @@ test("stewardship trust tier (HOS-2026-014-01): confirmar operativo is its own e
   assert.equal((capacity!.payload as { trust?: string }).trust, "honor");
 });
 
+test("confirm freshness (HOS-2026-014-01): a site's liveness clock advances on confirmar operativo, NOT on a bed-count edit", async () => {
+  const org = await seedOrg("Org Confirm Freshness");
+  const verifiedCoord = { by: "coordinator:jefa@hos", userId: "user-jefa", email: "jefa@hos", isCoordinator: true };
+  const site = await svc.createSite(
+    { name: "Acopio Freshness", orgId: org.id, district: "Baruta", category: "acopio", lat: null, lng: null, bedsTotal: 0, bedsFree: 0, notes: "" },
+    verifiedCoord,
+  );
+
+  // Brand-new site: nobody has confirmed it operational -> honestly "unconfirmed".
+  const beforeView = await svc.coordinationView();
+  const before = beforeView.sites.find((s) => s.site.id === site.id);
+  assert.ok(before, "the site should appear on the board");
+  assert.equal(before!.confirmFreshness, "unconfirmed");
+  assert.equal(before!.lastConfirmedAt, null);
+
+  // A bed-count edit is NOT a re-confirmation: it must leave the confirm clock
+  // untouched (the whole point of the separate signal).
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 8, bedsFree: 8, status: "active", notes: "", intent: "capacity" },
+    verifiedCoord,
+  );
+  const afterEditView = await svc.coordinationView();
+  const afterEdit = afterEditView.sites.find((s) => s.site.id === site.id);
+  assert.equal(afterEdit!.confirmFreshness, "unconfirmed", "a bed-count edit must not confirm the site");
+  assert.equal(afterEdit!.lastConfirmedAt, null);
+
+  // A one-tap confirmar operativo advances the confirm clock (recent -> fresh).
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 8, bedsFree: 8, status: "active", notes: "", intent: "confirm" },
+    verifiedCoord,
+  );
+  const afterConfirmView = await svc.coordinationView();
+  const afterConfirm = afterConfirmView.sites.find((s) => s.site.id === site.id);
+  assert.equal(afterConfirm!.confirmFreshness, "fresh");
+  assert.ok(afterConfirm!.lastConfirmedAt, "lastConfirmedAt is derived from the site.confirmed event");
+});
+
 test("peer delegation: responsable grants a volunteer manage rights on their site (revocable)", async () => {
   const org = await seedOrg("Org Delegation");
   const ana = contributor("user-ana3", "ana3@ejemplo.com");
