@@ -34,13 +34,13 @@ import {
   upsertSiteGrant,
   type SiteGrant,
 } from "../repositories/coordination.ts";
-import { appendEvent } from "../repositories/events.ts";
+import { appendEvent, latestEventAtByEntity } from "../repositories/events.ts";
 import { transaction } from "../db/client.ts";
 import { newNeedId, newOfferId, newOrgId, newSiteId } from "../domain/ids.ts";
 import { nowIso } from "../domain/time.ts";
 import { badRequest, forbidden, notFound } from "../errors.ts";
 import { approxKm } from "../coordination/classify.ts";
-import { freshnessOf } from "../coordination/freshness.ts";
+import { confirmationFreshnessOf, freshnessOf } from "../coordination/freshness.ts";
 import { trustTierOf } from "../coordination/trustTier.ts";
 import { rankOffersForNeed } from "../coordination/match.ts";
 import type { Need, Offer, Org, OrgKind, Site } from "@/app/lib/domain/coordination";
@@ -392,15 +392,28 @@ export async function coordinationView(): Promise<CoordinationView> {
     listNeeds(),
   ]);
   const orgById = new Map(orgs.map((o) => [o.id, o]));
+  // Liveness confirmation is derived from the append-only log (the latest
+  // site.confirmed per site), NOT from site.updatedAt — a bed-count edit bumps
+  // updatedAt but is not a fresh "still operating" confirmation (HOS-2026-014-01).
+  const confirmedAtBySite = await latestEventAtByEntity(
+    "site",
+    "site.confirmed",
+    sites.map((s) => s.id),
+  );
 
   return {
     orgs,
     offers: offers.map((offer) => ({ offer, org: orgById.get(offer.orgId) ?? null })),
-    sites: sites.map((site) => ({
-      site,
-      org: orgById.get(site.orgId) ?? null,
-      freshness: freshnessOf(site.updatedAt, now),
-    })),
+    sites: sites.map((site) => {
+      const confirmedAt = confirmedAtBySite.get(site.id) ?? null;
+      return {
+        site,
+        org: orgById.get(site.orgId) ?? null,
+        freshness: freshnessOf(site.updatedAt, now),
+        confirmedAt,
+        confirmationFreshness: confirmationFreshnessOf(confirmedAt, now),
+      };
+    }),
     needs: needs.map((need) => ({
       need,
       org: orgById.get(need.orgId) ?? null,

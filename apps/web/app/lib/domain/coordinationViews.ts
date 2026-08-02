@@ -4,12 +4,22 @@
 
 import type { Need, Offer, Org, Site } from "./coordination.ts";
 import type { OfferMatch } from "../coordination/match.ts";
-import type { Freshness } from "../coordination/freshness.ts";
+import type { ConfirmationFreshness, Freshness } from "../coordination/freshness.ts";
 
 export interface SiteView {
   site: Site;
   org: Org | null;
+  /** Decay of ANY write to the site (incl. a bed-count edit or nightly import).
+   *  "Has this row changed recently?" — not the same as "is it still open?". */
   freshness: Freshness;
+  /** Coordinator-only liveness signal (HOS-2026-014-01): the occurred_at of the
+   *  most recent explicit "confirmar operativo" (site.confirmed), or null if the
+   *  site has never been confirmed operative. Decays independently of `freshness`
+   *  so a busy bed-count churn cannot masquerade as a fresh confirmation.
+   *  Omitted on the contributor tier — steward cadence stays coordinator-only
+   *  per HOS-2026-014-02. */
+  confirmedAt?: string | null;
+  confirmationFreshness?: ConfirmationFreshness;
 }
 
 export interface NeedView {
