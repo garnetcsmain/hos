@@ -273,6 +273,40 @@ test("stewardship trust tier (HOS-2026-014-01): confirmar operativo is its own e
   assert.equal((capacity!.payload as { trust?: string }).trust, "honor");
 });
 
+test("stewardship confirmation freshness (HOS-2026-014-01): confirmar operativo sets a confirmation distinct from a bed-count edit", async () => {
+  const org = await seedOrg("Org Confirm");
+  const site = await svc.createSite(
+    { name: "Refugio Confirm", orgId: org.id, district: "Baruta", category: "refugio", lat: null, lng: null, bedsTotal: 10, bedsFree: 10, notes: "" },
+    COORD,
+  );
+
+  // A brand-new site (like every imported one) has never been confirmed operative.
+  let view = await svc.coordinationView();
+  let sv = view.sites.find((s) => s.site.id === site.id)!;
+  assert.equal(sv.confirmedAt, null, "a site no one has confirmed must have no confirmedAt");
+  assert.equal(sv.confirmationFreshness, "unconfirmed", "unconfirmed, never fabricated from creation");
+
+  // A pure bed-count edit bumps the row but is NOT a liveness confirmation.
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 10, bedsFree: 4, status: "active", notes: "", intent: "capacity" },
+    COORD,
+  );
+  view = await svc.coordinationView();
+  sv = view.sites.find((s) => s.site.id === site.id)!;
+  assert.equal(sv.confirmationFreshness, "unconfirmed", "a bed-count edit must not read as a confirmation");
+  assert.equal(sv.confirmedAt, null);
+
+  // A one-tap "confirmar operativo" is what actually sets a fresh confirmation.
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 10, bedsFree: 4, status: "active", notes: "", intent: "confirm" },
+    COORD,
+  );
+  view = await svc.coordinationView();
+  sv = view.sites.find((s) => s.site.id === site.id)!;
+  assert.equal(sv.confirmationFreshness, "fresh", "confirmar operativo sets a fresh confirmation");
+  assert.ok(sv.confirmedAt, "confirmedAt is derived from the site.confirmed event");
+});
+
 test("peer delegation: responsable grants a volunteer manage rights on their site (revocable)", async () => {
   const org = await seedOrg("Org Delegation");
   const ana = contributor("user-ana3", "ana3@ejemplo.com");

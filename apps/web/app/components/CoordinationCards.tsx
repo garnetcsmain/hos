@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { BedDouble, Check, Clock, Megaphone, Truck, X } from "lucide-react";
+import { BedDouble, Check, Clock, Megaphone, ShieldCheck, ShieldQuestion, Truck, X } from "lucide-react";
 import { Term } from "@/app/components/Term";
 import { setSiteAnnouncement, transitionNeed, updateSiteCapacity } from "@/app/lib/client/coordination";
-import type { Freshness } from "@/app/lib/coordination/freshness";
+import type { ConfirmationFreshness, Freshness } from "@/app/lib/coordination/freshness";
 import { activeAnnouncement } from "@/app/lib/domain/coordination";
 import type { Org } from "@/app/lib/domain/coordination";
 import type { NeedView, OfferView, SiteView } from "@/app/lib/domain/coordinationViews";
@@ -38,6 +38,39 @@ export function FreshnessBadge({ freshness }: { freshness: Freshness }) {
     <span className={`inline-flex items-center gap-[4px] text-[11px] font-bold ${f.className}`}>
       <Clock className="h-[12px] w-[12px]" strokeWidth={2.4} />
       {f.label}
+    </span>
+  );
+}
+
+/** Liveness-confirmation badge (HOS-2026-014-01, Judge D1/D2): shows how long
+ *  ago the site was explicitly confirmed operative, decaying INDEPENDENTLY of the
+ *  data-freshness badge above — so a bed-count edit no longer makes a site read
+ *  as freshly confirmed. "Sin confirmar operativo" is the honest state for a site
+ *  (incl. every imported one) that no steward has confirmed. It never asserts the
+ *  identity of who confirmed — the honor-system caveat below the actions covers
+ *  that (attribution != trustworthiness). */
+export function ConfirmationBadge({
+  status,
+  confirmedAt,
+}: {
+  status: ConfirmationFreshness;
+  confirmedAt: string | null;
+}) {
+  const map = {
+    fresh: { label: "Operativo confirmado", className: "text-[var(--hos-green)]", Icon: ShieldCheck },
+    aging: { label: "Confirmar operativo de nuevo", className: "text-[#7A3D00]", Icon: ShieldQuestion },
+    stale: { label: "Sin confirmar +24h", className: "text-[var(--hos-red)]", Icon: ShieldQuestion },
+    unconfirmed: { label: "Sin confirmar operativo", className: "text-[var(--hos-muted)]", Icon: ShieldQuestion },
+  } as const;
+  const c = map[status];
+  const when = confirmedAt
+    ? new Date(confirmedAt).toLocaleString("es-VE", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })
+    : null;
+  return (
+    <span className={`inline-flex items-center gap-[4px] text-[11px] font-bold ${c.className}`}>
+      <c.Icon className="h-[12px] w-[12px]" strokeWidth={2.4} />
+      {c.label}
+      {when ? <span className="font-semibold text-[var(--hos-muted)]">· {when}</span> : null}
     </span>
   );
 }
@@ -139,6 +172,11 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
         </div>
       ) : null}
       {site.notes ? <p className="mt-[8px] text-[12px] font-bold leading-[16px] text-[var(--hos-muted)]">{site.notes}</p> : null}
+      {view.confirmationFreshness ? (
+        <div className="mt-[8px]">
+          <ConfirmationBadge status={view.confirmationFreshness} confirmedAt={view.confirmedAt ?? null} />
+        </div>
+      ) : null}
       <div className="mt-[10px] flex flex-wrap items-center gap-[12px] border-t border-[#E2E8E4] pt-[8px]">
         {site.status === "active" ? (
           <>
