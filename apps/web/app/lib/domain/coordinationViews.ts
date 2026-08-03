@@ -5,11 +5,18 @@
 import type { Need, Offer, Org, Site } from "./coordination.ts";
 import type { OfferMatch } from "../coordination/match.ts";
 import type { Freshness } from "../coordination/freshness.ts";
+import type { SiteConfirmation } from "../coordination/siteConfirmation.ts";
 
 export interface SiteView {
   site: Site;
   org: Org | null;
+  /** Freshness of the site's CAPACITY/state row (updatedAt-derived): "when did
+   *  anything about this site last change". */
   freshness: Freshness;
+  /** Freshness of the last explicit "confirmar operativo", on its OWN timeline
+   *  (HOS-2026-014-01, Judge D1). Optional: the coordinator board computes it;
+   *  the contributor read omits it (per-site history is coordinator-only). */
+  confirmation?: SiteConfirmation;
 }
 
 export interface NeedView {

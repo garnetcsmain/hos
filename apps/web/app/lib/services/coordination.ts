@@ -34,13 +34,14 @@ import {
   upsertSiteGrant,
   type SiteGrant,
 } from "../repositories/coordination.ts";
-import { appendEvent } from "../repositories/events.ts";
+import { appendEvent, eventsForEntities } from "../repositories/events.ts";
 import { transaction } from "../db/client.ts";
 import { newNeedId, newOfferId, newOrgId, newSiteId } from "../domain/ids.ts";
 import { nowIso } from "../domain/time.ts";
 import { badRequest, forbidden, notFound } from "../errors.ts";
 import { approxKm } from "../coordination/classify.ts";
 import { freshnessOf } from "../coordination/freshness.ts";
+import { confirmationsBySite, confirmationFrom } from "../coordination/siteConfirmation.ts";
 import { trustTierOf } from "../coordination/trustTier.ts";
 import { rankOffersForNeed } from "../coordination/match.ts";
 import type { Need, Offer, Org, OrgKind, Site } from "@/app/lib/domain/coordination";
@@ -392,6 +393,9 @@ export async function coordinationView(): Promise<CoordinationView> {
     listNeeds(),
   ]);
   const orgById = new Map(orgs.map((o) => [o.id, o]));
+  // Confirmation freshness rides on the append-only log, NOT on updatedAt, so a
+  // bed-count edit never counts as "still operating" (HOS-2026-014-01, D1).
+  const confirmedAt = confirmationsBySite(await eventsForEntities(sites.map((s) => s.id)));
 
   return {
     orgs,
@@ -400,6 +404,7 @@ export async function coordinationView(): Promise<CoordinationView> {
       site,
       org: orgById.get(site.orgId) ?? null,
       freshness: freshnessOf(site.updatedAt, now),
+      confirmation: confirmationFrom(confirmedAt.get(site.id) ?? null, now),
     })),
     needs: needs.map((need) => ({
       need,
