@@ -5,6 +5,7 @@ import { BedDouble, Check, Clock, Megaphone, Truck, X } from "lucide-react";
 import { Term } from "@/app/components/Term";
 import { setSiteAnnouncement, transitionNeed, updateSiteCapacity } from "@/app/lib/client/coordination";
 import type { Freshness } from "@/app/lib/coordination/freshness";
+import type { SiteConfirmation } from "@/app/lib/coordination/siteConfirmation";
 import { activeAnnouncement } from "@/app/lib/domain/coordination";
 import type { Org } from "@/app/lib/domain/coordination";
 import type { NeedView, OfferView, SiteView } from "@/app/lib/domain/coordinationViews";
@@ -42,13 +43,41 @@ export function FreshnessBadge({ freshness }: { freshness: Freshness }) {
   );
 }
 
+/** Operational-confirmation freshness, on its OWN timeline separate from the
+ *  capacity FreshnessBadge (HOS-2026-014-01, Judge D1). "Never confirmed" is
+ *  rendered as its own honest state, not folded into "stale". */
+export function ConfirmationBadge({ confirmation }: { confirmation?: SiteConfirmation }) {
+  if (!confirmation) return null;
+  const { lastConfirmedAt, freshness } = confirmation;
+  if (!lastConfirmedAt || !freshness) {
+    return (
+      <span className="inline-flex items-center gap-[4px] text-[11px] font-bold text-[var(--hos-muted)]">
+        <Check className="h-[12px] w-[12px]" strokeWidth={2.4} />
+        Sin confirmar operativo
+      </span>
+    );
+  }
+  const map = {
+    fresh: { label: "Operativo confirmado", className: "text-[var(--hos-green)]" },
+    aging: { label: "Confirmado hace horas", className: "text-[#7A3D00]" },
+    stale: { label: "Confirmación vencida +24h", className: "text-[var(--hos-red)]" },
+  } as const;
+  const f = map[freshness];
+  return (
+    <span className={`inline-flex items-center gap-[4px] text-[11px] font-bold ${f.className}`}>
+      <Check className="h-[12px] w-[12px]" strokeWidth={2.4} />
+      {f.label}
+    </span>
+  );
+}
+
 function orgName(orgs: Org[], id: string | null): string {
   if (!id) return "—";
   return orgs.find((o) => o.id === id)?.name ?? id;
 }
 
 export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () => void }) {
-  const { site, org, freshness } = view;
+  const { site, org, freshness, confirmation } = view;
   const [editing, setEditing] = useState(false);
   const [total, setTotal] = useState(String(site.bedsTotal));
   const [free, setFree] = useState(String(site.bedsFree));
@@ -157,6 +186,12 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
           <button type="button" disabled={busy} onClick={() => void publishAviso("")} className="text-[12px] font-extrabold text-[var(--hos-muted)] hover:underline disabled:opacity-60">Quitar aviso</button>
         ) : null}
         {error ? <span className="text-[12px] font-bold text-[var(--hos-red)]">{error}</span> : null}
+      </div>
+      {/* HOS-2026-014-01 (Judge D1): the operational confirmation decays on its
+          own timeline, separate from the capacity badge above — a bed-count edit
+          does not make a site read "confirmed operating". */}
+      <div className="mt-[6px]">
+        <ConfirmationBadge confirmation={confirmation} />
       </div>
       {/* HOS-2026-014-01 (Judge D2): a confirmation is honor-system, not verified
           accountability. Render the caveat at EQUAL weight to the confirm control

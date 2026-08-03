@@ -273,6 +273,40 @@ test("stewardship trust tier (HOS-2026-014-01): confirmar operativo is its own e
   assert.equal((capacity!.payload as { trust?: string }).trust, "honor");
 });
 
+test("confirmation freshness (HOS-2026-014-01): rides on site.confirmed, not on a bed-count edit", async () => {
+  const org = await seedOrg("Org Confirm");
+  const verifiedCoord = { by: "coordinator:jefe2@hos", userId: "user-jefe2", email: "jefe2@hos", isCoordinator: true };
+  const site = await svc.createSite(
+    { name: "Acopio Confirm", orgId: org.id, district: "Baruta", category: "acopio", lat: null, lng: null, bedsTotal: 0, bedsFree: 0, notes: "" },
+    verifiedCoord,
+  );
+
+  // A never-confirmed site: confirmation is null (honestly distinct from stale),
+  // even after a bed-count edit — editing a number is not confirming liveness.
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 10, bedsFree: 4, status: "active", notes: "", intent: "capacity" },
+    COORD,
+  );
+  let view = await svc.coordinationView();
+  let sv = view.sites.find((s) => s.site.id === site.id);
+  assert.ok(sv, "site must appear in the coordination view");
+  assert.equal(sv!.confirmation?.lastConfirmedAt, null, "a bed-count edit must not count as a confirmation");
+  assert.equal(sv!.confirmation?.freshness, null, "never-confirmed is null freshness, not stale");
+  // The capacity badge, by contrast, IS fresh from the edit — the two timelines
+  // are separate.
+  assert.equal(sv!.freshness, "fresh");
+
+  // A one-tap "confirmar operativo" gives the confirmation its own fresh timeline.
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 10, bedsFree: 4, status: "active", notes: "", intent: "confirm" },
+    verifiedCoord,
+  );
+  view = await svc.coordinationView();
+  sv = view.sites.find((s) => s.site.id === site.id);
+  assert.ok(sv!.confirmation?.lastConfirmedAt, "site.confirmed must set a confirmation timestamp");
+  assert.equal(sv!.confirmation?.freshness, "fresh");
+});
+
 test("peer delegation: responsable grants a volunteer manage rights on their site (revocable)", async () => {
   const org = await seedOrg("Org Delegation");
   const ana = contributor("user-ana3", "ana3@ejemplo.com");
