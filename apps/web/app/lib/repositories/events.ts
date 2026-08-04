@@ -57,3 +57,26 @@ export async function recentEvents(limit = 50): Promise<HosEvent[]> {
   const rows = await db.prepare(`SELECT * FROM events ORDER BY id DESC LIMIT ?`).all(limit);
   return rows.map(mapEvent);
 }
+
+/** The single most recent event of a given `type` for every entity of
+ *  `entityType`, keyed by entity id. Used to derive a per-entity liveness signal
+ *  straight from the append-only log — e.g. when each site was last CONFIRMED
+ *  operativo (site.confirmed), which is deliberately NOT the same as when its row
+ *  was last touched (updated_at). One query; rows come back oldest-first so the
+ *  last write per entity wins the map. */
+export async function latestEventByEntity(
+  entityType: EntityType,
+  type: string,
+): Promise<Map<string, HosEvent>> {
+  const rows = await db
+    .prepare(
+      `SELECT * FROM events WHERE entity_type = ? AND type = ? ORDER BY id ASC`,
+    )
+    .all(entityType, type);
+  const latest = new Map<string, HosEvent>();
+  for (const row of rows) {
+    const ev = mapEvent(row);
+    latest.set(ev.entityId, ev); // ascending id => later rows overwrite earlier
+  }
+  return latest;
+}

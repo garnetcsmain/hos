@@ -35,3 +35,11 @@ export interface TrustSubject {
 export function trustTierOf(subject: TrustSubject): TrustTier {
   return subject.isCoordinator && !!subject.userId ? "verified" : "honor";
 }
+
+/** Read the trust tier back off a stored event payload. Only the two known
+ *  labels are honored; anything else (a legacy write from before the tier was
+ *  stamped, or a malformed payload) reads as `null` — "unknown", never silently
+ *  upgraded to `verified`. */
+export function trustTierFromPayload(payload: Record<string, unknown>): TrustTier | null {
+  return payload.trust === "verified" || payload.trust === "honor" ? payload.trust : null;
+}
