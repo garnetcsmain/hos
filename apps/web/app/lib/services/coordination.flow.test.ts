@@ -273,6 +273,42 @@ test("stewardship trust tier (HOS-2026-014-01): confirmar operativo is its own e
   assert.equal((capacity!.payload as { trust?: string }).trust, "honor");
 });
 
+test("confirmation freshness is its OWN signal: a bed-count edit refreshes the row but does NOT re-confirm operatividad (HOS-2026-014-01)", async () => {
+  const org = await seedOrg("Org Confirm");
+  const verifiedCoord = { by: "coordinator:jefa@hos", userId: "user-jefa", email: "jefa@hos", isCoordinator: true };
+  const site = await svc.createSite(
+    { name: "Refugio Confirm", orgId: org.id, district: "Petare", category: "refugio", lat: null, lng: null, bedsTotal: 20, bedsFree: 20, notes: "" },
+    verifiedCoord,
+  );
+
+  // Freshly created but never explicitly confirmed operativo -> no confirmation.
+  const beforeConfirm = (await svc.coordinationView()).sites.find((s) => s.site.id === site.id)!;
+  assert.equal(beforeConfirm.confirmation?.confirmedAt, null, "a created-but-unconfirmed site has no confirmation");
+  assert.equal(beforeConfirm.confirmation?.freshness, null);
+
+  // A one-tap "confirmar operativo" by a signed-in coordinator sets the signal.
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 20, bedsFree: 20, status: "active", notes: "", intent: "confirm" },
+    verifiedCoord,
+  );
+  const afterConfirm = (await svc.coordinationView()).sites.find((s) => s.site.id === site.id)!;
+  assert.ok(afterConfirm.confirmation?.confirmedAt, "confirmar operativo sets confirmedAt");
+  assert.equal(afterConfirm.confirmation?.freshness, "fresh");
+  assert.equal(afterConfirm.confirmation?.trust, "verified");
+  const confirmedAt = afterConfirm.confirmation!.confirmedAt;
+
+  // Now a plain bed-count edit (intent capacity). It bumps the row's updated_at,
+  // but it is NOT a confirmation — confirmedAt must NOT move. This is the honest
+  // split the board required: "beds changed" cannot masquerade as "still operating".
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 20, bedsFree: 3, status: "active", notes: "", intent: "capacity" },
+    verifiedCoord,
+  );
+  const afterEdit = (await svc.coordinationView()).sites.find((s) => s.site.id === site.id)!;
+  assert.equal(afterEdit.site.bedsFree, 3, "the bed-count edit took effect");
+  assert.equal(afterEdit.confirmation?.confirmedAt, confirmedAt, "a capacity edit must NOT advance the confirmation timestamp");
+});
+
 test("peer delegation: responsable grants a volunteer manage rights on their site (revocable)", async () => {
   const org = await seedOrg("Org Delegation");
   const ana = contributor("user-ana3", "ana3@ejemplo.com");

@@ -34,17 +34,18 @@ import {
   upsertSiteGrant,
   type SiteGrant,
 } from "../repositories/coordination.ts";
-import { appendEvent } from "../repositories/events.ts";
+import { appendEvent, latestEventByEntity } from "../repositories/events.ts";
 import { transaction } from "../db/client.ts";
 import { newNeedId, newOfferId, newOrgId, newSiteId } from "../domain/ids.ts";
 import { nowIso } from "../domain/time.ts";
 import { badRequest, forbidden, notFound } from "../errors.ts";
 import { approxKm } from "../coordination/classify.ts";
 import { freshnessOf } from "../coordination/freshness.ts";
-import { trustTierOf } from "../coordination/trustTier.ts";
+import { trustTierFromPayload, trustTierOf } from "../coordination/trustTier.ts";
 import { rankOffersForNeed } from "../coordination/match.ts";
 import type { Need, Offer, Org, OrgKind, Site } from "@/app/lib/domain/coordination";
-import type { CoordinationView, SiteView } from "@/app/lib/domain/coordinationViews";
+import type { HosEvent } from "@/app/lib/domain/types";
+import type { CoordinationView, SiteConfirmation, SiteView } from "@/app/lib/domain/coordinationViews";
 import type {
   NeedCreateInput,
   NeedTransitionInput,
@@ -381,15 +382,31 @@ export async function createOffer(input: OfferCreateInput, by = "unattributed"):
 
 // --- Read assembly --------------------------------------------------------
 
+/** Build a site's operatividad-confirmation signal from its latest
+ *  `site.confirmed` event (or null if it has never been confirmed). Kept pure so
+ *  the honest split between "row touched" and "operatividad confirmed" is one
+ *  small, testable rule. */
+function confirmationSignal(event: HosEvent | null, now: string): SiteConfirmation {
+  if (!event) return { confirmedAt: null, freshness: null, trust: null };
+  return {
+    confirmedAt: event.occurredAt,
+    freshness: freshnessOf(event.occurredAt, now),
+    trust: trustTierFromPayload(event.payload),
+  };
+}
+
 /** Assemble the coordinator board: sites + needs (with advisory matches) +
  *  offers, each joined to its org and tagged with a freshness signal. */
 export async function coordinationView(): Promise<CoordinationView> {
   const now = nowIso();
-  const [orgs, offers, sites, needs] = await Promise.all([
+  const [orgs, offers, sites, needs, confirmations] = await Promise.all([
     listOrgs(),
     listOffers(),
     listSites(),
     listNeeds(),
+    // Last "confirmar operativo" per site — an operatividad signal derived from
+    // the append-only log, distinct from the row's updated_at (HOS-2026-014-01).
+    latestEventByEntity("site", "site.confirmed"),
   ]);
   const orgById = new Map(orgs.map((o) => [o.id, o]));
 
@@ -400,6 +417,7 @@ export async function coordinationView(): Promise<CoordinationView> {
       site,
       org: orgById.get(site.orgId) ?? null,
       freshness: freshnessOf(site.updatedAt, now),
+      confirmation: confirmationSignal(confirmations.get(site.id) ?? null, now),
     })),
     needs: needs.map((need) => ({
       need,

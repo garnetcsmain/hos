@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { BedDouble, Check, Clock, Megaphone, Truck, X } from "lucide-react";
+import { BadgeCheck, BedDouble, Check, Clock, Megaphone, ShieldAlert, ShieldCheck, Truck, X } from "lucide-react";
 import { Term } from "@/app/components/Term";
 import { setSiteAnnouncement, transitionNeed, updateSiteCapacity } from "@/app/lib/client/coordination";
 import type { Freshness } from "@/app/lib/coordination/freshness";
 import { activeAnnouncement } from "@/app/lib/domain/coordination";
 import type { Org } from "@/app/lib/domain/coordination";
-import type { NeedView, OfferView, SiteView } from "@/app/lib/domain/coordinationViews";
+import type { NeedView, OfferView, SiteConfirmation, SiteView } from "@/app/lib/domain/coordinationViews";
 import {
   CATEGORY_LABEL,
   NEED_STATUS,
@@ -42,13 +42,56 @@ export function FreshnessBadge({ freshness }: { freshness: Freshness }) {
   );
 }
 
+/** Coarse Spanish "hace ..." label for a coordinator-facing timestamp. */
+function relativeEs(iso: string, nowIso: string): string {
+  const then = Date.parse(iso);
+  const now = Date.parse(nowIso);
+  if (Number.isNaN(then) || Number.isNaN(now)) return "—";
+  const mins = Math.max(0, Math.round((now - then) / 60_000));
+  if (mins < 60) return mins <= 1 ? "hace instantes" : `hace ${mins} min`;
+  const hours = Math.round(mins / 60);
+  if (hours < 48) return `hace ${hours} h`;
+  return `hace ${Math.round(hours / 24)} d`;
+}
+
+/** The operatividad-confirmation signal — a liveness read distinct from the
+ *  data-freshness badge (HOS-2026-014-01, Judge D1/D2). A bed-count edit refreshes
+ *  the row (FreshnessBadge) but is NOT a confirmation, so a coordinator can see at
+ *  a glance whether anyone has actually attested the site is still operating, how
+ *  long ago, and under which trust tier. */
+export function ConfirmationBadge({ confirmation }: { confirmation?: SiteConfirmation }) {
+  if (!confirmation) return null;
+  const { confirmedAt, freshness, trust } = confirmation;
+  if (!confirmedAt || !freshness) {
+    return (
+      <span className="inline-flex items-center gap-[4px] text-[11px] font-bold text-[#7A3D00]">
+        <ShieldAlert className="h-[12px] w-[12px]" strokeWidth={2.4} />
+        Sin confirmación de operatividad
+      </span>
+    );
+  }
+  const className = {
+    fresh: "text-[var(--hos-green)]",
+    aging: "text-[#7A3D00]",
+    stale: "text-[var(--hos-red)]",
+  }[freshness];
+  const Icon = trust === "verified" ? BadgeCheck : ShieldCheck;
+  const tierLabel = trust === "verified" ? "identidad verificada" : "por buena fe";
+  return (
+    <span className={`inline-flex items-center gap-[4px] text-[11px] font-bold ${className}`}>
+      <Icon className="h-[12px] w-[12px]" strokeWidth={2.4} />
+      Confirmado operativo {relativeEs(confirmedAt, new Date().toISOString())} · {tierLabel}
+    </span>
+  );
+}
+
 function orgName(orgs: Org[], id: string | null): string {
   if (!id) return "—";
   return orgs.find((o) => o.id === id)?.name ?? id;
 }
 
 export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () => void }) {
-  const { site, org, freshness } = view;
+  const { site, org, freshness, confirmation } = view;
   const [editing, setEditing] = useState(false);
   const [total, setTotal] = useState(String(site.bedsTotal));
   const [free, setFree] = useState(String(site.bedsFree));
@@ -115,6 +158,11 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
         </div>
         <FreshnessBadge freshness={freshness} />
       </div>
+      {site.status === "active" ? (
+        <div className="mt-[8px]">
+          <ConfirmationBadge confirmation={confirmation} />
+        </div>
+      ) : null}
       {site.category === "refugio" || site.bedsTotal > 0 ? (
         <div className="mt-[12px] flex items-center gap-[8px]">
           <BedDouble className={`h-[18px] w-[18px] ${full ? "text-[var(--hos-red)]" : "text-[var(--hos-green)]"}`} strokeWidth={2.2} />
@@ -158,11 +206,15 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
         ) : null}
         {error ? <span className="text-[12px] font-bold text-[var(--hos-red)]">{error}</span> : null}
       </div>
-      {/* HOS-2026-014-01 (Judge D2): a confirmation is honor-system, not verified
-          accountability. Render the caveat at EQUAL weight to the confirm control
-          so a coordinator never reads "operativo" as a vouched-for identity. */}
+      {/* HOS-2026-014-01 (Judge D2): a confirmation attests that SOMEONE said the
+          site is operating — never that the site itself is independently verified.
+          Keep the caveat at EQUAL weight to the confirm control so "operativo" is
+          never read as vouched-for ground truth, even when the confirmer's own
+          identity is verified. */}
       <p className="mt-[6px] text-[12px] font-bold leading-[16px] text-[var(--hos-muted)]">
-        Confirmaciones por buena fe: la identidad de quien confirma no está verificada.
+        {confirmation?.trust === "verified"
+          ? "Confirmado por un coordinador con identidad verificada; aun así es un reporte, no una verificación independiente del sitio."
+          : "Confirmaciones por buena fe: la identidad de quien confirma no está verificada."}
       </p>
       {announcing ? (
         <div className="mt-[10px] flex flex-wrap items-end gap-[8px] border-t border-[#E2E8E4] pt-[10px]">
