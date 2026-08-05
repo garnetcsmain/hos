@@ -240,6 +240,8 @@ epics:
 
 # Next Actions
 
+- [x] Author the missing orchestrator operating-spine docs (2026-07-26): agents/prompts/ops/executive_orchestrator.md (role: identity, strategic-vs-tactical authority, decision framework, board personas, constraints) + DAILY_ROUTINE.md (invocation guide + board commands + native-in-session review path + a mandatory "check the open-PR queue before picking a task" step). Both were referenced as load-bearing by the daily routine but ABSENT from the repo (only a .gitkeep in agents/prompts/ops/). Docs-only, zero code touched; grounded in AGENTS.md/README.md/TASK_MANAGEMENT.md and the real `hos run-agent` CLI. Root-cause fix for the redundant-PR backlog below: the routine now tells every future run to check what is already in flight before implementing a task.
+- [ ] HUMAN ACTION — open-PR backlog is jammed and largely REDUNDANT (8 open PRs as of 2026-07-26, none merged): #48/#50/#51/#53 are four independent attempts at HOS-2026-014-01 (site-stewardship interim); #52/#54 are two attempts at HOS-2026-013-01 (console search); #47 (HOS-2026-013-05 aggregate feed) is now OBSOLETE — 013-05 already landed via #49 (commit decfe6f, publicFeed.ts); #55 is a genuine typecheck-hygiene fix (11 pre-existing tsc errors). Cause: main only advances on a human merge, so a task stays `todo` and successive daily runs re-pick it. Recommend: merge one 014-01 + one 013-01 + #55, close the duplicates and #47. The new DAILY_ROUTINE.md prevents recurrence going forward.
 - [x] Run the first board review (HOS-2026-002 — Phase 0 MVP architecture)
 - [x] Remediate the board's CRITICAL findings in code (see decision-log/.../remediation.md)
 - [x] Backfill the epic + tasks from the autonomous build
