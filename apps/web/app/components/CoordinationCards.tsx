@@ -42,13 +42,35 @@ export function FreshnessBadge({ freshness }: { freshness: Freshness }) {
   );
 }
 
+// HOS-2026-014-01 (Judge D1/D2): the operational-confirmation signal decays on
+// its OWN clock, independent of the "Actualizado" badge above (which any edit
+// refreshes). A bed-count edit must never make a site read as freshly vouched
+// operational. `null` = never confirmed on record (honestly "Sin confirmar",
+// never green) — the state most feed-imported aid points sit in until a human
+// taps "Confirmar operativo".
+export function ConfirmationBadge({ confirmedFreshness }: { confirmedFreshness: Freshness | null }) {
+  const map = {
+    fresh: { label: "Operativo confirmado", className: "text-[var(--hos-green)]" },
+    aging: { label: "Confirmado hace horas", className: "text-[#7A3D00]" },
+    stale: { label: "Confirmación vencida +24h", className: "text-[var(--hos-red)]" },
+    unconfirmed: { label: "Sin confirmar operativo", className: "text-[var(--hos-muted)]" },
+  } as const;
+  const f = map[confirmedFreshness ?? "unconfirmed"];
+  return (
+    <span className={`inline-flex items-center gap-[4px] text-[11px] font-bold ${f.className}`}>
+      <Check className="h-[12px] w-[12px]" strokeWidth={2.4} />
+      {f.label}
+    </span>
+  );
+}
+
 function orgName(orgs: Org[], id: string | null): string {
   if (!id) return "—";
   return orgs.find((o) => o.id === id)?.name ?? id;
 }
 
 export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () => void }) {
-  const { site, org, freshness } = view;
+  const { site, org, freshness, confirmedFreshness } = view;
   const [editing, setEditing] = useState(false);
   const [total, setTotal] = useState(String(site.bedsTotal));
   const [free, setFree] = useState(String(site.bedsFree));
@@ -113,7 +135,12 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
             {site.status === "closed" ? <Chip label="Cerrado" className="bg-[#F6DAD5] text-[#8A2A1E]" /> : null}
           </div>
         </div>
-        <FreshnessBadge freshness={freshness} />
+        <div className="flex flex-col items-end gap-[3px]">
+          <FreshnessBadge freshness={freshness} />
+          {confirmedFreshness !== undefined ? (
+            <ConfirmationBadge confirmedFreshness={confirmedFreshness} />
+          ) : null}
+        </div>
       </div>
       {site.category === "refugio" || site.bedsTotal > 0 ? (
         <div className="mt-[12px] flex items-center gap-[8px]">

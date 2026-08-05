@@ -10,6 +10,14 @@ export interface SiteView {
   site: Site;
   org: Org | null;
   freshness: Freshness;
+  /** Freshness of the site's last OPERATIONAL confirmation (site.created or
+   *  site.confirmed) — distinct from `freshness`, which any edit refreshes.
+   *  `null` = no confirmation on record (e.g. an unconfirmed feed import).
+   *  Populated only on the coordinator board; the contributor read omits it
+   *  (contributors must not read per-site history). */
+  confirmedFreshness?: Freshness | null;
+  /** ISO timestamp of that last confirmation, or null if never confirmed. */
+  lastConfirmedAt?: string | null;
 }
 
 export interface NeedView {
