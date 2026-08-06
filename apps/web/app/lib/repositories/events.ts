@@ -53,6 +53,37 @@ export async function eventsForEntities(entityIds: string[]): Promise<HosEvent[]
   return rows.map(mapEvent);
 }
 
+/** Most recent occurrence time of ONE event `type` per entity, across the given
+ *  ids. Used to derive a per-site "last confirmed operativo" freshness straight
+ *  from the append-only log — the confirmation IS the `site.confirmed` event, not
+ *  a mutable column, so nothing needs to be denormalized or migrated. Returns a
+ *  map of entityId -> ISO time; ids that never saw the event are simply absent.
+ *  `occurred_at` is stored as TEXT ISO-8601 UTC in both backends, so MAX() orders
+ *  it correctly (lexicographic == chronological for that format). */
+export async function latestEventTimeByEntity(
+  entityType: EntityType,
+  type: string,
+  entityIds: string[],
+): Promise<Map<string, string>> {
+  if (entityIds.length === 0) return new Map();
+  const placeholders = entityIds.map(() => "?").join(", ");
+  const rows = await db
+    .prepare(
+      `SELECT entity_id, MAX(occurred_at) AS last_at
+         FROM events
+        WHERE entity_type = ? AND type = ? AND entity_id IN (${placeholders})
+        GROUP BY entity_id`,
+    )
+    .all(entityType, type, ...entityIds);
+  const out = new Map<string, string>();
+  for (const row of rows) {
+    const id = row.entity_id;
+    const at = row.last_at;
+    if (typeof id === "string" && typeof at === "string" && at) out.set(id, at);
+  }
+  return out;
+}
+
 export async function recentEvents(limit = 50): Promise<HosEvent[]> {
   const rows = await db.prepare(`SELECT * FROM events ORDER BY id DESC LIMIT ?`).all(limit);
   return rows.map(mapEvent);
