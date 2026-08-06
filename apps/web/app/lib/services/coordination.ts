@@ -34,13 +34,13 @@ import {
   upsertSiteGrant,
   type SiteGrant,
 } from "../repositories/coordination.ts";
-import { appendEvent } from "../repositories/events.ts";
+import { appendEvent, latestEventTimeByEntity } from "../repositories/events.ts";
 import { transaction } from "../db/client.ts";
 import { newNeedId, newOfferId, newOrgId, newSiteId } from "../domain/ids.ts";
 import { nowIso } from "../domain/time.ts";
 import { badRequest, forbidden, notFound } from "../errors.ts";
 import { approxKm } from "../coordination/classify.ts";
-import { freshnessOf } from "../coordination/freshness.ts";
+import { confirmationFreshnessOf, freshnessOf } from "../coordination/freshness.ts";
 import { trustTierOf } from "../coordination/trustTier.ts";
 import { rankOffersForNeed } from "../coordination/match.ts";
 import type { Need, Offer, Org, OrgKind, Site } from "@/app/lib/domain/coordination";
@@ -392,15 +392,31 @@ export async function coordinationView(): Promise<CoordinationView> {
     listNeeds(),
   ]);
   const orgById = new Map(orgs.map((o) => [o.id, o]));
+  // Derive each site's last "confirmar operativo" straight from the append-only
+  // log (the confirmation IS the site.confirmed event), so the coordinator board
+  // can decay operational confirmation independently of bed-count edits/avisos
+  // that also bump updatedAt (HOS-2026-014-01, Judge D1). Coordinator-only.
+  const lastConfirmed = await latestEventTimeByEntity(
+    "site",
+    "site.confirmed",
+    sites.map((s) => s.id),
+  );
 
   return {
     orgs,
     offers: offers.map((offer) => ({ offer, org: orgById.get(offer.orgId) ?? null })),
-    sites: sites.map((site) => ({
-      site,
-      org: orgById.get(site.orgId) ?? null,
-      freshness: freshnessOf(site.updatedAt, now),
-    })),
+    sites: sites.map((site) => {
+      const lastConfirmedAt = lastConfirmed.get(site.id) ?? null;
+      return {
+        site,
+        org: orgById.get(site.orgId) ?? null,
+        freshness: freshnessOf(site.updatedAt, now),
+        confirmation: {
+          lastConfirmedAt,
+          freshness: confirmationFreshnessOf(lastConfirmedAt, now),
+        },
+      };
+    }),
     needs: needs.map((need) => ({
       need,
       org: orgById.get(need.orgId) ?? null,

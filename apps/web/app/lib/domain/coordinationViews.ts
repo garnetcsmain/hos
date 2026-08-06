@@ -4,12 +4,29 @@
 
 import type { Need, Offer, Org, Site } from "./coordination.ts";
 import type { OfferMatch } from "../coordination/match.ts";
-import type { Freshness } from "../coordination/freshness.ts";
+import type { ConfirmationFreshness, Freshness } from "../coordination/freshness.ts";
+
+/** The site's operational-confirmation state: when it was last confirmed
+ *  operativo (a `site.confirmed` event) and the decaying freshness of that
+ *  confirmation — distinct from `site.updatedAt`, which a bed-count edit or aviso
+ *  also bumps. This is COORDINATOR-ONLY accountability: it is populated on the
+ *  coordinator board and deliberately absent from the contributor/public read,
+ *  whose presence cadence must stay coarse (HOS-2026-014-02 treats a leak of a
+ *  single keeper's confirmation routine as a security bug). */
+export interface SiteConfirmation {
+  lastConfirmedAt: string | null;
+  freshness: ConfirmationFreshness;
+}
 
 export interface SiteView {
   site: Site;
   org: Org | null;
+  /** Freshness of the row overall (updatedAt — any edit renews it). */
   freshness: Freshness;
+  /** Operational-confirmation freshness, present only on the coordinator board
+   *  (HOS-2026-014-01, Judge D1). Absent on the contributor read by construction,
+   *  so the cadence never reaches a lower tier. */
+  confirmation?: SiteConfirmation;
 }
 
 export interface NeedView {

@@ -4,10 +4,10 @@ import { useState } from "react";
 import { BedDouble, Check, Clock, Megaphone, Truck, X } from "lucide-react";
 import { Term } from "@/app/components/Term";
 import { setSiteAnnouncement, transitionNeed, updateSiteCapacity } from "@/app/lib/client/coordination";
-import type { Freshness } from "@/app/lib/coordination/freshness";
+import type { ConfirmationFreshness, Freshness } from "@/app/lib/coordination/freshness";
 import { activeAnnouncement } from "@/app/lib/domain/coordination";
 import type { Org } from "@/app/lib/domain/coordination";
-import type { NeedView, OfferView, SiteView } from "@/app/lib/domain/coordinationViews";
+import type { NeedView, OfferView, SiteConfirmation, SiteView } from "@/app/lib/domain/coordinationViews";
 import {
   CATEGORY_LABEL,
   NEED_STATUS,
@@ -42,13 +42,35 @@ export function FreshnessBadge({ freshness }: { freshness: Freshness }) {
   );
 }
 
+// The operational-confirmation freshness (HOS-2026-014-01, Judge D1): decays on
+// the last "confirmar operativo" alone, so a coordinator reads liveness apart
+// from an unrelated bed-count edit. "Sin confirmar" is kept MUTED, not alarm-red
+// — most sites predate the confirm signal, and the board's own warning is that a
+// loud absence alarm dies of fatigue; silence is shown as unconfirmed, never as
+// negligence and never as "operativo".
+export function ConfirmationBadge({ confirmation }: { confirmation: SiteConfirmation }) {
+  const map = {
+    fresh: { label: "Operativo confirmado", className: "text-[var(--hos-green)]" },
+    aging: { label: "Confirmado hace horas", className: "text-[#7A3D00]" },
+    stale: { label: "Confirmación vencida +24h", className: "text-[var(--hos-red)]" },
+    unconfirmed: { label: "Sin confirmar operativo", className: "text-[var(--hos-muted)]" },
+  } as const;
+  const c = map[confirmation.freshness];
+  return (
+    <span className={`inline-flex items-center gap-[4px] text-[11px] font-bold ${c.className}`}>
+      <Clock className="h-[12px] w-[12px]" strokeWidth={2.4} />
+      {c.label}
+    </span>
+  );
+}
+
 function orgName(orgs: Org[], id: string | null): string {
   if (!id) return "—";
   return orgs.find((o) => o.id === id)?.name ?? id;
 }
 
 export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () => void }) {
-  const { site, org, freshness } = view;
+  const { site, org, freshness, confirmation } = view;
   const [editing, setEditing] = useState(false);
   const [total, setTotal] = useState(String(site.bedsTotal));
   const [free, setFree] = useState(String(site.bedsFree));
@@ -113,7 +135,10 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
             {site.status === "closed" ? <Chip label="Cerrado" className="bg-[#F6DAD5] text-[#8A2A1E]" /> : null}
           </div>
         </div>
-        <FreshnessBadge freshness={freshness} />
+        <div className="flex flex-col items-end gap-[3px]">
+          <FreshnessBadge freshness={freshness} />
+          {confirmation ? <ConfirmationBadge confirmation={confirmation} /> : null}
+        </div>
       </div>
       {site.category === "refugio" || site.bedsTotal > 0 ? (
         <div className="mt-[12px] flex items-center gap-[8px]">

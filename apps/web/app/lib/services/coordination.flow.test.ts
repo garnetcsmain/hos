@@ -273,6 +273,48 @@ test("stewardship trust tier (HOS-2026-014-01): confirmar operativo is its own e
   assert.equal((capacity!.payload as { trust?: string }).trust, "honor");
 });
 
+test("confirmation freshness (HOS-2026-014-01): the board decays 'confirmar operativo' apart from bed-count edits", async () => {
+  const org = await seedOrg("Org Confirm Freshness");
+  const site = await svc.createSite(
+    { name: "Acopio Pulso", orgId: org.id, district: "Sucre", category: "acopio", lat: null, lng: null, bedsTotal: 0, bedsFree: 0, notes: "" },
+    COORD,
+  );
+
+  // Never confirmed yet -> the board reports it as 'unconfirmed', not stale.
+  let board = await svc.coordinationView();
+  let row = board.sites.find((s) => s.site.id === site.id);
+  assert.ok(row, "the new site must appear on the board");
+  assert.equal(row!.confirmation?.lastConfirmedAt, null);
+  assert.equal(row!.confirmation?.freshness, "unconfirmed");
+
+  // Confirm operativo -> confirmation goes fresh and carries a timestamp.
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 0, bedsFree: 0, status: "active", notes: "", intent: "confirm" },
+    COORD,
+  );
+  board = await svc.coordinationView();
+  row = board.sites.find((s) => s.site.id === site.id);
+  assert.ok(row!.confirmation?.lastConfirmedAt, "a confirmed site carries its confirmation time");
+  assert.equal(row!.confirmation?.freshness, "fresh");
+  const confirmedAt = row!.confirmation!.lastConfirmedAt;
+
+  // A later BED-COUNT edit must NOT count as a fresh confirmation: the
+  // confirmation time is unchanged (still the site.confirmed event, not this
+  // capacity write). This is the whole point — a chore edit cannot make a stale
+  // site read as freshly confirmed operational.
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 8, bedsFree: 8, status: "active", notes: "", intent: "capacity" },
+    COORD,
+  );
+  board = await svc.coordinationView();
+  row = board.sites.find((s) => s.site.id === site.id);
+  assert.equal(
+    row!.confirmation?.lastConfirmedAt,
+    confirmedAt,
+    "a bed-count edit must not advance the operational-confirmation time",
+  );
+});
+
 test("peer delegation: responsable grants a volunteer manage rights on their site (revocable)", async () => {
   const org = await seedOrg("Org Delegation");
   const ana = contributor("user-ana3", "ana3@ejemplo.com");

@@ -23,3 +23,26 @@ export function freshnessOf(updatedAt: string, now: string): Freshness {
   if (h >= AGING_HOURS) return "aging";
   return "fresh";
 }
+
+/** Freshness of a site's OPERATIONAL CONFIRMATION specifically (HOS-2026-014-01,
+ *  Judge D1/D2). `lastConfirmedAt` is the time of the site's most recent
+ *  `site.confirmed` event — a one-tap "confirmar operativo" — which is a distinct
+ *  liveness signal from the row's `updatedAt`: any edit (a bed-count chore, an
+ *  aviso) bumps `updatedAt`, but only an explicit confirmation renews this. A
+ *  coordinator must be able to read "last confirmed operational" apart from
+ *  "last touched", or a stale site keeps reading as alive because someone edited
+ *  an unrelated field.
+ *
+ *  A site never confirmed is `"unconfirmed"` — a real "needs a look" state, never
+ *  "fresh" and deliberately NOT collapsed into "stale" (stale implies it was
+ *  fresh once; this one never was). Honest-state discipline: seen-at-time is
+ *  never "safe", and silence is never read as confirmation. */
+export type ConfirmationFreshness = Freshness | "unconfirmed";
+
+export function confirmationFreshnessOf(
+  lastConfirmedAt: string | null,
+  now: string,
+): ConfirmationFreshness {
+  if (!lastConfirmedAt) return "unconfirmed";
+  return freshnessOf(lastConfirmedAt, now);
+}
