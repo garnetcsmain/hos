@@ -246,6 +246,9 @@ export async function runCoordinationSync(
             radiusM: null,
             createdByUserId: null,
             createdByEmail: null,
+            // Imported from the source, not confirmed operativo by anyone in HOS:
+            // reads as "sin confirmar" until a coordinator confirms it (D2).
+            lastConfirmedAt: null,
           });
           summary.sitesInserted += 1;
         } else if (locallyModified(existing)) {

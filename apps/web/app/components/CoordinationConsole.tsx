@@ -210,7 +210,10 @@ export function CoordinationConsole() {
       sites: board.sites.filter(
         (v) =>
           (!siteCat || v.site.category === siteCat) &&
-          (!siteStale || v.freshness === "stale") &&
+          // "Vencidos" triages by OPERATIONAL confirmation, not any edit: a site
+          // whose beds were touched an hour ago but that nobody has confirmed
+          // operativo in 24h+ still belongs on the re-confirm list (HOS-2026-014 D2).
+          (!siteStale || v.confirmationFreshness === "stale") &&
           matchesQuery(
             [
               v.site.name,

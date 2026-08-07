@@ -42,13 +42,41 @@ export function FreshnessBadge({ freshness }: { freshness: Freshness }) {
   );
 }
 
+// A site's liveness badge tracks its last "confirmar operativo", NOT any edit
+// (HOS-2026-014-01 D2): a bed-count change must not make an unconfirmed site
+// read as live. `everConfirmed=false` (never confirmed in HOS) is called out
+// distinctly from a confirmed site that has since gone stale.
+export function SiteConfirmationBadge({
+  freshness,
+  everConfirmed,
+}: {
+  freshness: Freshness;
+  everConfirmed: boolean;
+}) {
+  const map = {
+    fresh: { label: "Operativo confirmado", className: "text-[var(--hos-green)]" },
+    aging: { label: "Confirmado hace horas", className: "text-[#7A3D00]" },
+    stale: {
+      label: everConfirmed ? "Sin confirmar +24h" : "Sin confirmar",
+      className: "text-[var(--hos-red)]",
+    },
+  } as const;
+  const f = map[freshness];
+  return (
+    <span className={`inline-flex items-center gap-[4px] text-[11px] font-bold ${f.className}`}>
+      <Clock className="h-[12px] w-[12px]" strokeWidth={2.4} />
+      {f.label}
+    </span>
+  );
+}
+
 function orgName(orgs: Org[], id: string | null): string {
   if (!id) return "—";
   return orgs.find((o) => o.id === id)?.name ?? id;
 }
 
 export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () => void }) {
-  const { site, org, freshness } = view;
+  const { site, org, confirmationFreshness } = view;
   const [editing, setEditing] = useState(false);
   const [total, setTotal] = useState(String(site.bedsTotal));
   const [free, setFree] = useState(String(site.bedsFree));
@@ -113,7 +141,7 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
             {site.status === "closed" ? <Chip label="Cerrado" className="bg-[#F6DAD5] text-[#8A2A1E]" /> : null}
           </div>
         </div>
-        <FreshnessBadge freshness={freshness} />
+        <SiteConfirmationBadge freshness={confirmationFreshness} everConfirmed={site.lastConfirmedAt !== null} />
       </div>
       {site.category === "refugio" || site.bedsTotal > 0 ? (
         <div className="mt-[12px] flex items-center gap-[8px]">

@@ -59,6 +59,9 @@ export async function seedCoordinationIfEmpty(): Promise<boolean> {
         radiusM: null,
         createdByUserId: null,
         createdByEmail: null,
+        // Imported rows are unconfirmed in HOS until a coordinator confirms them
+        // operativo — they read as "sin confirmar" (HOS-2026-014-01 D2).
+        lastConfirmedAt: null,
       });
     }
 
