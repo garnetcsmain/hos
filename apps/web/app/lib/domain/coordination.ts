@@ -94,6 +94,13 @@ export interface Site {
    *  (those are coordinator-managed). */
   createdByUserId: string | null;
   createdByEmail: string | null;
+  /** Last time someone confirmed this site is still OPERATING ("confirmar
+   *  operativo", the site.confirmed write) — a liveness signal that decays on
+   *  its own, distinct from updatedAt which any edit bumps (HOS-2026-014-01,
+   *  Judge D2). Set when the site is created (the responsable's first assertion)
+   *  and on every explicit confirm; NOT touched by a bed-count edit or an
+   *  announcement. Null for imported/legacy rows never confirmed inside HOS. */
+  lastConfirmedAt: string | null;
 }
 
 /** The announcement to display right now, or null if none/expired. Expiry is

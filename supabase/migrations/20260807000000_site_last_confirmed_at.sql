@@ -1,0 +1,16 @@
+-- Site operational-confirmation freshness (2026-08-07, HOS-2026-014-01 Judge D2).
+--
+-- A site's updated_at is bumped by ANY write — a bed-count edit, an announcement
+-- — so a freshness signal derived from it reads a site as "fresh" merely because
+-- someone touched its beds, masking the fact that nobody has confirmed the site
+-- is still OPERATING in days. That is the board's "stale data reads as truth"
+-- failure applied to a site.
+--
+-- last_confirmed_at records the last "confirmar operativo" (the site.confirmed
+-- write) and decays on its own, independent of capacity edits. It is set when a
+-- site is created (the responsable's first operational assertion) and on every
+-- explicit confirm; a bed-count edit or an announcement does NOT touch it. NULL
+-- for imported/legacy rows never confirmed inside HOS, which read as unconfirmed
+-- (never as fresh) — the same stale-is-honest rule the freshness signal already
+-- applies to an unparseable timestamp.
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS last_confirmed_at TEXT;

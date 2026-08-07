@@ -23,3 +23,22 @@ export function freshnessOf(updatedAt: string, now: string): Freshness {
   if (h >= AGING_HOURS) return "aging";
   return "fresh";
 }
+
+/**
+ * Freshness of a site's LAST OPERATIONAL CONFIRMATION (HOS-2026-014-01, Judge
+ * D2), separate from data freshness. A site's `updatedAt` is bumped by any write
+ * — a bed-count edit, an announcement — so freshnessOf(updatedAt) would read a
+ * site as fresh just because someone touched its beds, masking the fact that
+ * nobody has confirmed it is still operating in days. This decays only from the
+ * last "confirmar operativo" (site.confirmed) write.
+ *
+ * A site that has NEVER been confirmed in HOS (lastConfirmedAt === null: an
+ * imported/legacy row) reads as "stale", never as fresh — the same
+ * stale-is-honest rule freshnessOf applies to an unparseable timestamp. The
+ * caller distinguishes "never confirmed" from "confirmed but gone stale" via
+ * the raw lastConfirmedAt for labelling.
+ */
+export function confirmationFreshnessOf(lastConfirmedAt: string | null, now: string): Freshness {
+  if (!lastConfirmedAt) return "stale";
+  return freshnessOf(lastConfirmedAt, now);
+}

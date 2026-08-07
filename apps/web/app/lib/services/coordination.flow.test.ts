@@ -273,6 +273,50 @@ test("stewardship trust tier (HOS-2026-014-01): confirmar operativo is its own e
   assert.equal((capacity!.payload as { trust?: string }).trust, "honor");
 });
 
+test("confirmation freshness (HOS-2026-014-01 D2): confirm advances the operational clock; a bed-count edit does not reset it", async () => {
+  const { getSite } = await import("../repositories/coordination.ts");
+  const org = await seedOrg("Org Freshness");
+
+  // Creating a site is the responsable's first operational assertion.
+  const site = await svc.createSite(
+    { name: "Acopio Fresh", orgId: org.id, district: "Chacao", category: "acopio", lat: null, lng: null, bedsTotal: 0, bedsFree: 0, notes: "" },
+    COORD,
+  );
+  assert.ok(site.lastConfirmedAt, "createSite starts the operational-confirmation clock");
+  const createdConfirm = site.lastConfirmedAt!;
+
+  // A plain bed-count edit must NOT move last_confirmed_at — otherwise touching
+  // beds would make an unconfirmed site read as live (the masking bug).
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 12, bedsFree: 12, status: "active", notes: "", intent: "capacity" },
+    COORD,
+  );
+  const afterCapacity = await getSite(site.id);
+  assert.equal(
+    afterCapacity!.lastConfirmedAt,
+    createdConfirm,
+    "a bed-count edit must leave the operational-confirmation timestamp untouched",
+  );
+
+  // A "confirmar operativo" advances it.
+  const confirmed = await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 12, bedsFree: 12, status: "active", notes: "", intent: "confirm" },
+    COORD,
+  );
+  assert.ok(
+    Date.parse(confirmed.lastConfirmedAt!) >= Date.parse(createdConfirm),
+    "confirmar operativo advances the operational-confirmation timestamp",
+  );
+  const persisted = await getSite(site.id);
+  assert.equal(persisted!.lastConfirmedAt, confirmed.lastConfirmedAt, "the advance is persisted");
+
+  // The board view exposes the confirmation freshness as its own signal.
+  const view = await svc.coordinationView();
+  const sv = view.sites.find((s) => s.site.id === site.id);
+  assert.ok(sv, "the site is in the board view");
+  assert.equal(sv!.confirmationFreshness, "fresh", "a just-confirmed site reads fresh");
+});
+
 test("peer delegation: responsable grants a volunteer manage rights on their site (revocable)", async () => {
   const org = await seedOrg("Org Delegation");
   const ana = contributor("user-ana3", "ana3@ejemplo.com");

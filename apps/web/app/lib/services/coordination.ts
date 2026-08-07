@@ -40,7 +40,7 @@ import { newNeedId, newOfferId, newOrgId, newSiteId } from "../domain/ids.ts";
 import { nowIso } from "../domain/time.ts";
 import { badRequest, forbidden, notFound } from "../errors.ts";
 import { approxKm } from "../coordination/classify.ts";
-import { freshnessOf } from "../coordination/freshness.ts";
+import { confirmationFreshnessOf, freshnessOf } from "../coordination/freshness.ts";
 import { trustTierOf } from "../coordination/trustTier.ts";
 import { rankOffersForNeed } from "../coordination/match.ts";
 import type { Need, Offer, Org, OrgKind, Site } from "@/app/lib/domain/coordination";
@@ -166,6 +166,11 @@ export async function createSite(input: SiteCreateInput, actor: SiteActor = SYST
     // Whoever creates the site is its responsable (human direction 2026-07-03).
     createdByUserId: actor.userId,
     createdByEmail: actor.email,
+    // Creating a site IS the responsable's first operational assertion — they
+    // are standing at the point — so the operational-confirmation clock starts
+    // now (HOS-2026-014-01 D2). Imported/seed rows are inserted directly with
+    // lastConfirmedAt=null and read as unconfirmed until a coordinator confirms.
+    lastConfirmedAt: now,
   };
   await transaction(async () => {
     await insertSite(site);
@@ -202,12 +207,17 @@ export async function updateSiteCapacity(input: SiteUpdateInput, actor: SiteActo
   // carries its own freshness). Every stewardship write records the trust tier
   // of who made it (trustTierOf): append-only means this is stamp-now-or-never.
   const trust = trustTierOf(actor);
+  // Only a confirm advances the operational-confirmation clock (Judge D2); a
+  // plain bed-count edit leaves last_confirmed_at where it was, so editing beds
+  // can never make a site that has gone unconfirmed for days read as fresh.
+  const confirmedAt = input.intent === "confirm" ? nowIso() : undefined;
   await transaction(async () => {
     await repoUpdateSiteCapacity(site.id, {
       bedsTotal: input.bedsTotal,
       bedsFree,
       status: input.status,
       notes: input.notes,
+      lastConfirmedAt: confirmedAt,
     });
     await appendEvent({
       entityType: "site",
@@ -217,7 +227,13 @@ export async function updateSiteCapacity(input: SiteUpdateInput, actor: SiteActo
       payload: { bedsFree, bedsTotal: input.bedsTotal, status: input.status, by: actor.by, trust },
     });
   });
-  return { ...site, ...input, bedsFree, updatedAt: nowIso() };
+  return {
+    ...site,
+    ...input,
+    bedsFree,
+    updatedAt: nowIso(),
+    lastConfirmedAt: confirmedAt ?? site.lastConfirmedAt,
+  };
 }
 
 /** Set or clear a site's broadcast ("hoy entregan comida 2-5pm"). Allowed for
@@ -400,6 +416,7 @@ export async function coordinationView(): Promise<CoordinationView> {
       site,
       org: orgById.get(site.orgId) ?? null,
       freshness: freshnessOf(site.updatedAt, now),
+      confirmationFreshness: confirmationFreshnessOf(site.lastConfirmedAt, now),
     })),
     needs: needs.map((need) => ({
       need,
@@ -439,7 +456,12 @@ export async function contributorView(userId: string, email: string): Promise<Co
     orgs,
     sites: sites
       .filter((s) => s.status === "active")
-      .map((site) => ({ site, org: orgById.get(site.orgId) ?? null, freshness: freshnessOf(site.updatedAt, now) })),
+      .map((site) => ({
+        site,
+        org: orgById.get(site.orgId) ?? null,
+        freshness: freshnessOf(site.updatedAt, now),
+        confirmationFreshness: confirmationFreshnessOf(site.lastConfirmedAt, now),
+      })),
     managedSiteIds: [...managedIds],
   };
 }

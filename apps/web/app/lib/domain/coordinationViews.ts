@@ -9,7 +9,13 @@ import type { Freshness } from "../coordination/freshness.ts";
 export interface SiteView {
   site: Site;
   org: Org | null;
+  /** Data freshness from the site's last write of ANY kind (updatedAt). */
   freshness: Freshness;
+  /** Freshness of the last OPERATIONAL confirmation ("confirmar operativo"),
+   *  which a bed-count edit does not reset (HOS-2026-014-01 D2). "stale" also
+   *  when the site was never confirmed in HOS (site.lastConfirmedAt === null);
+   *  the raw lastConfirmedAt distinguishes never-confirmed from gone-stale. */
+  confirmationFreshness: Freshness;
 }
 
 export interface NeedView {

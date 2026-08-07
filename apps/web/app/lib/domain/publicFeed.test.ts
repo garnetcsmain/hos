@@ -62,6 +62,7 @@ function site(over: Partial<Site>): Site {
     radiusM: null,
     createdByUserId: "USER-SECRET-9",
     createdByEmail: "maria@example.com",
+    lastConfirmedAt: "2026-07-19T13:45:12.000Z",
     ...over,
   };
 }
