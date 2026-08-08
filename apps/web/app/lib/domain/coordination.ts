@@ -71,6 +71,14 @@ export interface Site {
   bedsFree: number;
   status: SiteStatus;
   notes: string;
+  /** When a steward last EXPLICITLY confirmed this site is still operating
+   *  ("confirmar operativo", HOS-2026-014-01, Judge D1). This is a distinct
+   *  liveness signal from `updatedAt`: editing a bed count or an announcement
+   *  bumps `updatedAt` but must NOT count as re-confirming the place is running,
+   *  so operational freshness decays from THIS timestamp. Null for imported/
+   *  legacy rows never confirmed inside HOS — those honestly read as needing
+   *  confirmation rather than borrowing freshness from an unrelated edit. */
+  lastConfirmedAt: string | null;
   /** caracasayuda.com record id when this row was imported/synced from the
    *  public map; null for records created directly in HOS. Direct records are
    *  NEVER touched by the sync (human precedence rule, 2026-07-03). */

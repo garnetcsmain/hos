@@ -27,13 +27,24 @@ export function Chip({ label, className }: { label: string; className: string })
   );
 }
 
-export function FreshnessBadge({ freshness }: { freshness: Freshness }) {
-  const map = {
-    fresh: { label: "Actualizado", className: "text-[var(--hos-green)]" },
-    aging: { label: "Hace horas", className: "text-[#7A3D00]" },
-    stale: { label: "Sin actualizar +24h", className: "text-[var(--hos-red)]" },
+export function FreshnessBadge({ freshness, kind = "update" }: { freshness: Freshness; kind?: "update" | "confirm" }) {
+  // "confirm" is the site operational-liveness badge (HOS-2026-014-01): it
+  // reflects the last "confirmar operativo", not any edit, so its wording is
+  // about confirmation, not update. "update" stays the generic edit-recency
+  // badge used for needs.
+  const maps = {
+    update: {
+      fresh: { label: "Actualizado", className: "text-[var(--hos-green)]" },
+      aging: { label: "Hace horas", className: "text-[#7A3D00]" },
+      stale: { label: "Sin actualizar +24h", className: "text-[var(--hos-red)]" },
+    },
+    confirm: {
+      fresh: { label: "Confirmado operativo", className: "text-[var(--hos-green)]" },
+      aging: { label: "Confirmar de nuevo", className: "text-[#7A3D00]" },
+      stale: { label: "Sin confirmar +24h", className: "text-[var(--hos-red)]" },
+    },
   } as const;
-  const f = map[freshness];
+  const f = maps[kind][freshness];
   return (
     <span className={`inline-flex items-center gap-[4px] text-[11px] font-bold ${f.className}`}>
       <Clock className="h-[12px] w-[12px]" strokeWidth={2.4} />
@@ -113,7 +124,7 @@ export function SiteCard({ view, onChanged }: { view: SiteView; onChanged: () =>
             {site.status === "closed" ? <Chip label="Cerrado" className="bg-[#F6DAD5] text-[#8A2A1E]" /> : null}
           </div>
         </div>
-        <FreshnessBadge freshness={freshness} />
+        <FreshnessBadge freshness={freshness} kind="confirm" />
       </div>
       {site.category === "refugio" || site.bedsTotal > 0 ? (
         <div className="mt-[12px] flex items-center gap-[8px]">

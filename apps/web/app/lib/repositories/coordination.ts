@@ -45,8 +45,8 @@ export async function countOrgs(): Promise<number> {
 
 const insertSiteStmt = lazyStatement(
   `INSERT INTO sites
-     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes, source_id, synced_at, announcement, announcement_until, radius_m, created_by_user_id, created_by_email)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     (id, created_at, updated_at, name, org_id, district, category, lat, lng, beds_total, beds_free, status, notes, source_id, synced_at, announcement, announcement_until, radius_m, created_by_user_id, created_by_email, last_confirmed_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 export async function insertSite(site: Site): Promise<void> {
@@ -71,6 +71,7 @@ export async function insertSite(site: Site): Promise<void> {
     site.radiusM,
     site.createdByUserId,
     site.createdByEmail,
+    site.lastConfirmedAt,
   );
 }
 
@@ -150,14 +151,23 @@ export async function listSites(): Promise<Site[]> {
 }
 
 /** Update mutable site fields (capacity/status/notes) and bump updated_at so the
- *  freshness signal is honest. */
+ *  freshness signal is honest. When `confirmedAt` is provided (a "confirmar
+ *  operativo" write), also stamp last_confirmed_at — the distinct operational
+ *  liveness signal a plain bed-count edit must NOT refresh (HOS-2026-014-01). */
 export async function updateSiteCapacity(
   id: string,
-  fields: { bedsTotal: number; bedsFree: number; status: string; notes: string },
+  fields: { bedsTotal: number; bedsFree: number; status: string; notes: string; confirmedAt?: string | null },
 ): Promise<void> {
+  const now = nowIso();
+  if (fields.confirmedAt != null) {
+    await db.prepare(
+      `UPDATE sites SET beds_total = ?, beds_free = ?, status = ?, notes = ?, updated_at = ?, last_confirmed_at = ? WHERE id = ?`,
+    ).run(fields.bedsTotal, fields.bedsFree, fields.status, fields.notes, now, fields.confirmedAt, id);
+    return;
+  }
   await db.prepare(
     `UPDATE sites SET beds_total = ?, beds_free = ?, status = ?, notes = ?, updated_at = ? WHERE id = ?`,
-  ).run(fields.bedsTotal, fields.bedsFree, fields.status, fields.notes, nowIso(), id);
+  ).run(fields.bedsTotal, fields.bedsFree, fields.status, fields.notes, now, id);
 }
 
 /** Set or clear (empty message) a site's broadcast. Bumps updated_at: an
