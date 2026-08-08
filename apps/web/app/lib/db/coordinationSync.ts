@@ -246,6 +246,9 @@ export async function runCoordinationSync(
             radiusM: null,
             createdByUserId: null,
             createdByEmail: null,
+            // Synced-in rows were never confirmed operational inside HOS; they
+            // decay from createdAt until a coordinator confirms them.
+            lastConfirmedAt: null,
           });
           summary.sitesInserted += 1;
         } else if (locallyModified(existing)) {

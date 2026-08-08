@@ -40,7 +40,7 @@ import { newNeedId, newOfferId, newOrgId, newSiteId } from "../domain/ids.ts";
 import { nowIso } from "../domain/time.ts";
 import { badRequest, forbidden, notFound } from "../errors.ts";
 import { approxKm } from "../coordination/classify.ts";
-import { freshnessOf } from "../coordination/freshness.ts";
+import { freshnessOf, siteConfirmationFreshness } from "../coordination/freshness.ts";
 import { trustTierOf } from "../coordination/trustTier.ts";
 import { rankOffersForNeed } from "../coordination/match.ts";
 import type { Need, Offer, Org, OrgKind, Site } from "@/app/lib/domain/coordination";
@@ -166,6 +166,9 @@ export async function createSite(input: SiteCreateInput, actor: SiteActor = SYST
     // Whoever creates the site is its responsable (human direction 2026-07-03).
     createdByUserId: actor.userId,
     createdByEmail: actor.email,
+    // Creating a site asserts it is operational right now — that IS the first
+    // confirmation, so operational freshness starts from here (HOS-2026-014-01).
+    lastConfirmedAt: now,
   };
   await transaction(async () => {
     await insertSite(site);
@@ -202,12 +205,17 @@ export async function updateSiteCapacity(input: SiteUpdateInput, actor: SiteActo
   // carries its own freshness). Every stewardship write records the trust tier
   // of who made it (trustTierOf): append-only means this is stamp-now-or-never.
   const trust = trustTierOf(actor);
+  // A "confirmar operativo" is the only write that refreshes operational
+  // liveness: a plain bed-count edit must NOT make the site read as re-confirmed
+  // (HOS-2026-014-01, Judge D1). Stamp last_confirmed_at only on confirm intent.
+  const confirmedAt = input.intent === "confirm" ? nowIso() : null;
   await transaction(async () => {
     await repoUpdateSiteCapacity(site.id, {
       bedsTotal: input.bedsTotal,
       bedsFree,
       status: input.status,
       notes: input.notes,
+      confirmedAt,
     });
     await appendEvent({
       entityType: "site",
@@ -217,7 +225,13 @@ export async function updateSiteCapacity(input: SiteUpdateInput, actor: SiteActo
       payload: { bedsFree, bedsTotal: input.bedsTotal, status: input.status, by: actor.by, trust },
     });
   });
-  return { ...site, ...input, bedsFree, updatedAt: nowIso() };
+  return {
+    ...site,
+    ...input,
+    bedsFree,
+    updatedAt: nowIso(),
+    lastConfirmedAt: confirmedAt ?? site.lastConfirmedAt,
+  };
 }
 
 /** Set or clear a site's broadcast ("hoy entregan comida 2-5pm"). Allowed for
@@ -399,7 +413,10 @@ export async function coordinationView(): Promise<CoordinationView> {
     sites: sites.map((site) => ({
       site,
       org: orgById.get(site.orgId) ?? null,
-      freshness: freshnessOf(site.updatedAt, now),
+      // Site freshness tracks the last operational confirmation, not any edit
+      // (HOS-2026-014-01): a bed-count change does not make a site read as
+      // freshly confirmed. Needs still use freshnessOf(updatedAt) below.
+      freshness: siteConfirmationFreshness(site.lastConfirmedAt, site.createdAt, now),
     })),
     needs: needs.map((need) => ({
       need,
@@ -439,7 +456,11 @@ export async function contributorView(userId: string, email: string): Promise<Co
     orgs,
     sites: sites
       .filter((s) => s.status === "active")
-      .map((site) => ({ site, org: orgById.get(site.orgId) ?? null, freshness: freshnessOf(site.updatedAt, now) })),
+      .map((site) => ({
+        site,
+        org: orgById.get(site.orgId) ?? null,
+        freshness: siteConfirmationFreshness(site.lastConfirmedAt, site.createdAt, now),
+      })),
     managedSiteIds: [...managedIds],
   };
 }

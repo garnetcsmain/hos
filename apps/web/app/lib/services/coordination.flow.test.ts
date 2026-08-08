@@ -6,6 +6,7 @@ process.env.HOS_DB_PATH = ":memory:";
 
 const svc = await import("./coordination.ts");
 const { eventsFor } = await import("../repositories/events.ts");
+const { getSite } = await import("../repositories/coordination.ts");
 const { resetAllTablesForTests } = await import("../db/testing.ts");
 
 // Clean slate so this suite is re-runnable against a shared Postgres too.
@@ -271,6 +272,38 @@ test("stewardship trust tier (HOS-2026-014-01): confirmar operativo is its own e
   assert.equal((confirmed!.payload as { trust?: string }).trust, "verified");
   assert.ok(capacity, "a bed-count edit must stay site.capacity_updated");
   assert.equal((capacity!.payload as { trust?: string }).trust, "honor");
+});
+
+test("operational confirmation freshness (HOS-2026-014-01): a bed-count edit does NOT re-confirm; 'confirmar operativo' does", async () => {
+  const org = await seedOrg("Org Confirm");
+  const site = await svc.createSite(
+    { name: "Refugio Confirm", orgId: org.id, district: "Chacao", category: "refugio", lat: null, lng: null, bedsTotal: 10, bedsFree: 10, notes: "" },
+    COORD,
+  );
+  // Creating a site is its first operational confirmation.
+  assert.ok(site.lastConfirmedAt, "a new site starts confirmed-at-creation");
+  const atCreation = site.lastConfirmedAt!;
+
+  // A plain bed-count edit bumps updated_at but must NOT touch last_confirmed_at
+  // — editing beds is not re-confirming the place is still operating.
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 10, bedsFree: 3, status: "active", notes: "", intent: "capacity" },
+    COORD,
+  );
+  const afterEdit = await getSite(site.id);
+  assert.equal(afterEdit!.lastConfirmedAt, atCreation, "a bed-count edit leaves last_confirmed_at unchanged");
+
+  // A "confirmar operativo" is the only write that refreshes it.
+  await svc.updateSiteCapacity(
+    { siteId: site.id, bedsTotal: 10, bedsFree: 3, status: "active", notes: "", intent: "confirm" },
+    COORD,
+  );
+  const afterConfirm = await getSite(site.id);
+  assert.ok(afterConfirm!.lastConfirmedAt, "confirmar operativo stamps last_confirmed_at");
+  assert.ok(
+    Date.parse(afterConfirm!.lastConfirmedAt!) >= Date.parse(atCreation),
+    "the confirmation timestamp advances (or holds) — never regresses",
+  );
 });
 
 test("peer delegation: responsable grants a volunteer manage rights on their site (revocable)", async () => {

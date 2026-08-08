@@ -23,3 +23,18 @@ export function freshnessOf(updatedAt: string, now: string): Freshness {
   if (h >= AGING_HOURS) return "aging";
   return "fresh";
 }
+
+/** Operational-confirmation freshness for a site (HOS-2026-014-01, Judge D1).
+ *  A site's liveness is only as fresh as its last EXPLICIT "confirmar operativo",
+ *  never any write: a bed-count edit or an announcement change must NOT make a
+ *  site read as freshly confirmed. `lastConfirmedAt` is null for imported/legacy
+ *  rows never confirmed inside HOS — those decay from when the record first
+ *  appeared (`createdAt`), so unconfirmed data honestly reads as needing
+ *  confirmation instead of inheriting freshness from an unrelated edit. */
+export function siteConfirmationFreshness(
+  lastConfirmedAt: string | null,
+  createdAt: string,
+  now: string,
+): Freshness {
+  return freshnessOf(lastConfirmedAt ?? createdAt, now);
+}

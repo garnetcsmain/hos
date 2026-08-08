@@ -59,6 +59,9 @@ export async function seedCoordinationIfEmpty(): Promise<boolean> {
         radiusM: null,
         createdByUserId: null,
         createdByEmail: null,
+        // Imported/seeded rows were never confirmed operational inside HOS;
+        // they decay from createdAt until a coordinator confirms them.
+        lastConfirmedAt: null,
       });
     }
 
